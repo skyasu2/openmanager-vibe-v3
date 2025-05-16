@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenManager 7.0 자연어 처리 데모</title> 
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f8f9fa;
+            color: #495057;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.6; /* 가독성을 위해 기본 줄 간격 추가 */
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 그림자 약간 강조 */
+            text-align: center;
+            width: 90%;
+            max-width: 650px; /* 너비 약간 증가 */
+        }
+        .logo {
+            font-size: 2.8em; /* 로고 크기 약간 증가 */
+            color: #007bff; 
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #212529;
+            margin-bottom: 20px; /* 제목 아래 간격 조정 */
+            font-size: 2em; /* 제목 폰트 크기 조정 */
+        }
+        p {
+            line-height: 1.7;
+            margin-bottom: 15px; /* 문단 간 간격 조정 */
+            font-size: 1rem;
+        }
+        .description { /* 설명 문단 스타일 */
+            font-size: 1.05rem; /* 설명 폰트 약간 크게 */
+            color: #343a40;
+            margin-bottom: 25px;
+        }
+        .call-to-action { /* 데모 시작 안내 문구 스타일 */
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #17a2b8; /* 다른 색상으로 강조 */
+            margin-bottom: 30px;
+        }
+        .button-container {
+            margin-top: 30px;
+        }
+        button {
+            padding: 15px 35px; /* 버튼 패딩 조정 */
+            font-size: 1.15rem; /* 버튼 폰트 크기 조정 */
+            background-color: #007bff; /* 메인 색상으로 변경 */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease; /* transform 효과 추가 */
+        }
+        button:hover {
+            background-color: #0056b3; /* 호버 색상 변경 */
+            transform: translateY(-2px); /* 살짝 떠오르는 효과 */
+        }
+        button:active {
+            transform: translateY(0px); /* 클릭 시 원래 위치로 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">INSOFT OpenManager</div>
+        <h1>OpenManager 7.0 자연어 처리 데모</h1> 
+        
+        <p class="description">
+            AI 기반의 자연어 처리 기술을 OpenManager에 통합하여,
+            <br>더욱 직관적이고 효율적인 서버 상태 분석 및 문제 해결 경험을 제공합니다.
+            <br>복잡한 명령어 대신 일상 언어로 질문하고, 지능적인 요약과 상세 보고서를 받아보세요.
+        </p>
+        
+        <p class="call-to-action">
+            아래 버튼을 클릭하여 데모를 시작하세요!
+        </p>
+
+        <div class="button-container">
+            <button onclick="goToDemo()">데모 시작</button>
+        </div>
+    </div>
+
+    <script>
+        function goToDemo() {
+            // 실제 데모 페이지 파일명으로 변경해주세요. (예: demo.html)
+            window.location.href = 'demo.html'; 
+        }
+    </script>
+</body>
+</html>
