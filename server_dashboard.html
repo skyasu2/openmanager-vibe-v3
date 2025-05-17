@@ -227,6 +227,61 @@
             height: 300px;
             position: relative;
         }
+
+        /* AI 질의 컨테이너 */
+        .ai-query-container {
+            background-color: var(--surface);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            transition: transform 0.3s ease;
+        }
+
+        .ai-query-container:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .query-loading {
+            display: none;
+            text-align: center;
+            margin: var(--spacing-md) 0;
+        }
+
+        .query-loading.active {
+            display: block;
+        }
+
+        .query-result {
+            display: none;
+            background-color: var(--background);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-md);
+            white-space: pre-line;
+            border: 1px solid var(--border);
+        }
+
+        .query-result.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
         
         /* 반응형 */
         @media (max-width: 768px) {
@@ -278,6 +333,24 @@
             <div class="col">
                 <h1 class="display-5 mb-0">서버 모니터링 대시보드</h1>
                 <p class="text-muted" id="timestamp">데이터 기준 시각: 로딩 중...</p>
+            </div>
+        </div>
+
+        <!-- AI 질의 영역 추가 -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="ai-query-container">
+                    <h5 class="mb-3"><i class="fas fa-robot me-2"></i>AI 서버 분석</h5>
+                    <p class="text-muted mb-3">서버 상태나 성능에 대해 자연어로 질문해보세요. (예: "CPU 사용률이 높은 서버는?", "메모리 상태 알려줘")</p>
+                    <input type="text" class="query-input" id="queryInput" placeholder="자연어로 질문하세요... (Enter 키를 눌러 질문)">
+                    <div class="query-loading" id="queryLoading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">분석 중...</span>
+                        </div>
+                        <p class="mt-2">AI가 서버 데이터를 분석 중입니다...</p>
+                    </div>
+                    <div class="query-result" id="queryResult"></div>
+                </div>
             </div>
         </div>
 
@@ -388,34 +461,66 @@
         </div>
     </div>
 
+    <!-- 스크립트는 순서가 중요: 먼저 dummy_data_generator.js, 그 다음 ai_processor.js 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="dummy_data_generator.js"></script>
+    <script src="ai_processor.js"></script>
     <script>
+        // 전역 변수
         let serverData = [];
         let currentSort = { column: 'hostname', ascending: true };
         let charts = {};
 
-        // 데이터 로드 함수
-        async function loadServerData() {
-            // window.serverData가 존재하면 바로 사용
-            if (window.serverData && Array.isArray(window.serverData)) {
-                renderServerTable(window.serverData);
-                updateCharts(window.serverData);
-                updateServerCount(window.serverData.length);
-                updateTimestamp();
+        // 초기화 함수
+        function init() {
+            // 로딩 표시
+            document.getElementById('loadingIndicator').style.display = 'flex';
+            
+            // window.serverData가 있는지 확인
+            checkServerData();
+            
+            // 이벤트 리스너 설정
+            setupEventListeners();
+        }
+
+        // window.serverData가 생성될 때까지 대기
+        function checkServerData() {
+            if (window.serverData && Array.isArray(window.serverData) && window.serverData.length > 0) {
+                serverData = window.serverData;
+                processServerData();
+                document.getElementById('loadingIndicator').style.display = 'none';
             } else {
-                // 데이터가 아직 준비되지 않은 경우 1초 후 재시도
-                setTimeout(loadServerData, 1000);
+                // 데이터가 아직 없으면 100ms 후 재시도
+                setTimeout(checkServerData, 100);
             }
         }
 
-        // window.serverData가 갱신될 때마다 테이블/차트 갱신
-        window.addEventListener('serverDataUpdated', function(e) {
-            const data = e.detail;
-            renderServerTable(data);
-            updateCharts(data);
-            updateServerCount(data.length);
+        // 서버 데이터 처리
+        function processServerData() {
+            renderServerTable();
+            updateCharts();
+            updateServerCount();
             updateTimestamp();
+        }
+
+        // 데이터 로드 함수
+        function loadServerData() {
+            document.getElementById('loadingIndicator').style.display = 'flex';
+            
+            // 최신 serverData 사용
+            if (window.serverData && Array.isArray(window.serverData)) {
+                serverData = window.serverData;
+                processServerData();
+            }
+            
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+
+        // window.serverData 갱신 이벤트 리스너
+        window.addEventListener('serverDataUpdated', function(e) {
+            serverData = e.detail;
+            processServerData();
         });
 
         // 사용률에 따른 색상 클래스 반환
@@ -454,16 +559,20 @@
         }
 
         // 서버 테이블 렌더링 함수
-        function renderServerTable(data) {
+        function renderServerTable() {
             const tbody = document.getElementById('serverTableBody');
             tbody.innerHTML = '';
 
+            if (!serverData || serverData.length === 0) {
+                return;
+            }
+
             // 상태 필터링
             const statusFilter = document.getElementById('statusFilter').value;
-            let filteredData = data;
+            let filteredData = serverData;
             
             if (statusFilter !== 'all') {
-                filteredData = data.filter(server => {
+                filteredData = serverData.filter(server => {
                     if (statusFilter === 'critical' && (server.cpu_usage >= 90 || server.memory_usage_percent >= 90 || server.disk[0].disk_usage_percent >= 90)) {
                         return true;
                     } else if (statusFilter === 'warning' && 
@@ -578,13 +687,13 @@
         function updateTimestamp() {
             const timestampEl = document.getElementById('timestamp');
             if (timestampEl && serverData.length > 0) {
-                const timestamp = new Date(serverData[0].timestamp);
-                timestampEl.textContent = `데이터 기준 시각: ${timestamp.toLocaleString('ko-KR')}`;
+                const now = new Date();
+                timestampEl.textContent = `데이터 기준 시각: ${now.toLocaleString('ko-KR')}`;
             }
         }
         
         // 서버 수 업데이트 함수
-        function updateServerCount(count = 0) {
+        function updateServerCount(count = null) {
             const serverCountEl = document.getElementById('serverCount');
             if (serverCountEl) {
                 serverCountEl.textContent = `${count || serverData.length} 서버`;
@@ -592,14 +701,18 @@
         }
 
         // 차트 업데이트 함수
-        function updateCharts(data) {
+        function updateCharts() {
+            if (!serverData || serverData.length === 0) {
+                return;
+            }
+            
             // 차트 객체가 이미 존재하는 경우 파괴
             Object.values(charts).forEach(chart => {
                 if (chart) chart.destroy();
             });
             
             // CPU 차트
-            const cpuData = [...data]
+            const cpuData = [...serverData]
                 .sort((a, b) => b.cpu_usage - a.cpu_usage)
                 .slice(0, 5);
                 
@@ -637,7 +750,7 @@
             });
             
             // 메모리 차트
-            const memoryData = [...data]
+            const memoryData = [...serverData]
                 .sort((a, b) => b.memory_usage_percent - a.memory_usage_percent)
                 .slice(0, 5);
                 
@@ -675,7 +788,7 @@
             });
             
             // 디스크 차트
-            const diskData = [...data]
+            const diskData = [...serverData]
                 .sort((a, b) => b.disk[0].disk_usage_percent - a.disk[0].disk_usage_percent)
                 .slice(0, 5);
                 
@@ -713,7 +826,7 @@
             });
             
             // 네트워크 차트
-            const networkData = [...data]
+            const networkData = [...serverData]
                 .sort((a, b) => b.net.tx_bytes - a.net.tx_bytes)
                 .slice(0, 5);
                 
@@ -743,12 +856,31 @@
             });
         }
 
-        // 이벤트 리스너 설정
-        document.addEventListener('DOMContentLoaded', function() {
-            loadServerData();
-            // 10분마다 강제 갱신
-            setInterval(loadServerData, 10 * 60 * 1000);
+        // AI 질의 처리
+        async function handleQuery(queryText) {
+            if (!queryText.trim()) return;
             
+            const queryLoading = document.getElementById('queryLoading');
+            const queryResult = document.getElementById('queryResult');
+            
+            queryLoading.classList.add('active');
+            queryResult.classList.remove('active');
+            
+            try {
+                const response = await processQuery(queryText);
+                queryResult.textContent = response;
+                queryResult.classList.add('active');
+            } catch (error) {
+                console.error('AI 처리 오류:', error);
+                queryResult.textContent = '죄송합니다. 처리 중 오류가 발생했습니다. 다시 시도해주세요.';
+                queryResult.classList.add('active');
+            } finally {
+                queryLoading.classList.remove('active');
+            }
+        }
+
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
             // 새로고침 버튼
             document.getElementById('refreshBtn').addEventListener('click', loadServerData);
             
@@ -757,8 +889,20 @@
             
             // 상태 필터
             document.getElementById('statusFilter').addEventListener('change', renderServerTable);
-        });
+            
+            // AI 질의 입력
+            document.getElementById('queryInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleQuery(this.value);
+                }
+            });
+
+            // 10분마다 자동 갱신
+            setInterval(loadServerData, 10 * 60 * 1000);
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', init);
     </script>
-    <script src="dummy_data_generator.js"></script>
 </body>
 </html> 
