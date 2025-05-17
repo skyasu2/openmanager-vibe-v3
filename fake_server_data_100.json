@@ -1,0 +1,200 @@
+[
+  {
+    "hostname": "web-001",
+    "os": "Ubuntu 22.04",
+    "uptime": "12 days, 3:14:00",
+    "cpu_usage": 43.5,
+    "load_avg_1m": 0.62,
+    "memory_total": 16384,
+    "memory_used": 8321,
+    "memory_usage_percent": 50.8,
+    "disk": [
+      {
+        "mount_point": "/",
+        "disk_total": 102400,
+        "disk_used": 64200,
+        "disk_usage_percent": 62.7
+      }
+    ],
+    "net": {
+      "interface": "eth0",
+      "rx_bytes": 192837465,
+      "tx_bytes": 128374653,
+      "rx_errors": 1,
+      "tx_errors": 0
+    },
+    "process_count": 204,
+    "zombie_count": 1,
+    "services": {
+      "nginx": "running",
+      "mysql": "stopped",
+      "rabbitmq": "running"
+    },
+    "timestamp": "2025-05-17 10:10:00"
+  },
+  {
+    "hostname": "web-002",
+    "os": "Ubuntu 22.04",
+    "uptime": "45 days, 12:23:10",
+    "cpu_usage": 78.2,
+    "load_avg_1m": 1.25,
+    "memory_total": 32768,
+    "memory_used": 28234,
+    "memory_usage_percent": 86.2,
+    "disk": [
+      {
+        "mount_point": "/",
+        "disk_total": 204800,
+        "disk_used": 156400,
+        "disk_usage_percent": 76.4
+      }
+    ],
+    "net": {
+      "interface": "eth0",
+      "rx_bytes": 345678912,
+      "tx_bytes": 234567891,
+      "rx_errors": 0,
+      "tx_errors": 2
+    },
+    "process_count": 256,
+    "zombie_count": 0,
+    "services": {
+      "nginx": "running",
+      "mysql": "running",
+      "rabbitmq": "running"
+    },
+    "timestamp": "2025-05-17 10:10:00"
+  },
+  {
+    "hostname": "web-003",
+    "os": "Ubuntu 22.04",
+    "uptime": "5 days, 8:45:30",
+    "cpu_usage": 92.4,
+    "load_avg_1m": 2.15,
+    "memory_total": 16384,
+    "memory_used": 14234,
+    "memory_usage_percent": 86.9,
+    "disk": [
+      {
+        "mount_point": "/",
+        "disk_total": 102400,
+        "disk_used": 89200,
+        "disk_usage_percent": 87.1
+      }
+    ],
+    "net": {
+      "interface": "eth0",
+      "rx_bytes": 445678912,
+      "tx_bytes": 334567891,
+      "rx_errors": 3,
+      "tx_errors": 1
+    },
+    "process_count": 312,
+    "zombie_count": 2,
+    "services": {
+      "nginx": "running",
+      "mysql": "running",
+      "rabbitmq": "stopped"
+    },
+    "timestamp": "2025-05-17 10:10:00"
+  },
+  {
+    "hostname": "db-001",
+    "os": "CentOS 8",
+    "uptime": "120 days, 4:12:45",
+    "cpu_usage": 65.8,
+    "load_avg_1m": 1.45,
+    "memory_total": 65536,
+    "memory_used": 45234,
+    "memory_usage_percent": 69.0,
+    "disk": [
+      {
+        "mount_point": "/",
+        "disk_total": 512000,
+        "disk_used": 389200,
+        "disk_usage_percent": 76.0
+      }
+    ],
+    "net": {
+      "interface": "eth0",
+      "rx_bytes": 892837465,
+      "tx_bytes": 678374653,
+      "rx_errors": 0,
+      "tx_errors": 0
+    },
+    "process_count": 156,
+    "zombie_count": 0,
+    "services": {
+      "mysql": "running",
+      "redis": "running",
+      "mongodb": "running"
+    },
+    "timestamp": "2025-05-17 10:10:00"
+  },
+  {
+    "hostname": "app-001",
+    "os": "Ubuntu 20.04",
+    "uptime": "15 days, 7:22:18",
+    "cpu_usage": 56.7,
+    "load_avg_1m": 0.92,
+    "memory_total": 32768,
+    "memory_used": 12560,
+    "memory_usage_percent": 38.3,
+    "disk": [
+      {
+        "mount_point": "/",
+        "disk_total": 204800,
+        "disk_used": 98500,
+        "disk_usage_percent": 48.1
+      }
+    ],
+    "net": {
+      "interface": "eth0",
+      "rx_bytes": 567891234,
+      "tx_bytes": 345678912,
+      "rx_errors": 0,
+      "tx_errors": 0
+    },
+    "process_count": 175,
+    "zombie_count": 0,
+    "services": {
+      "tomcat": "running",
+      "nginx": "running",
+      "redis": "running"
+    },
+    "timestamp": "2025-05-17 10:10:00"
+  },
+  {
+    "hostname": "app-002",
+    "os": "Ubuntu 20.04",
+    "uptime": "8 days, 12:45:33",
+    "cpu_usage": 72.3,
+    "load_avg_1m": 1.35,
+    "memory_total": 32768,
+    "memory_used": 25234,
+    "memory_usage_percent": 77.0,
+    "disk": [
+      {
+        "mount_point": "/",
+        "disk_total": 204800,
+        "disk_used": 143600,
+        "disk_usage_percent": 70.1
+      }
+    ],
+    "net": {
+      "interface": "eth0",
+      "rx_bytes": 476891234,
+      "tx_bytes": 289678912,
+      "rx_errors": 2,
+      "tx_errors": 0
+    },
+    "process_count": 192,
+    "zombie_count": 0,
+    "services": {
+      "tomcat": "running",
+      "nginx": "running",
+      "redis": "running"
+    },
+    "timestamp": "2025-05-17 10:10:00"
+  }
+] 
