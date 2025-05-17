@@ -397,21 +397,26 @@
 
         // 데이터 로드 함수
         async function loadServerData() {
-            try {
-                document.getElementById('loadingIndicator').style.display = 'flex';
-                const response = await fetch('fake_server_data_100.json');
-                const data = await response.json();
-                serverData = data;
-                renderServerTable();
-                updateCharts();
+            // window.serverData가 존재하면 바로 사용
+            if (window.serverData && Array.isArray(window.serverData)) {
+                renderServerTable(window.serverData);
+                updateCharts(window.serverData);
+                updateServerCount(window.serverData.length);
                 updateTimestamp();
-                updateServerCount();
-                document.getElementById('loadingIndicator').style.display = 'none';
-            } catch (error) {
-                console.error('데이터 로드 실패:', error);
-                document.getElementById('loadingIndicator').style.display = 'none';
+            } else {
+                // 데이터가 아직 준비되지 않은 경우 1초 후 재시도
+                setTimeout(loadServerData, 1000);
             }
         }
+
+        // window.serverData가 갱신될 때마다 테이블/차트 갱신
+        window.addEventListener('serverDataUpdated', function(e) {
+            const data = e.detail;
+            renderServerTable(data);
+            updateCharts(data);
+            updateServerCount(data.length);
+            updateTimestamp();
+        });
 
         // 사용률에 따른 색상 클래스 반환
         function getUsageColorClass(usage) {
@@ -449,16 +454,16 @@
         }
 
         // 서버 테이블 렌더링 함수
-        function renderServerTable() {
+        function renderServerTable(data) {
             const tbody = document.getElementById('serverTableBody');
             tbody.innerHTML = '';
 
             // 상태 필터링
             const statusFilter = document.getElementById('statusFilter').value;
-            let filteredData = serverData;
+            let filteredData = data;
             
             if (statusFilter !== 'all') {
-                filteredData = serverData.filter(server => {
+                filteredData = data.filter(server => {
                     if (statusFilter === 'critical' && (server.cpu_usage >= 90 || server.memory_usage_percent >= 90 || server.disk[0].disk_usage_percent >= 90)) {
                         return true;
                     } else if (statusFilter === 'warning' && 
@@ -587,14 +592,14 @@
         }
 
         // 차트 업데이트 함수
-        function updateCharts() {
+        function updateCharts(data) {
             // 차트 객체가 이미 존재하는 경우 파괴
             Object.values(charts).forEach(chart => {
                 if (chart) chart.destroy();
             });
             
             // CPU 차트
-            const cpuData = [...serverData]
+            const cpuData = [...data]
                 .sort((a, b) => b.cpu_usage - a.cpu_usage)
                 .slice(0, 5);
                 
@@ -632,7 +637,7 @@
             });
             
             // 메모리 차트
-            const memoryData = [...serverData]
+            const memoryData = [...data]
                 .sort((a, b) => b.memory_usage_percent - a.memory_usage_percent)
                 .slice(0, 5);
                 
@@ -670,7 +675,7 @@
             });
             
             // 디스크 차트
-            const diskData = [...serverData]
+            const diskData = [...data]
                 .sort((a, b) => b.disk[0].disk_usage_percent - a.disk[0].disk_usage_percent)
                 .slice(0, 5);
                 
@@ -708,7 +713,7 @@
             });
             
             // 네트워크 차트
-            const networkData = [...serverData]
+            const networkData = [...data]
                 .sort((a, b) => b.net.tx_bytes - a.net.tx_bytes)
                 .slice(0, 5);
                 
@@ -740,8 +745,9 @@
 
         // 이벤트 리스너 설정
         document.addEventListener('DOMContentLoaded', function() {
-            // 초기 데이터 로드
             loadServerData();
+            // 10분마다 강제 갱신
+            setInterval(loadServerData, 10 * 60 * 1000);
             
             // 새로고침 버튼
             document.getElementById('refreshBtn').addEventListener('click', loadServerData);
@@ -751,10 +757,8 @@
             
             // 상태 필터
             document.getElementById('statusFilter').addEventListener('change', renderServerTable);
-            
-            // 10분마다 자동 새로고침
-            setInterval(loadServerData, 600000);
         });
     </script>
+    <script src="dummy_data_generator.js"></script>
 </body>
 </html> 
