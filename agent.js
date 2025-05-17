@@ -144,4 +144,4 @@ class Agent {
 }
 
 // Agent 클래스를 전역으로 노출 (server_dashboard.html에서 사용하기 위함)
-// window.Agent = Agent; // 또는 모듈 시스템 사용 시 export 
+window.Agent = Agent; // 또는 모듈 시스템 사용 시 export 
