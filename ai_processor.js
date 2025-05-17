@@ -635,13 +635,12 @@ class AIProcessor {
     }
 }
 
-// 전역 함수 - 외부에서 호출
-async function processQuery(query) {
-    // AIProcessor 인스턴스가 없으면 생성
+// 전역 함수로 항상 노출
+window.processQuery = async function(query) {
     if (!window.aiProcessor) {
         window.aiProcessor = new AIProcessor();
+        // 데이터 초기화 대기
+        await new Promise(resolve => setTimeout(resolve, 200));
     }
-    
-    // 쿼리 처리하고 결과 반환
     return await window.aiProcessor.processQuery(query);
-} 
+}; 
