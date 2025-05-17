@@ -3,108 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenManager Vibe AI Assistant</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>OpenManager Vibe AI</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-light: #e8f0fe;
+            --primary-dark: #0d47a1;
+            --surface: #ffffff;
+            --background: #f8f9fa;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --text-white: #ffffff;
+            --border: #dadce0;
+            --shadow-sm: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .splash-container {
+            width: 90%;
+            max-width: 500px;
+            background-color: var(--surface);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: var(--spacing-xl);
+            text-align: center;
+        }
+        
+        .logo-container {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .logo-container i {
+            font-size: 48px;
+            color: var(--primary);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+        }
+        
+        h1 .highlight {
+            color: var(--primary);
+        }
+        
+        .description {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .feature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .feature-item i {
+            font-size: 24px;
+            color: var(--primary);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--text-white);
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <div id="loginSection" class="login-section">
-            <div class="login-card">
-                <div class="logo-container">
-                    <i class="fas fa-server"></i>
-                </div>
-                <h1>OpenManager <span class="highlight">Vibe AI</span></h1>
-                <p class="description">서버 모니터링 AI 어시스턴트 데모</p>
-                <div class="features">
-                    <div class="feature-item">
-                        <i class="fas fa-chart-line"></i>
-                        <span>실시간 모니터링</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-robot"></i>
-                        <span>AI 기반 분석</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-bolt"></i>
-                        <span>신속한 대응</span>
-                    </div>
-                </div>
-                <div class="login-form">
-                    <button onclick="handleLogin()" class="btn-primary">
-                        <i class="fas fa-play"></i> 데모 시작하기
-                    </button>
-                </div>
+    <div class="splash-container">
+        <div class="logo-container">
+            <i class="fas fa-server"></i>
+        </div>
+        <h1>OpenManager <span class="highlight">Vibe AI</span></h1>
+        <p class="description">서버 모니터링 AI 어시스턴트 데모</p>
+        
+        <div class="features">
+            <div class="feature-item">
+                <i class="fas fa-chart-line"></i>
+                <span>실시간 모니터링</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-robot"></i>
+                <span>AI 기반 분석</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-bolt"></i>
+                <span>신속한 대응</span>
             </div>
         </div>
-
-        <div id="dashboard" class="dashboard hidden">
-            <div class="sidebar">
-                <div class="logo">
-                    <i class="fas fa-server"></i>
-                    <span>OpenManager Vibe</span>
-                </div>
-                <nav>
-                    <button class="nav-item active" onclick="showDashboard()">
-                        <i class="fas fa-chart-line"></i> 대시보드
-                    </button>
-                    <button class="nav-item" onclick="showScenarioSelector()">
-                        <i class="fas fa-robot"></i> AI 시나리오
-                    </button>
-                </nav>
-                <div class="user-info">
-                    <i class="fas fa-user-circle"></i>
-                    <span id="currentUser">관리자</span>
-                    <button onclick="handleLogout()" class="btn-logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="main-content">
-                <div class="header">
-                    <h2><i class="fas fa-chart-line"></i> 서버 모니터링 대시보드</h2>
-                    <div class="header-actions">
-                        <button class="btn-refresh" onclick="refreshData()">
-                            <i class="fas fa-sync-alt"></i> 새로고침
-                        </button>
-                    </div>
-                </div>
-
-                <div class="status-summary" id="statusSummary">
-                    <!-- 상태 요약이 여기에 동적으로 추가됩니다 -->
-                </div>
-
-                <div class="server-list" id="serverList">
-                    <!-- 서버 목록이 여기에 동적으로 추가됩니다 -->
-                </div>
-
-                <div class="scenario-section hidden" id="scenarioSection">
-                    <div class="scenario-selector">
-                        <h3>시나리오 선택</h3>
-                        <div class="scenario-list">
-                            <button class="scenario-item" onclick="handleScenarioChange('cpu')">
-                                <i class="fas fa-microchip"></i> CPU 사용률 문제
-                            </button>
-                            <button class="scenario-item" onclick="handleScenarioChange('memory')">
-                                <i class="fas fa-memory"></i> 메모리 누수
-                            </button>
-                            <button class="scenario-item" onclick="handleScenarioChange('disk')">
-                                <i class="fas fa-hdd"></i> 디스크 공간 부족
-                            </button>
-                            <button class="scenario-item" onclick="handleScenarioChange('service')">
-                                <i class="fas fa-cogs"></i> 서비스 중단
-                            </button>
-                        </div>
-                    </div>
-                    <div class="ai-response" id="aiResponse">
-                        <!-- AI 응답이 여기에 동적으로 추가됩니다 -->
-                    </div>
-                </div>
-            </div>
-        </div>
+        
+        <button onclick="startDemo()" class="btn-primary">
+            <i class="fas fa-play"></i> 데모 시작하기
+        </button>
     </div>
-    <script src="js/main.js"></script>
+
+    <script>
+        function startDemo() {
+            window.location.href = 'demo.html';
+        }
+    </script>
 </body>
 </html>
