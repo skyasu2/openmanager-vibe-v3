@@ -6,13 +6,17 @@
 
 class DummyDataGenerator {
     constructor() {
-        this.serverCount = 100;
+        this.serverCount = 50; // 100대에서 50대로 축소
         this.updateInterval = 10 * 60 * 1000; // 10분 (밀리초 단위)
         this.errorProbability = 0.3; // 30% 확률로 에러 발생
         this.serverPrefixes = ['web', 'app', 'db', 'cache', 'api', 'auth', 'cdn', 'monitor'];
         this.regions = ['kr', 'us', 'eu', 'jp', 'sg'];
         this.osTypes = ['Ubuntu 20.04 LTS', 'CentOS 7', 'Amazon Linux 2', 'Debian 11', 'RHEL 8'];
         this.services = ['nginx', 'mysql', 'redis', 'mongodb', 'elasticsearch', 'kafka', 'prometheus'];
+        
+        // 하루치 데이터 생성 시간 단위
+        this.dayHours = 24;
+        this.currentHour = 0;
         
         // 서버 데이터 초기화
         this.generateInitialData();
@@ -82,6 +86,10 @@ class DummyDataGenerator {
             }
         }
         
+        // 하루치 데이터 - 현재 시간 기준
+        const now = new Date();
+        now.setHours(this.currentHour, 0, 0, 0); // 현재 시간 설정 (하루 중 특정 시간)
+        
         return {
             hostname,
             os: this.getRandomItem(this.osTypes),
@@ -97,12 +105,15 @@ class DummyDataGenerator {
             net,
             services,
             errors,
-            timestamp: new Date().toISOString()
+            timestamp: now.toISOString()
         };
     }
     
     // 데이터 업데이트 함수
     updateData() {
+        // 하루 주기 업데이트
+        this.currentHour = (this.currentHour + 1) % this.dayHours;
+        
         this.serverData = this.serverData.map((server, index) => {
             // 서비스와 오류는 30% 확률로 재생성
             const shouldUpdateServices = Math.random() < 0.3;
@@ -147,6 +158,10 @@ class DummyDataGenerator {
                 }
             }
             
+            // 하루치 데이터 - 시간 업데이트
+            const now = new Date();
+            now.setHours(this.currentHour, 0, 0, 0);
+            
             return {
                 ...server,
                 cpu_usage,
@@ -164,7 +179,7 @@ class DummyDataGenerator {
                 },
                 services,
                 errors,
-                timestamp: new Date().toISOString()
+                timestamp: now.toISOString()
             };
         });
         
