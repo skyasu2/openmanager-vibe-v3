@@ -1385,12 +1385,21 @@
             queryResult.classList.remove('active');
             
             try {
-                const response = await processQuery(queryText);
-                queryResult.textContent = response;
+                console.log("질의 처리 시작:", queryText);
+                
+                if (typeof window.processQuery !== 'function') {
+                    console.error("processQuery 함수를 찾을 수 없습니다.");
+                    throw new Error("질의 처리 함수가 로드되지 않았습니다. 페이지를 새로고침 후 다시 시도해주세요.");
+                }
+                
+                const response = await window.processQuery(queryText);
+                console.log("질의 응답 받음:", response);
+                
+                queryResult.innerHTML = response;
                 queryResult.classList.add('active');
             } catch (error) {
                 console.error('AI 처리 오류:', error);
-                queryResult.textContent = '죄송합니다. 처리 중 오류가 발생했습니다. 다시 시도해주세요.';
+                queryResult.textContent = '죄송합니다. 처리 중 오류가 발생했습니다: ' + error.message;
                 queryResult.classList.add('active');
             } finally {
                 queryLoading.classList.remove('active');
