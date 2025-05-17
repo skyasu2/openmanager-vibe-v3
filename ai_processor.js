@@ -4,9 +4,6 @@
  * 자동 문제 분석 및 해결 방법을 제공합니다.
  */
 
-// 전역 객체에 aiProcessor 인스턴스 저장
-window.aiProcessor = null;
-
 class AIProcessor {
     constructor() {
         this.serverData = null;
@@ -20,9 +17,6 @@ class AIProcessor {
             warning: '⚠️',
             critical: '🔴'
         };
-        
-        // 인스턴스 생성 시 전역 객체에 저장
-        window.aiProcessor = this;
     }
 
     setupDataListener() {
@@ -186,7 +180,6 @@ class AIProcessor {
     }
 
     async processQuery(query) {
-        console.log("AIProcessor.processQuery 호출됨:", query);
         if (!this.serverData || this.serverData.length === 0) {
             return '서버 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.';
         }
@@ -642,34 +635,13 @@ class AIProcessor {
     }
 }
 
-// 전역 함수로 노출 - 매우 중요!
-window.processQuery = async function(query) {
-    console.log("전역 processQuery 함수 호출됨:", query);
-    
+// 전역 함수 - 외부에서 호출
+async function processQuery(query) {
     // AIProcessor 인스턴스가 없으면 생성
     if (!window.aiProcessor) {
-        console.log("AI 프로세서 인스턴스 생성");
         window.aiProcessor = new AIProcessor();
-        
-        // 인스턴스 생성 후 초기화 완료까지 약간의 지연
-        await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     // 쿼리 처리하고 결과 반환
-    try {
-        const result = await window.aiProcessor.processQuery(query);
-        console.log("AI 처리 결과:", result);
-        return result;
-    } catch (error) {
-        console.error("AI 처리 오류:", error);
-        return `처리 중 오류가 발생했습니다: ${error.message}`;
-    }
-};
-
-// 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("AI 프로세서 초기화");
-    if (!window.aiProcessor) {
-        window.aiProcessor = new AIProcessor();
-    }
-}); 
+    return await window.aiProcessor.processQuery(query);
+} 
