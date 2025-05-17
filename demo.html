@@ -102,18 +102,29 @@
     <div class="redirect-container">
         <i class="fas fa-server icon"></i>
         <h1>OpenManager AI</h1>
-        <p>서버 모니터링 대시보드로 이동합니다.</p>
+        <p>AI 기능이 포함된 서버 모니터링 대시보드로 이동합니다.</p>
         <a href="server_dashboard.html" class="btn-redirect">
             <i class="fas fa-arrow-right"></i>
-            대시보드로 이동
+            AI 대시보드로 이동
         </a>
     </div>
 
     <script>
+        // 브라우저 캐시 문제 해결을 위해 새로고침 후 이동
+        function clearCacheAndRedirect() {
+            // 현재 시간을 쿼리 파라미터로 추가하여 캐시 무시
+            const timestamp = new Date().getTime();
+            const url = `server_dashboard.html?nocache=${timestamp}`;
+            
+            // 로컬 스토리지의 캐시 데이터 초기화 (필요시)
+            localStorage.removeItem('serverData');
+            
+            // 리디렉션
+            window.location.href = url;
+        }
+        
         // 3초 후 자동 리디렉션
-        setTimeout(() => {
-            window.location.href = 'server_dashboard.html';
-        }, 3000);
+        setTimeout(clearCacheAndRedirect, 3000);
     </script>
 </body>
 </html> 
