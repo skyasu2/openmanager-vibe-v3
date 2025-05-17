@@ -360,14 +360,6 @@
             </div>
         </div>
 
-        <div class="ai-query-container">
-            <input type="text" class="query-input" placeholder="서버 상태나 성능에 대해 질문해보세요...">
-            <div class="loading">
-                <i class="fas fa-spinner"></i>
-            </div>
-            <div class="query-result"></div>
-        </div>
-
         <a href="server_dashboard.html?nocache=true" class="btn-primary">
             <i class="fas fa-arrow-right"></i>
             AI 대시보드 바로가기
@@ -375,30 +367,9 @@
     </div>
 
     <script src="dummy_data_generator.js"></script>
-    <script src="ai_processor.js"></script>
     <script>
-        document.querySelector('.query-input').addEventListener('keypress', async function(e) {
-            if (e.key === 'Enter') {
-                const query = this.value.trim();
-                if (!query) return;
-
-                const loading = document.querySelector('.loading');
-                const result = document.querySelector('.query-result');
-                
-                loading.classList.add('active');
-                result.classList.remove('active');
-                
-                try {
-                    const response = await processQuery(query);
-                    result.textContent = response;
-                    result.classList.add('active');
-                } catch (error) {
-                    result.textContent = '죄송합니다. 처리 중 오류가 발생했습니다.';
-                    result.classList.add('active');
-                } finally {
-                    loading.classList.remove('active');
-                }
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('OpenManager AI 시작됨');
         });
     </script>
 </body>

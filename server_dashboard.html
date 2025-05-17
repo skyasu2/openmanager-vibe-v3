@@ -992,6 +992,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- 자동 장애 보고서 섹션 추가 -->
+        <div class="card mb-4" id="incident-reports-section">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-medical"></i> AI 장애 보고서</h5>
+                <div>
+                    <button class="btn btn-sm btn-light" id="generate-report-btn">
+                        <i class="bi bi-lightning"></i> 보고서 생성
+                    </button>
+                    <button class="btn btn-sm btn-light ms-2" id="download-all-reports-btn">
+                        <i class="bi bi-download"></i> 전체 다운로드
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" id="no-incidents-alert">
+                    <i class="bi bi-info-circle"></i> 현재 감지된 장애가 없습니다.
+                </div>
+                
+                <div id="incidents-summary" style="display: none;">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6><i class="bi bi-exclamation-triangle"></i> 감지된 장애 요약</h6>
+                            <span class="badge bg-danger incident-count">0</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-danger" id="critical-progress" style="width: 0%">0 심각</div>
+                            <div class="progress-bar bg-warning" id="warning-progress" style="width: 0%">0 경고</div>
+                            <div class="progress-bar bg-success" id="normal-progress" style="width: 0%">0 정상</div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion" id="incidents-accordion">
+                        <!-- 동적으로 채워질 장애 아코디언 항목들 -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 스크립트는 순서가 중요: 먼저 dummy_data_generator.js, 그 다음 ai_processor.js 로드 -->
@@ -1410,8 +1448,423 @@
                 }
             });
             
+            // 보고서 생성 버튼
+            document.getElementById('generate-report-btn').addEventListener('click', generateIncidentReports);
+            
+            // 전체 보고서 다운로드 버튼
+            document.getElementById('download-all-reports-btn').addEventListener('click', downloadAllReports);
+            
+            // 페이지 로드 시 보고서 자동 생성 (3초 후)
+            setTimeout(generateIncidentReports, 3000);
+            
             // 10분마다 자동 갱신
             setInterval(loadServerData, 10 * 60 * 1000);
+        }
+
+        // 장애 보고서 관련 함수들
+        
+        // 장애 보고서 생성 함수
+        function generateIncidentReports() {
+            // 로딩 표시
+            document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-hourglass"></i> 생성 중...';
+            
+            setTimeout(() => {
+                // 문제가 있는 서버 찾기
+                const criticalServers = serverData.filter(server => 
+                    server.cpu_usage >= 90 || 
+                    server.memory_usage_percent >= 90 || 
+                    server.disk[0].disk_usage_percent >= 90 ||
+                    server.errors.length > 0
+                );
+                
+                const warningServers = serverData.filter(server => 
+                    (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
+                    (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
+                    (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90) ||
+                    Object.values(server.services).includes('stopped')
+                );
+                
+                // UI 업데이트
+                const noIncidentsAlert = document.getElementById('no-incidents-alert');
+                const incidentsSummary = document.getElementById('incidents-summary');
+                
+                if (criticalServers.length === 0 && warningServers.length === 0) {
+                    noIncidentsAlert.style.display = 'block';
+                    incidentsSummary.style.display = 'none';
+                    document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-lightning"></i> 보고서 생성';
+                    return;
+                }
+                
+                // 장애가 있으면 요약 표시
+                noIncidentsAlert.style.display = 'none';
+                incidentsSummary.style.display = 'block';
+                
+                // 상태 카운트 업데이트
+                const totalServers = serverData.length;
+                const normalCount = totalServers - criticalServers.length - warningServers.length;
+                
+                document.querySelector('.incident-count').textContent = criticalServers.length + warningServers.length;
+                
+                // 프로그레스바 업데이트
+                const criticalPercent = (criticalServers.length / totalServers * 100).toFixed(1);
+                const warningPercent = (warningServers.length / totalServers * 100).toFixed(1);
+                const normalPercent = (normalCount / totalServers * 100).toFixed(1);
+                
+                document.getElementById('critical-progress').style.width = criticalPercent + '%';
+                document.getElementById('critical-progress').textContent = criticalServers.length + ' 심각';
+                
+                document.getElementById('warning-progress').style.width = warningPercent + '%';
+                document.getElementById('warning-progress').textContent = warningServers.length + ' 경고';
+                
+                document.getElementById('normal-progress').style.width = normalPercent + '%';
+                document.getElementById('normal-progress').textContent = normalCount + ' 정상';
+                
+                // 아코디언 항목 생성
+                generateIncidentAccordionItems(criticalServers, warningServers);
+                
+                document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-lightning"></i> 보고서 갱신';
+            }, 1000); // 1초 지연 (보고서 생성 효과)
+        }
+        
+        // 장애 아코디언 항목 생성
+        function generateIncidentAccordionItems(criticalServers, warningServers) {
+            const accordion = document.getElementById('incidents-accordion');
+            accordion.innerHTML = '';
+            
+            // 심각 서버 먼저 처리
+            criticalServers.forEach((server, index) => {
+                const serverId = server.hostname.replace(/[^a-zA-Z0-9]/g, '-');
+                const problems = detectServerProblems(server);
+                
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'accordion-item';
+                accordionItem.innerHTML = `
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${serverId}">
+                            <span class="badge bg-danger me-2">심각</span>
+                            <strong>${server.hostname}</strong> - ${problems.map(p => p.type).join(', ')}
+                        </button>
+                    </h2>
+                    <div id="collapse-${serverId}" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <div class="incident-details">
+                                <div class="mb-3">
+                                    <h6>감지된 문제:</h6>
+                                    <ul class="problem-list">
+                                        ${problems.map(p => `<li>${p.description}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>권장 조치:</h6>
+                                    <ul class="solution-list">
+                                        ${problems.map(p => `<li>${p.solution}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="text-end">
+                                    <button class="btn btn-sm btn-primary download-report-btn" data-server="${server.hostname}">
+                                        <i class="bi bi-download"></i> 보고서 다운로드
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                accordion.appendChild(accordionItem);
+            });
+            
+            // 경고 서버 처리
+            warningServers.forEach((server, index) => {
+                const serverId = server.hostname.replace(/[^a-zA-Z0-9]/g, '-');
+                const problems = detectServerProblems(server);
+                
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'accordion-item';
+                accordionItem.innerHTML = `
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${serverId}">
+                            <span class="badge bg-warning me-2">경고</span>
+                            <strong>${server.hostname}</strong> - ${problems.map(p => p.type).join(', ')}
+                        </button>
+                    </h2>
+                    <div id="collapse-${serverId}" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <div class="incident-details">
+                                <div class="mb-3">
+                                    <h6>감지된 문제:</h6>
+                                    <ul class="problem-list">
+                                        ${problems.map(p => `<li>${p.description}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>권장 조치:</h6>
+                                    <ul class="solution-list">
+                                        ${problems.map(p => `<li>${p.solution}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="text-end">
+                                    <button class="btn btn-sm btn-primary download-report-btn" data-server="${server.hostname}">
+                                        <i class="bi bi-download"></i> 보고서 다운로드
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                accordion.appendChild(accordionItem);
+            });
+            
+            // 다운로드 버튼 이벤트 추가
+            document.querySelectorAll('.download-report-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const serverName = this.dataset.server;
+                    downloadIncidentReport(serverName);
+                });
+            });
+        }
+        
+        // 서버 문제 감지 함수
+        function detectServerProblems(server) {
+            const problems = [];
+            
+            // CPU 문제
+            if (server.cpu_usage >= 90) {
+                problems.push({
+                    type: 'CPU 과부하',
+                    description: `CPU 사용률이 ${server.cpu_usage.toFixed(2)}%로 매우 높음 (임계값: 90%)`,
+                    solution: '불필요한 프로세스 종료, CPU 사용량이 높은 애플리케이션 최적화, 서버 스케일업 고려'
+                });
+            } else if (server.cpu_usage >= 70) {
+                problems.push({
+                    type: 'CPU 부하',
+                    description: `CPU 사용률이 ${server.cpu_usage.toFixed(2)}%로 높음 (임계값: 70%)`,
+                    solution: 'CPU 사용량 모니터링, 지속적인 증가 시 원인 파악 필요'
+                });
+            }
+            
+            // 메모리 문제
+            if (server.memory_usage_percent >= 90) {
+                problems.push({
+                    type: '메모리 부족',
+                    description: `메모리 사용률이 ${server.memory_usage_percent.toFixed(2)}%로 매우 높음 (임계값: 90%)`,
+                    solution: '메모리 누수 점검, 불필요한 프로세스 종료, 메모리 증설 고려'
+                });
+            } else if (server.memory_usage_percent >= 70) {
+                problems.push({
+                    type: '메모리 부하',
+                    description: `메모리 사용률이 ${server.memory_usage_percent.toFixed(2)}%로 높음 (임계값: 70%)`,
+                    solution: '메모리 사용량 모니터링, 캐시 설정 최적화 검토'
+                });
+            }
+            
+            // 디스크 문제
+            if (server.disk[0].disk_usage_percent >= 90) {
+                problems.push({
+                    type: '디스크 공간 부족',
+                    description: `디스크 사용률이 ${server.disk[0].disk_usage_percent.toFixed(2)}%로 매우 높음 (임계값: 90%)`,
+                    solution: '불필요한 파일 정리, 로그 파일 압축/제거, 디스크 확장 고려'
+                });
+            } else if (server.disk[0].disk_usage_percent >= 70) {
+                problems.push({
+                    type: '디스크 공간 주의',
+                    description: `디스크 사용률이 ${server.disk[0].disk_usage_percent.toFixed(2)}%로 높음 (임계값: 70%)`,
+                    solution: '디스크 사용량 모니터링, 대용량 파일 위치 확인'
+                });
+            }
+            
+            // 서비스 문제
+            const stoppedServices = [];
+            Object.entries(server.services).forEach(([service, status]) => {
+                if (status === 'stopped') {
+                    stoppedServices.push(service);
+                }
+            });
+            
+            if (stoppedServices.length > 0) {
+                problems.push({
+                    type: '서비스 중단',
+                    description: `${stoppedServices.length}개 서비스 중단됨: ${stoppedServices.join(', ')}`,
+                    solution: '서비스 로그 확인 후 재시작, 의존성 확인, 서비스 구성 파일 검토'
+                });
+            }
+            
+            // 오류 메시지
+            if (server.errors.length > 0) {
+                problems.push({
+                    type: '오류 발생',
+                    description: `${server.errors.length}개의 오류 발생: ${server.errors.join(', ')}`,
+                    solution: '오류 로그 분석, 애플리케이션 재시작, 관련 구성 파일 검토'
+                });
+            }
+            
+            return problems;
+        }
+        
+        // 장애 보고서 다운로드 함수
+        function downloadIncidentReport(serverName) {
+            const server = serverData.find(s => s.hostname === serverName);
+            if (!server) return;
+            
+            const problems = detectServerProblems(server);
+            
+            // 보고서 내용 생성
+            let reportContent = `=== OpenManager AI - 장애 보고서 ===\n\n`;
+            reportContent += `서버: ${server.hostname}\n`;
+            reportContent += `시간: ${new Date().toLocaleString()}\n`;
+            reportContent += `OS: ${server.os}\n`;
+            reportContent += `가동시간: ${server.uptime}\n\n`;
+            
+            reportContent += `=== 시스템 상태 ===\n`;
+            reportContent += `CPU 사용률: ${server.cpu_usage.toFixed(2)}%\n`;
+            reportContent += `메모리 사용률: ${server.memory_usage_percent.toFixed(2)}%\n`;
+            reportContent += `디스크 사용률: ${server.disk[0].disk_usage_percent.toFixed(2)}%\n`;
+            reportContent += `Load Average (1m): ${server.load_avg_1m}\n\n`;
+            
+            reportContent += `=== 감지된 문제 ===\n`;
+            problems.forEach((problem, index) => {
+                reportContent += `${index + 1}. ${problem.type}: ${problem.description}\n`;
+            });
+            
+            reportContent += `\n=== 권장 조치 ===\n`;
+            problems.forEach((problem, index) => {
+                reportContent += `${index + 1}. ${problem.solution}\n`;
+            });
+            
+            reportContent += `\n=== 서비스 상태 ===\n`;
+            Object.entries(server.services).forEach(([service, status]) => {
+                reportContent += `${service}: ${status}\n`;
+            });
+            
+            if (server.errors.length > 0) {
+                reportContent += `\n=== 오류 메시지 ===\n`;
+                server.errors.forEach((error, index) => {
+                    reportContent += `${index + 1}. ${error}\n`;
+                });
+            }
+            
+            // 보고서 파일 다운로드
+            const blob = new Blob([reportContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `장애보고서_${server.hostname}_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // 전체 보고서 다운로드
+        function downloadAllReports() {
+            const criticalServers = serverData.filter(server => 
+                server.cpu_usage >= 90 || 
+                server.memory_usage_percent >= 90 || 
+                server.disk[0].disk_usage_percent >= 90 ||
+                server.errors.length > 0
+            );
+            
+            const warningServers = serverData.filter(server => 
+                (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
+                (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
+                (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90) ||
+                Object.values(server.services).includes('stopped')
+            );
+            
+            if (criticalServers.length === 0 && warningServers.length === 0) {
+                alert('다운로드할 장애 보고서가 없습니다.');
+                return;
+            }
+            
+            // 요약 보고서 생성
+            let summaryReport = `=== OpenManager AI - 전체 장애 요약 보고서 ===\n\n`;
+            summaryReport += `생성 시간: ${new Date().toLocaleString()}\n`;
+            summaryReport += `전체 서버 수: ${serverData.length}대\n`;
+            summaryReport += `심각 상태 서버: ${criticalServers.length}대\n`;
+            summaryReport += `경고 상태 서버: ${warningServers.length}대\n`;
+            summaryReport += `정상 상태 서버: ${serverData.length - criticalServers.length - warningServers.length}대\n\n`;
+            
+            summaryReport += `=== 심각 상태 서버 목록 ===\n`;
+            criticalServers.forEach((server, index) => {
+                const problems = detectServerProblems(server);
+                summaryReport += `${index + 1}. ${server.hostname}: ${problems.map(p => p.type).join(', ')}\n`;
+            });
+            
+            summaryReport += `\n=== 경고 상태 서버 목록 ===\n`;
+            warningServers.forEach((server, index) => {
+                const problems = detectServerProblems(server);
+                summaryReport += `${index + 1}. ${server.hostname}: ${problems.map(p => p.type).join(', ')}\n`;
+            });
+            
+            // 개별 서버 보고서 추가
+            summaryReport += `\n\n============= 개별 서버 상세 보고서 =============\n\n`;
+            
+            // 심각 서버 먼저
+            criticalServers.forEach(server => {
+                summaryReport += `\n\n=============================================\n`;
+                summaryReport += `서버: ${server.hostname} (심각)\n`;
+                summaryReport += `=============================================\n\n`;
+                
+                const problems = detectServerProblems(server);
+                
+                summaryReport += `CPU: ${server.cpu_usage.toFixed(2)}%, 메모리: ${server.memory_usage_percent.toFixed(2)}%, 디스크: ${server.disk[0].disk_usage_percent.toFixed(2)}%\n\n`;
+                
+                summaryReport += `--- 감지된 문제 ---\n`;
+                problems.forEach((problem, index) => {
+                    summaryReport += `${index + 1}. ${problem.type}: ${problem.description}\n`;
+                });
+                
+                summaryReport += `\n--- 권장 조치 ---\n`;
+                problems.forEach((problem, index) => {
+                    summaryReport += `${index + 1}. ${problem.solution}\n`;
+                });
+                
+                if (server.errors.length > 0) {
+                    summaryReport += `\n--- 오류 메시지 ---\n`;
+                    server.errors.forEach((error, index) => {
+                        summaryReport += `${index + 1}. ${error}\n`;
+                    });
+                }
+            });
+            
+            // 경고 서버 추가
+            warningServers.forEach(server => {
+                summaryReport += `\n\n=============================================\n`;
+                summaryReport += `서버: ${server.hostname} (경고)\n`;
+                summaryReport += `=============================================\n\n`;
+                
+                const problems = detectServerProblems(server);
+                
+                summaryReport += `CPU: ${server.cpu_usage.toFixed(2)}%, 메모리: ${server.memory_usage_percent.toFixed(2)}%, 디스크: ${server.disk[0].disk_usage_percent.toFixed(2)}%\n\n`;
+                
+                summaryReport += `--- 감지된 문제 ---\n`;
+                problems.forEach((problem, index) => {
+                    summaryReport += `${index + 1}. ${problem.type}: ${problem.description}\n`;
+                });
+                
+                summaryReport += `\n--- 권장 조치 ---\n`;
+                problems.forEach((problem, index) => {
+                    summaryReport += `${index + 1}. ${problem.solution}\n`;
+                });
+                
+                if (server.errors.length > 0) {
+                    summaryReport += `\n--- 오류 메시지 ---\n`;
+                    server.errors.forEach((error, index) => {
+                        summaryReport += `${index + 1}. ${error}\n`;
+                    });
+                }
+            });
+            
+            // 전체 보고서 다운로드
+            const blob = new Blob([summaryReport], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `전체_장애_보고서_${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // 페이지 로드 시 초기화

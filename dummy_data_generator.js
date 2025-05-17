@@ -184,15 +184,15 @@ class DummyDataGenerator {
         // 서버 유형에 맞는 리소스 사용량 계산
         const cpuBase = selectedConfig.cpu.base + this.getRandomInt(-selectedConfig.cpu.variation, selectedConfig.cpu.variation);
         const cpuVariation = this.getRandomInt(-10, 10); // 기본 변동폭
-        const cpu_usage = Math.min(Math.max(Math.floor(cpuBase * timeWeightMultiplier) + cpuVariation, 5), 98);
+        const cpu_usage = parseFloat(Math.min(Math.max(Math.floor(cpuBase * timeWeightMultiplier) + cpuVariation, 5), 98).toFixed(2));
         
         const memoryBase = selectedConfig.memory.base + this.getRandomInt(-selectedConfig.memory.variation, selectedConfig.memory.variation);
         const memoryVariation = this.getRandomInt(-10, 10);
-        const memory_usage_percent = Math.min(Math.max(Math.floor(memoryBase * timeWeightMultiplier) + memoryVariation, 5), 98);
+        const memory_usage_percent = parseFloat(Math.min(Math.max(Math.floor(memoryBase * timeWeightMultiplier) + memoryVariation, 5), 98).toFixed(2));
         
         const diskBase = selectedConfig.disk.base + this.getRandomInt(-selectedConfig.disk.variation, selectedConfig.disk.variation);
         const diskVariation = this.getRandomInt(-5, 5);
-        const disk_usage_percent = Math.min(Math.max(Math.floor(diskBase * timeWeightMultiplier) + diskVariation, 5), 98);
+        const disk_usage_percent = parseFloat(Math.min(Math.max(Math.floor(diskBase * timeWeightMultiplier) + diskVariation, 5), 98).toFixed(2));
         
         // 서버 유형에 따른 메모리 크기 차별화
         let memorySize;
@@ -279,7 +279,7 @@ class DummyDataGenerator {
             hostname,
             os: this.getRandomItem(this.osTypes),
             uptime: `${uptimeDays} days, ${this.getRandomInt(0, 23)} hours`,
-            load_avg_1m: (cpu_usage / 100 * this.getRandomInt(80, 120) / 100).toFixed(2),
+            load_avg_1m: parseFloat((cpu_usage / 100 * this.getRandomInt(80, 120) / 100).toFixed(2)),
             process_count: this.getRandomInt(100, 500),
             zombie_count: Math.random() < 0.2 ? this.getRandomInt(1, 5) : 0,
             cpu_usage,
@@ -385,21 +385,21 @@ class DummyDataGenerator {
             const timeInfluence = cpu_base * (timeWeightMultiplier - 0.5) * 0.8; // -40% ~ +40% 변동 가능
             
             // 최종 CPU 변동값 계산
-            let cpu_delta = baseChange + timeInfluence;
+            let cpu_delta = parseFloat((baseChange + timeInfluence).toFixed(2));
             cpu_delta = Math.max(Math.min(cpu_delta, 20), -20); // 변동폭 제한
             
             // 새 CPU 사용량 계산
-            let cpu_usage = server.cpu_usage + cpu_delta;
+            let cpu_usage = parseFloat((server.cpu_usage + cpu_delta).toFixed(2));
             cpu_usage = Math.max(5, Math.min(98, cpu_usage)); // 5% ~ 98% 사이로 제한
             
             // 다른 리소스도 비슷한 패턴으로 업데이트
-            const memory_delta = this.getRandomInt(-10, 10) + timeInfluence * 0.8;
-            let memory_usage_percent = server.memory_usage_percent + memory_delta;
+            const memory_delta = parseFloat((this.getRandomInt(-10, 10) + timeInfluence * 0.8).toFixed(2));
+            let memory_usage_percent = parseFloat((server.memory_usage_percent + memory_delta).toFixed(2));
             memory_usage_percent = Math.max(5, Math.min(98, memory_usage_percent));
             const memory_usage = Math.floor(server.memory_total * (memory_usage_percent / 100));
             
-            const disk_delta = this.getRandomInt(-5, 7) + timeInfluence * 0.4; // 디스크는 천천히 증가 경향
-            let disk_usage_percent = server.disk[0].disk_usage_percent + disk_delta;
+            const disk_delta = parseFloat((this.getRandomInt(-5, 7) + timeInfluence * 0.4).toFixed(2)); // 디스크는 천천히 증가 경향
+            let disk_usage_percent = parseFloat((server.disk[0].disk_usage_percent + disk_delta).toFixed(2));
             disk_usage_percent = Math.max(5, Math.min(98, disk_usage_percent));
             const disk_used = Math.floor(server.disk[0].disk_total * (disk_usage_percent / 100));
             
@@ -456,7 +456,7 @@ class DummyDataGenerator {
             const updatedServer = {
                 ...server,
                 cpu_usage,
-                load_avg_1m: (cpu_usage / 100 * this.getRandomInt(80, 120) / 100).toFixed(2),
+                load_avg_1m: parseFloat((cpu_usage / 100 * this.getRandomInt(80, 120) / 100).toFixed(2)),
                 memory_usage,
                 memory_usage_percent,
                 disk: [{
@@ -601,7 +601,7 @@ class DummyDataGenerator {
     }
     
     getRandomUsage(min, max) {
-        return parseFloat((Math.random() * (max - min) + min).toFixed(1));
+        return parseFloat((Math.random() * (max - min) + min).toFixed(2));
     }
     
     getRandomItem(array) {
