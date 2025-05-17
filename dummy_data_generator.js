@@ -114,44 +114,95 @@ class DummyDataGenerator {
         this.dayHours = 24;
         this.currentHour = new Date().getHours(); // 현재 시간으로 초기화
         
-        // 서버 데이터 초기화 - 첫 배치만 즉시 생성
+        // 서버 데이터 초기화 - 전체 서버 즉시 생성 (로딩 문제 해결)
         this.serverData = [];
-        this.generateInitialBatch();
+        this.generateAllServers();
         
         // 데이터 자동 업데이트 시작
         this.startDataUpdates();
     }
     
-    // 초기 서버 배치 데이터 생성 (빠른 로딩을 위해 일부만 생성)
-    generateInitialBatch() {
-        console.log(`초기 서버 데이터 ${this.initialBatchSize}개 생성 중...`);
+    // 모든 서버 즉시 생성 (로딩 문제 해결을 위해 변경)
+    generateAllServers() {
+        console.log(`서버 데이터 ${this.serverCount}개 생성 중...`);
         
-        // 서버 구성에 맞게 배포
-        this.serverData = [];
-        let serverIndex = 0;
-        
-        // 먼저 초기 배치 크기만큼만 생성
-        for (let i = 0; i < this.initialBatchSize && serverIndex < this.serverCount; i++) {
-            const server = this.createServerByConfiguration(serverIndex);
-            this.serverData.push(server);
+        try {
+            // 모든 서버 데이터 생성
+            this.serverData = [];
             
-            // 이력 데이터 초기화
-            if (!this.historicalData[server.hostname]) {
-                this.historicalData[server.hostname] = [];
+            for (let i = 0; i < this.serverCount; i++) {
+                const server = this.createServerByConfiguration(i);
+                this.serverData.push(server);
+                
+                // 이력 데이터 초기화
+                if (!this.historicalData[server.hostname]) {
+                    this.historicalData[server.hostname] = [];
+                }
+                this.historicalData[server.hostname].push({...server, timestamp: new Date().toISOString()});
             }
-            this.historicalData[server.hostname].push({...server, timestamp: new Date().toISOString()});
             
-            serverIndex++;
+            // 전역 객체에 데이터 할당
+            window.serverData = this.serverData;
+            this.generatedCount = this.serverCount;
+            
+            // 이벤트 발생
+            this.dispatchUpdateEvent();
+            console.log(`${this.serverCount}개 서버 데이터 생성 완료`);
+        } catch (error) {
+            console.error("서버 데이터 생성 중 오류 발생:", error);
+            
+            // 오류 발생 시 최소한의 더미 데이터라도 생성 (로딩 상태 방지)
+            if (!window.serverData || !Array.isArray(window.serverData) || window.serverData.length === 0) {
+                console.log("기본 더미 데이터 생성 중...");
+                const fallbackData = this.generateFallbackData();
+                window.serverData = fallbackData;
+                this.serverData = fallbackData;
+                this.dispatchUpdateEvent();
+            }
+        }
+    }
+    
+    // 오류 발생 시 사용할 기본 더미 데이터 생성
+    generateFallbackData() {
+        const fallbackServers = [];
+        
+        // 최소 3개의 기본 서버 데이터 생성
+        for (let i = 0; i < 3; i++) {
+            fallbackServers.push({
+                hostname: `server-${i+1}`,
+                os: "Linux",
+                uptime: "10 days, 5 hours",
+                load_avg_1m: 0.5,
+                process_count: 100,
+                zombie_count: 0,
+                cpu_usage: 25.0,
+                memory_total: 8 * 1024 * 1024 * 1024,
+                memory_usage: 2 * 1024 * 1024 * 1024,
+                memory_usage_percent: 25.0,
+                disk: [{
+                    mount: '/',
+                    disk_total: 100 * 1024 * 1024 * 1024,
+                    disk_used: 30 * 1024 * 1024 * 1024,
+                    disk_usage_percent: 30.0
+                }],
+                net: {
+                    interface: 'eth0',
+                    rx_bytes: 1024 * 1024 * 10,
+                    tx_bytes: 1024 * 1024 * 5,
+                    rx_errors: 0,
+                    tx_errors: 0
+                },
+                services: {
+                    'nginx': 'running',
+                    'mysql': 'running'
+                },
+                errors: [],
+                timestamp: new Date().toISOString(),
+                server_type: 'web'
+            });
         }
         
-        // 전역 객체에 데이터 할당
-        window.serverData = this.serverData;
-        
-        // 이벤트 발생
-        this.dispatchUpdateEvent();
-        
-        // 나머지 데이터 비동기적으로 생성
-        this.generateRemainingServersAsync();
+        return fallbackServers;
     }
     
     // 서버 구성에 맞게 서버 생성
@@ -295,219 +346,170 @@ class DummyDataGenerator {
         };
     }
     
-    // 나머지 서버 데이터를 비동기적으로 생성
-    generateRemainingServersAsync() {
-        if (this.isGenerating) return;
-        
-        this.isGenerating = true;
-        this.generatedCount = this.initialBatchSize;
-        
-        const batchSize = 5; // 한 번에 5개씩 생성
-        const generateBatch = () => {
-            const remainingCount = this.serverCount - this.generatedCount;
-            
-            if (remainingCount <= 0) {
-                console.log(`모든 서버 데이터 ${this.serverCount}개 생성 완료`);
-                this.isGenerating = false;
-                return;
-            }
-            
-            const batchCount = Math.min(batchSize, remainingCount);
-            console.log(`서버 데이터 생성 중... (${this.generatedCount}/${this.serverCount})`);
-            
-            // 배치 생성
-            const newServers = [];
-            for (let i = 0; i < batchCount; i++) {
-                const server = this.createServerByConfiguration(this.generatedCount + i);
-                newServers.push(server);
-                
-                // 이력 데이터 초기화
-                if (!this.historicalData[server.hostname]) {
-                    this.historicalData[server.hostname] = [];
-                }
-                this.historicalData[server.hostname].push({...server, timestamp: new Date().toISOString()});
-            }
-            
-            // 기존 데이터에 추가
-            this.serverData = [...this.serverData, ...newServers];
-            this.generatedCount += batchCount;
-            
-            // 전역 객체 업데이트
-            window.serverData = this.serverData;
-            
-            // 이벤트 발생
-            this.dispatchUpdateEvent();
-            
-            // 다음 배치 예약 (약간의 딜레이를 두어 UI 차단 방지)
-            setTimeout(generateBatch, 50);
-        };
-        
-        // 첫 배치 생성 시작
-        setTimeout(generateBatch, 200);
-    }
-    
     // 데이터 업데이트 함수
     updateData() {
         // 하루 주기 업데이트
         this.currentHour = (this.currentHour + 1) % this.dayHours;
         
-        // 모든 데이터가 생성되지 않았으면 업데이트 스킵
-        if (this.isGenerating) {
-            console.log("아직 모든 서버 데이터가 생성되지 않았습니다. 업데이트 스킵");
-            return;
-        }
-        
         console.log(`서버 데이터 업데이트 중... (${this.serverData.length}개)`);
         
-        // 현재 시간대의 가중치 계산
-        const timeWeightMultiplier = this.timePatterns.dailyPattern[this.currentHour] / 100;
-        
-        // 새 타임스탬프 생성
-        const now = new Date();
-        now.setHours(this.currentHour, 0, 0, 0);
-        
-        this.serverData = this.serverData.map((server, index) => {
-            const serverType = server.hostname.split('-')[0];
-            const config = this.serverConfigurations.find(c => c.prefix === serverType) || this.serverConfigurations[0];
+        try {
+            // 현재 시간대의 가중치 계산
+            const timeWeightMultiplier = this.timePatterns.dailyPattern[this.currentHour] / 100;
             
-            // 서비스와 오류는 30% 확률로 재생성
-            const shouldUpdateServices = Math.random() < 0.3;
-            const shouldUpdateErrors = Math.random() < 0.3;
+            // 새 타임스탬프 생성
+            const now = new Date();
+            now.setHours(this.currentHour, 0, 0, 0);
             
-            // 현재 상태를 가져오고 실제 업데이트 수행
-            const cpu_base = config.cpu.base;
-            const cpu_variation = config.cpu.variation;
-            
-            // 기본 변동값 계산
-            const baseChange = this.getRandomInt(-15, 15);
-            
-            // 시간 패턴을 고려한 변동
-            const timeInfluence = cpu_base * (timeWeightMultiplier - 0.5) * 0.8; // -40% ~ +40% 변동 가능
-            
-            // 최종 CPU 변동값 계산
-            let cpu_delta = parseFloat((baseChange + timeInfluence).toFixed(2));
-            cpu_delta = Math.max(Math.min(cpu_delta, 20), -20); // 변동폭 제한
-            
-            // 새 CPU 사용량 계산
-            let cpu_usage = parseFloat((server.cpu_usage + cpu_delta).toFixed(2));
-            cpu_usage = Math.max(5, Math.min(98, cpu_usage)); // 5% ~ 98% 사이로 제한
-            
-            // 다른 리소스도 비슷한 패턴으로 업데이트
-            const memory_delta = parseFloat((this.getRandomInt(-10, 10) + timeInfluence * 0.8).toFixed(2));
-            let memory_usage_percent = parseFloat((server.memory_usage_percent + memory_delta).toFixed(2));
-            memory_usage_percent = Math.max(5, Math.min(98, memory_usage_percent));
-            const memory_usage = Math.floor(server.memory_total * (memory_usage_percent / 100));
-            
-            const disk_delta = parseFloat((this.getRandomInt(-5, 7) + timeInfluence * 0.4).toFixed(2)); // 디스크는 천천히 증가 경향
-            let disk_usage_percent = parseFloat((server.disk[0].disk_usage_percent + disk_delta).toFixed(2));
-            disk_usage_percent = Math.max(5, Math.min(98, disk_usage_percent));
-            const disk_used = Math.floor(server.disk[0].disk_total * (disk_usage_percent / 100));
-            
-            // 네트워크 트래픽 업데이트 (시간대에 크게 영향 받음)
-            const trafficMultiplier = serverType === 'web' || serverType === 'api' ? 2 : 1; // 웹/API 서버는 트래픽 변동 폭이 더 큼
-            const rx_delta = this.getRandomInt(-10, 20) * 1024 * 1024 * timeWeightMultiplier * trafficMultiplier;
-            const tx_delta = this.getRandomInt(-10, 20) * 1024 * 1024 * timeWeightMultiplier * trafficMultiplier;
-            
-            const rx_bytes = Math.max(1024 * 1024, server.net.rx_bytes + rx_delta); // 최소 1MB
-            const tx_bytes = Math.max(1024 * 1024, server.net.tx_bytes + tx_delta); // 최소 1MB
-            
-            // 네트워크 오류 업데이트
-            const rx_errors = shouldUpdateErrors && Math.random() < this.errorProbability ? 
-                server.net.rx_errors + this.getRandomInt(0, 10) : 
-                Math.max(0, server.net.rx_errors - this.getRandomInt(0, 5));
-            
-            const tx_errors = shouldUpdateErrors && Math.random() < this.errorProbability ? 
-                server.net.tx_errors + this.getRandomInt(0, 5) : 
-                Math.max(0, server.net.tx_errors - this.getRandomInt(0, 3));
-            
-            // 서비스 상태 업데이트
-            let services = { ...server.services };
-            if (shouldUpdateServices) {
-                Object.keys(services).forEach(service => {
-                    if (services[service] === 'stopped') {
-                        // 중단된 서비스는 70% 확률로 복구
-                        services[service] = Math.random() < 0.7 ? 'running' : 'stopped';
-                    } else {
-                        // 실행 중인 서비스는 20% 확률로 중단
-                        services[service] = Math.random() < 0.2 ? 'stopped' : 'running';
-                    }
-                });
-            }
-            
-            // 오류 메시지 업데이트
-            let errors = [...server.errors];
-            if (shouldUpdateErrors) {
-                // 기존 오류 중 70%는 제거(해결됨)
-                errors = errors.filter(() => Math.random() > 0.7);
+            this.serverData = this.serverData.map((server, index) => {
+                const serverType = server.hostname.split('-')[0];
+                const config = this.serverConfigurations.find(c => c.prefix === serverType) || this.serverConfigurations[0];
                 
-                // 새 오류 추가
-                if (Math.random() < this.errorProbability) {
-                    const errorCount = this.getRandomInt(1, 2);
-                    for (let i = 0; i < errorCount; i++) {
-                        errors.push(this.generateErrorMessage(serverType));
+                // 서비스와 오류는 30% 확률로 재생성
+                const shouldUpdateServices = Math.random() < 0.3;
+                const shouldUpdateErrors = Math.random() < 0.3;
+                
+                // 현재 상태를 가져오고 실제 업데이트 수행
+                const cpu_base = config.cpu.base;
+                const cpu_variation = config.cpu.variation;
+                
+                // 기본 변동값 계산
+                const baseChange = this.getRandomInt(-15, 15);
+                
+                // 시간 패턴을 고려한 변동
+                const timeInfluence = cpu_base * (timeWeightMultiplier - 0.5) * 0.8; // -40% ~ +40% 변동 가능
+                
+                // 최종 CPU 변동값 계산
+                let cpu_delta = parseFloat((baseChange + timeInfluence).toFixed(2));
+                cpu_delta = Math.max(Math.min(cpu_delta, 20), -20); // 변동폭 제한
+                
+                // 새 CPU 사용량 계산
+                let cpu_usage = parseFloat((server.cpu_usage + cpu_delta).toFixed(2));
+                cpu_usage = Math.max(5, Math.min(98, cpu_usage)); // 5% ~ 98% 사이로 제한
+                
+                // 다른 리소스도 비슷한 패턴으로 업데이트
+                const memory_delta = parseFloat((this.getRandomInt(-10, 10) + timeInfluence * 0.8).toFixed(2));
+                let memory_usage_percent = parseFloat((server.memory_usage_percent + memory_delta).toFixed(2));
+                memory_usage_percent = Math.max(5, Math.min(98, memory_usage_percent));
+                const memory_usage = Math.floor(server.memory_total * (memory_usage_percent / 100));
+                
+                const disk_delta = parseFloat((this.getRandomInt(-5, 7) + timeInfluence * 0.4).toFixed(2)); // 디스크는 천천히 증가 경향
+                let disk_usage_percent = parseFloat((server.disk[0].disk_usage_percent + disk_delta).toFixed(2));
+                disk_usage_percent = Math.max(5, Math.min(98, disk_usage_percent));
+                const disk_used = Math.floor(server.disk[0].disk_total * (disk_usage_percent / 100));
+                
+                // 네트워크 트래픽 업데이트 (시간대에 크게 영향 받음)
+                const trafficMultiplier = serverType === 'web' || serverType === 'api' ? 2 : 1; // 웹/API 서버는 트래픽 변동 폭이 더 큼
+                const rx_delta = this.getRandomInt(-10, 20) * 1024 * 1024 * timeWeightMultiplier * trafficMultiplier;
+                const tx_delta = this.getRandomInt(-10, 20) * 1024 * 1024 * timeWeightMultiplier * trafficMultiplier;
+                
+                const rx_bytes = Math.max(1024 * 1024, server.net.rx_bytes + rx_delta); // 최소 1MB
+                const tx_bytes = Math.max(1024 * 1024, server.net.tx_bytes + tx_delta); // 최소 1MB
+                
+                // 네트워크 오류 업데이트
+                const rx_errors = shouldUpdateErrors && Math.random() < this.errorProbability ? 
+                    server.net.rx_errors + this.getRandomInt(0, 10) : 
+                    Math.max(0, server.net.rx_errors - this.getRandomInt(0, 5));
+                
+                const tx_errors = shouldUpdateErrors && Math.random() < this.errorProbability ? 
+                    server.net.tx_errors + this.getRandomInt(0, 5) : 
+                    Math.max(0, server.net.tx_errors - this.getRandomInt(0, 3));
+                
+                // 서비스 상태 업데이트
+                let services = { ...server.services };
+                if (shouldUpdateServices) {
+                    Object.keys(services).forEach(service => {
+                        if (services[service] === 'stopped') {
+                            // 중단된 서비스는 70% 확률로 복구
+                            services[service] = Math.random() < 0.7 ? 'running' : 'stopped';
+                        } else {
+                            // 실행 중인 서비스는 20% 확률로 중단
+                            services[service] = Math.random() < 0.2 ? 'stopped' : 'running';
+                        }
+                    });
+                }
+                
+                // 오류 메시지 업데이트
+                let errors = [...server.errors];
+                if (shouldUpdateErrors) {
+                    // 기존 오류 중 70%는 제거(해결됨)
+                    errors = errors.filter(() => Math.random() > 0.7);
+                    
+                    // 새 오류 추가
+                    if (Math.random() < this.errorProbability) {
+                        const errorCount = this.getRandomInt(1, 2);
+                        for (let i = 0; i < errorCount; i++) {
+                            errors.push(this.generateErrorMessage(serverType));
+                        }
                     }
                 }
-            }
+                
+                // 좀비 프로세스 업데이트
+                const zombie_count = Math.random() < 0.1 ? this.getRandomInt(1, 6) : 0;
+                
+                // 업데이트된 서버 객체
+                const updatedServer = {
+                    ...server,
+                    cpu_usage,
+                    load_avg_1m: parseFloat((cpu_usage / 100 * this.getRandomInt(80, 120) / 100).toFixed(2)),
+                    memory_usage,
+                    memory_usage_percent,
+                    disk: [{
+                        ...server.disk[0],
+                        disk_used,
+                        disk_usage_percent
+                    }],
+                    net: {
+                        ...server.net,
+                        rx_bytes,
+                        tx_bytes,
+                        rx_errors,
+                        tx_errors
+                    },
+                    services,
+                    errors,
+                    zombie_count,
+                    timestamp: now.toISOString()
+                };
+                
+                // 이력 데이터에 추가
+                if (!this.historicalData[server.hostname]) {
+                    this.historicalData[server.hostname] = [];
+                }
+                
+                this.historicalData[server.hostname].push(updatedServer);
+                
+                // 최대 데이터 포인트 수 유지 (오래된 데이터 제거)
+                if (this.historicalData[server.hostname].length > this.maxHistoricalPoints) {
+                    this.historicalData[server.hostname].shift();
+                }
+                
+                return updatedServer;
+            });
             
-            // 좀비 프로세스 업데이트
-            const zombie_count = Math.random() < 0.1 ? this.getRandomInt(1, 6) : 0;
+            // 전역 객체에 업데이트된 데이터 할당
+            window.serverData = this.serverData;
+            window.serverHistoricalData = this.historicalData; // 이력 데이터도 전역으로 제공
             
-            // 업데이트된 서버 객체
-            const updatedServer = {
-                ...server,
-                cpu_usage,
-                load_avg_1m: parseFloat((cpu_usage / 100 * this.getRandomInt(80, 120) / 100).toFixed(2)),
-                memory_usage,
-                memory_usage_percent,
-                disk: [{
-                    ...server.disk[0],
-                    disk_used,
-                    disk_usage_percent
-                }],
-                net: {
-                    ...server.net,
-                    rx_bytes,
-                    tx_bytes,
-                    rx_errors,
-                    tx_errors
-                },
-                services,
-                errors,
-                zombie_count,
-                timestamp: now.toISOString()
-            };
-            
-            // 이력 데이터에 추가
-            if (!this.historicalData[server.hostname]) {
-                this.historicalData[server.hostname] = [];
-            }
-            
-            this.historicalData[server.hostname].push(updatedServer);
-            
-            // 최대 데이터 포인트 수 유지 (오래된 데이터 제거)
-            if (this.historicalData[server.hostname].length > this.maxHistoricalPoints) {
-                this.historicalData[server.hostname].shift();
-            }
-            
-            return updatedServer;
-        });
-        
-        // 전역 객체에 업데이트된 데이터 할당
-        window.serverData = this.serverData;
-        window.serverHistoricalData = this.historicalData; // 이력 데이터도 전역으로 제공
-        
-        // 이벤트 발생
-        this.dispatchUpdateEvent();
+            // 이벤트 발생
+            this.dispatchUpdateEvent();
+        } catch (error) {
+            console.error("서버 데이터 업데이트 중 오류 발생:", error);
+        }
     }
     
     // 데이터 업데이트 이벤트 발생
     dispatchUpdateEvent() {
-        const event = new CustomEvent('serverDataUpdated', { detail: this.serverData });
-        window.dispatchEvent(event);
-        
-        // 이력 데이터 업데이트 이벤트도 발생
-        const historyEvent = new CustomEvent('serverHistoricalDataUpdated', { detail: this.historicalData });
-        window.dispatchEvent(historyEvent);
+        try {
+            const event = new CustomEvent('serverDataUpdated', { detail: this.serverData });
+            window.dispatchEvent(event);
+            
+            // 이력 데이터 업데이트 이벤트도 발생
+            const historyEvent = new CustomEvent('serverHistoricalDataUpdated', { detail: this.historicalData });
+            window.dispatchEvent(historyEvent);
+        } catch (error) {
+            console.error("이벤트 발생 중 오류:", error);
+        }
     }
     
     // 데이터 업데이트 시작
@@ -615,4 +617,57 @@ class DummyDataGenerator {
 }
 
 // 인스턴스 생성 및 초기화
-const dummyDataGenerator = new DummyDataGenerator(); 
+try {
+    const dummyDataGenerator = new DummyDataGenerator();
+    
+    // 웹페이지가 캐시 없이 로드되었지만 데이터가 없는 경우를 위한 안전장치
+    window.addEventListener('load', function() {
+        // 3초 후에도 데이터가 없으면 강제로 데이터 생성
+        setTimeout(function() {
+            if (!window.serverData || !Array.isArray(window.serverData) || window.serverData.length === 0) {
+                console.log("3초 후에도 데이터가 없어 강제로 생성합니다.");
+                window.serverData = [];
+                new DummyDataGenerator();
+            }
+        }, 3000);
+    });
+} catch (error) {
+    console.error("더미 데이터 생성기 초기화 중 오류:", error);
+    
+    // 오류 발생 시 최소한의 더미 데이터 생성
+    window.serverData = [
+        {
+            hostname: "fallback-server",
+            os: "Linux",
+            uptime: "1 day, 0 hours",
+            load_avg_1m: 0.2,
+            process_count: 100,
+            zombie_count: 0,
+            cpu_usage: 20.0,
+            memory_total: 8 * 1024 * 1024 * 1024,
+            memory_usage: 2 * 1024 * 1024 * 1024,
+            memory_usage_percent: 25.0,
+            disk: [{
+                mount: '/',
+                disk_total: 100 * 1024 * 1024 * 1024,
+                disk_used: 30 * 1024 * 1024 * 1024,
+                disk_usage_percent: 30.0
+            }],
+            net: {
+                interface: 'eth0',
+                rx_bytes: 1024 * 1024 * 10,
+                tx_bytes: 1024 * 1024 * 5,
+                rx_errors: 0,
+                tx_errors: 0
+            },
+            services: { 'system': 'running' },
+            errors: [],
+            timestamp: new Date().toISOString(),
+            server_type: 'web'
+        }
+    ];
+    
+    // 오류가 있지만 화면이 로딩 상태에서 벗어날 수 있도록 이벤트 발생
+    const event = new CustomEvent('serverDataUpdated', { detail: window.serverData });
+    window.dispatchEvent(event);
+} 
