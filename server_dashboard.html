@@ -537,289 +537,6 @@
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <div class="header">
-            <div class="logo">
-                <i class="bi bi-hdd-rack-fill"></i> OpenManager AI
-            </div>
-            <div class="actions">
-                <button class="refresh-data-btn btn btn-outline-primary btn-sm">
-                    <i class="bi bi-arrow-clockwise"></i> 데이터 새로고침
-                </button>
-            </div>
-        </div>
-        
-        <!-- AI 질의 및 문제 분석 섹션 -->
-        <div class="ai-section">
-            <div class="ai-header">
-                <div class="ai-title">
-                    <i class="bi bi-robot"></i> AI 서버 도우미
-                </div>
-            </div>
-            
-            <div class="ai-query-form">
-                <input type="text" id="ai-query-input" class="ai-query-input" placeholder="서버 데이터에 대해 질문하세요 (예: 현재 CPU 사용량이 가장 높은 서버는?)">
-                <button id="ai-query-submit" class="ai-query-submit">질문하기</button>
-            </div>
-            
-            <div class="ai-suggestions">
-                <div class="ai-suggestion-tag" data-query="CPU 사용량이 90% 이상인 서버가 있나요?">CPU 사용량 90% 이상</div>
-                <div class="ai-suggestion-tag" data-query="현재 가장 심각한 오류는 무엇인가요?">가장 심각한 오류</div>
-                <div class="ai-suggestion-tag" data-query="지난 1시간 동안 메모리 사용량 추이를 분석해주세요">메모리 사용량 추이</div>
-                <div class="ai-suggestion-tag" data-query="디스크 공간이 부족한 서버를 찾아주세요">디스크 공간 부족</div>
-                <div class="ai-suggestion-tag" data-query="네트워크 오류가 있는 서버 목록">네트워크 오류 목록</div>
-            </div>
-            
-            <div class="ai-response" style="display: none;">
-                <div class="ai-response-content"></div>
-            </div>
-            
-            <div class="problem-analysis">
-                <div class="problem-header">
-                    <i class="bi bi-exclamation-triangle"></i> 자동 문제 분석
-                </div>
-                
-                <ul class="problem-list" id="problem-list">
-                    <!-- 문제 목록은 JavaScript로 동적 생성됨 -->
-                </ul>
-                
-                <div class="report-actions">
-                    <button class="download-report" id="download-report">
-                        <i class="bi bi-file-earmark-text"></i> 장애 보고서 다운로드
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 필터 및 검색 옵션 -->
-        <div class="filter-options">
-            <div class="search-bar">
-                <input type="text" id="search-server" class="form-control form-control-sm" placeholder="서버 이름 검색...">
-            </div>
-            
-            <div class="filters">
-                <div class="filter-btn active" data-filter="all">전체</div>
-                <div class="filter-btn" data-filter="normal">정상</div>
-                <div class="filter-btn" data-filter="warning">경고</div>
-                <div class="filter-btn" data-filter="critical">심각</div>
-            </div>
-            
-            <select class="sort-options form-select form-select-sm" id="sort-servers">
-                <option value="name">이름순</option>
-                <option value="cpu-high">CPU 높은순</option>
-                <option value="cpu-low">CPU 낮은순</option>
-                <option value="memory-high">메모리 높은순</option>
-                <option value="memory-low">메모리 낮은순</option>
-                <option value="disk-high">디스크 높은순</option>
-                <option value="disk-low">디스크 낮은순</option>
-                <option value="status-critical">상태 심각순</option>
-            </select>
-        </div>
-        
-        <!-- 로딩 표시기 -->
-        <div class="loading-indicator" id="loading-indicator">
-            <div class="loading-spinner"></div>
-            서버 데이터를 로딩 중입니다...
-        </div>
-        
-        <!-- 서버 그리드 (JavaScript로 동적 생성됨) -->
-        <div class="server-grid" id="server-grid">
-            <!-- 서버 카드들이 여기에 동적으로 추가됨 -->
-        </div>
-        
-        <!-- 페이지네이션 -->
-        <div class="pagination" id="pagination">
-            <!-- 페이지 버튼들이 여기에 동적으로 추가됨 -->
-        </div>
-        
-        <!-- 서버 상세 정보 모달 -->
-        <div class="server-detail-modal" id="server-detail-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div class="modal-title" id="modal-server-name">서버 상세 정보</div>
-                    <button class="close-modal" id="close-modal">&times;</button>
-                </div>
-                <div class="modal-body" id="modal-body">
-                    <!-- 상세 정보가 여기에 동적으로 추가됨 -->
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 부트스트랩 JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- 더미 데이터 생성기 -->
-    <script src="dummy_data_generator.js"></script>
-    <!-- AI 처리기 -->
-    <script src="ai_processor.js"></script>
-    <!-- 데이터 처리기 -->
-    <script src="data_processor.js"></script>
-    
-    <script>
-        // ... existing code ...
-        .status-running { color: var(--secondary); }
-        .status-stopped { color: var(--accent); }
-        .server-row { cursor: pointer; transition: background-color 0.2s; }
-        .server-row:hover { background-color: #f8f9fa; }
-        .usage-high { color: var(--accent); }
-        .usage-medium { color: #ffc107; }
-        .usage-low { color: var(--secondary); }
-        
-        /* 상세 정보 카드 */
-        .detail-card {
-            display: none;
-            margin-top: var(--spacing-lg);
-            padding: var(--spacing-lg);
-            background-color: var(--surface);
-            border-radius: var(--border-radius-md);
-            box-shadow: var(--shadow-md);
-            animation: fadeIn 0.4s ease-out forwards;
-        }
-        
-        .metric-card {
-            background-color: var(--background);
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius-md);
-            margin-bottom: var(--spacing-md);
-            border: 1px solid var(--border);
-            transition: transform 0.3s ease;
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-sm);
-        }
-        
-        /* 로딩 인디케이터 */
-        .loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(5px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        
-        .loading-content {
-            background: white;
-            padding: var(--spacing-lg);
-            border-radius: var(--border-radius-md);
-            box-shadow: var(--shadow-md);
-            text-align: center;
-        }
-        
-        /* 검색 및 필터 */
-        .search-container {
-            background-color: var(--surface);
-            padding: var(--spacing-md);
-            border-radius: var(--border-radius-md);
-            box-shadow: var(--shadow-sm);
-            margin-bottom: var(--spacing-lg);
-        }
-        
-        .btn-refresh {
-            background-color: var(--primary);
-            color: var(--text-white);
-            border: none;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-refresh:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-        
-        /* 차트 영역 */
-        .chart-container {
-            height: 300px;
-            position: relative;
-        }
-
-        /* AI 질의 컨테이너 */
-        .ai-query-container {
-            background-color: var(--surface);
-            border-radius: var(--border-radius-md);
-            box-shadow: var(--shadow-md);
-            padding: var(--spacing-lg);
-            margin-bottom: var(--spacing-lg);
-            transition: transform 0.3s ease;
-        }
-
-        .ai-query-container:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .query-input {
-            width: 100%;
-            padding: 12px 15px;
-            border-radius: var(--border-radius-md);
-            border: 1px solid var(--border);
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .query-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-
-        .query-loading {
-            display: none;
-            text-align: center;
-            margin: var(--spacing-md) 0;
-        }
-
-        .query-loading.active {
-            display: block;
-        }
-
-        .query-result {
-            display: none;
-            background-color: var(--background);
-            border-radius: var(--border-radius-md);
-            padding: var(--spacing-md);
-            margin-top: var(--spacing-md);
-            white-space: pre-line;
-            border: 1px solid var(--border);
-        }
-
-        .query-result.active {
-            display: block;
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-        
-        /* 반응형 */
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                padding: 10px;
-            }
-            
-            .logo {
-                margin-bottom: 10px;
-            }
-            
-            .nav-menu {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .nav-item {
-                margin: 0 5px;
-                padding: 5px 10px;
-                font-size: 14px;
-            }
-        }
-    </style>
-</head>
-<body>
     <div class="loading" id="loadingIndicator">
         <div class="loading-content">
             <div class="spinner-border text-primary mb-3" role="status">
@@ -1061,6 +778,9 @@
             
             // 이벤트 리스너 설정
             setupEventListeners();
+            
+            // processQuery 함수가 로드되었는지 확인
+            console.log("processQuery 함수 로드 상태:", typeof window.processQuery === 'function');
         }
 
         // window.serverData가 생성될 때까지 대기
@@ -1387,19 +1107,42 @@
             try {
                 console.log("질의 처리 시작:", queryText);
                 
+                // 질의 처리 전 window.processQuery 함수 존재 확인
                 if (typeof window.processQuery !== 'function') {
-                    console.error("processQuery 함수를 찾을 수 없습니다.");
-                    throw new Error("질의 처리 함수가 로드되지 않았습니다. 페이지를 새로고침 후 다시 시도해주세요.");
+                    console.error("processQuery 함수를 찾을 수 없습니다. window 객체:", Object.keys(window));
+                    
+                    // ai_processor.js가 로드되었지만 함수가 등록되지 않은 경우
+                    if (typeof AIProcessor === 'function') {
+                        console.log("AIProcessor 클래스는 로드됨. 인스턴스 생성 시도...");
+                        if (!window.aiProcessor) {
+                            window.aiProcessor = new AIProcessor();
+                        }
+                        
+                        // 직접 processQuery 함수 등록
+                        if (!window.processQuery) {
+                            window.processQuery = async function(q) {
+                                return await window.aiProcessor.processQuery(q);
+                            };
+                            console.log("window.processQuery 함수 수동 등록 완료");
+                        }
+                    } else {
+                        throw new Error("AI 처리 엔진을 찾을 수 없습니다. 페이지를 새로고침 후 다시 시도해주세요.");
+                    }
                 }
                 
+                // 질의 처리 실행
+                console.log("window.processQuery 호출 준비. 함수 타입:", typeof window.processQuery);
                 const response = await window.processQuery(queryText);
                 console.log("질의 응답 받음:", response);
                 
+                // 응답 표시
                 queryResult.innerHTML = response;
                 queryResult.classList.add('active');
             } catch (error) {
                 console.error('AI 처리 오류:', error);
-                queryResult.textContent = '죄송합니다. 처리 중 오류가 발생했습니다: ' + error.message;
+                queryResult.innerHTML = `<div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> 처리 중 오류가 발생했습니다: ${error.message}
+                </div>`;
                 queryResult.classList.add('active');
             } finally {
                 queryLoading.classList.remove('active');
@@ -1450,21 +1193,47 @@
                 }
             });
             
-            // AI 질의 입력
-            document.getElementById('queryInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    handleQuery(this.value);
-                }
-            });
+            // AI 질의 입력 - Enter 키
+            const queryInput = document.getElementById('queryInput');
+            if (queryInput) {
+                console.log("AI 질의 입력 이벤트 리스너 설정");
+                queryInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        console.log("Enter 키 감지됨, 질의 처리 시작");
+                        handleQuery(this.value);
+                    }
+                });
+                
+                // 포커스 시 안내 메시지
+                queryInput.addEventListener('focus', function() {
+                    const queryResult = document.getElementById('queryResult');
+                    if (!queryResult.classList.contains('active')) {
+                        queryResult.innerHTML = '<div class="text-muted"><i class="bi bi-info-circle"></i> 서버 상태나 성능에 관한 질문을 입력하세요. 예: "CPU 사용률이 높은 서버는?", "메모리 상태 알려줘"</div>';
+                        queryResult.classList.add('active');
+                    }
+                });
+            } else {
+                console.error("queryInput 요소를 찾을 수 없습니다!");
+            }
             
             // 보고서 생성 버튼
-            document.getElementById('generate-report-btn').addEventListener('click', generateIncidentReports);
+            const generateReportBtn = document.getElementById('generate-report-btn');
+            if (generateReportBtn) {
+                generateReportBtn.addEventListener('click', generateIncidentReports);
+            }
             
             // 전체 보고서 다운로드 버튼
-            document.getElementById('download-all-reports-btn').addEventListener('click', downloadAllReports);
+            const downloadAllReportsBtn = document.getElementById('download-all-reports-btn');
+            if (downloadAllReportsBtn) {
+                downloadAllReportsBtn.addEventListener('click', downloadAllReports);
+            }
             
             // 페이지 로드 시 보고서 자동 생성 (3초 후)
-            setTimeout(generateIncidentReports, 3000);
+            setTimeout(function() {
+                if (typeof generateIncidentReports === 'function') {
+                    generateIncidentReports();
+                }
+            }, 3000);
             
             // 10분마다 자동 갱신
             setInterval(loadServerData, 10 * 60 * 1000);
