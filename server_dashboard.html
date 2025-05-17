@@ -534,129 +534,8 @@
             background-color: #4a69bd;
             color: #fff;
         }
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <div class="header">
-            <div class="logo">
-                <i class="bi bi-hdd-rack-fill"></i> OpenManager AI
-            </div>
-            <div class="actions">
-                <button class="refresh-data-btn btn btn-outline-primary btn-sm">
-                    <i class="bi bi-arrow-clockwise"></i> 데이터 새로고침
-                </button>
-            </div>
-        </div>
         
-        <!-- AI 질의 및 문제 분석 섹션 -->
-        <div class="ai-section">
-            <div class="ai-header">
-                <div class="ai-title">
-                    <i class="bi bi-robot"></i> AI 서버 도우미
-                </div>
-            </div>
-            
-            <div class="ai-query-form">
-                <input type="text" id="ai-query-input" class="ai-query-input" placeholder="서버 데이터에 대해 질문하세요 (예: 현재 CPU 사용량이 가장 높은 서버는?)">
-                <button id="ai-query-submit" class="ai-query-submit">질문하기</button>
-            </div>
-            
-            <div class="ai-suggestions">
-                <div class="ai-suggestion-tag" data-query="CPU 사용량이 90% 이상인 서버가 있나요?">CPU 사용량 90% 이상</div>
-                <div class="ai-suggestion-tag" data-query="현재 가장 심각한 오류는 무엇인가요?">가장 심각한 오류</div>
-                <div class="ai-suggestion-tag" data-query="지난 1시간 동안 메모리 사용량 추이를 분석해주세요">메모리 사용량 추이</div>
-                <div class="ai-suggestion-tag" data-query="디스크 공간이 부족한 서버를 찾아주세요">디스크 공간 부족</div>
-                <div class="ai-suggestion-tag" data-query="네트워크 오류가 있는 서버 목록">네트워크 오류 목록</div>
-            </div>
-            
-            <div class="ai-response" style="display: none;">
-                <div class="ai-response-content"></div>
-            </div>
-            
-            <div class="problem-analysis">
-                <div class="problem-header">
-                    <i class="bi bi-exclamation-triangle"></i> 자동 문제 분석
-                </div>
-                
-                <ul class="problem-list" id="problem-list">
-                    <!-- 문제 목록은 JavaScript로 동적 생성됨 -->
-                </ul>
-                
-                <div class="report-actions">
-                    <button class="download-report" id="download-report">
-                        <i class="bi bi-file-earmark-text"></i> 장애 보고서 다운로드
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 필터 및 검색 옵션 -->
-        <div class="filter-options">
-            <div class="search-bar">
-                <input type="text" id="search-server" class="form-control form-control-sm" placeholder="서버 이름 검색...">
-            </div>
-            
-            <div class="filters">
-                <div class="filter-btn active" data-filter="all">전체</div>
-                <div class="filter-btn" data-filter="normal">정상</div>
-                <div class="filter-btn" data-filter="warning">경고</div>
-                <div class="filter-btn" data-filter="critical">심각</div>
-            </div>
-            
-            <select class="sort-options form-select form-select-sm" id="sort-servers">
-                <option value="name">이름순</option>
-                <option value="cpu-high">CPU 높은순</option>
-                <option value="cpu-low">CPU 낮은순</option>
-                <option value="memory-high">메모리 높은순</option>
-                <option value="memory-low">메모리 낮은순</option>
-                <option value="disk-high">디스크 높은순</option>
-                <option value="disk-low">디스크 낮은순</option>
-                <option value="status-critical">상태 심각순</option>
-            </select>
-        </div>
-        
-        <!-- 로딩 표시기 -->
-        <div class="loading-indicator" id="loading-indicator">
-            <div class="loading-spinner"></div>
-            서버 데이터를 로딩 중입니다...
-        </div>
-        
-        <!-- 서버 그리드 (JavaScript로 동적 생성됨) -->
-        <div class="server-grid" id="server-grid">
-            <!-- 서버 카드들이 여기에 동적으로 추가됨 -->
-        </div>
-        
-        <!-- 페이지네이션 -->
-        <div class="pagination" id="pagination">
-            <!-- 페이지 버튼들이 여기에 동적으로 추가됨 -->
-        </div>
-        
-        <!-- 서버 상세 정보 모달 -->
-        <div class="server-detail-modal" id="server-detail-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div class="modal-title" id="modal-server-name">서버 상세 정보</div>
-                    <button class="close-modal" id="close-modal">&times;</button>
-                </div>
-                <div class="modal-body" id="modal-body">
-                    <!-- 상세 정보가 여기에 동적으로 추가됨 -->
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 부트스트랩 JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- 더미 데이터 생성기 -->
-    <script src="dummy_data_generator.js"></script>
-    <!-- AI 처리기 -->
-    <script src="ai_processor.js"></script>
-    <!-- 데이터 처리기 -->
-    <script src="data_processor.js"></script>
-    
-    <script>
-        // ... existing code ...
+        /* 추가 스타일 */
         .status-running { color: var(--secondary); }
         .status-stopped { color: var(--accent); }
         .server-row { cursor: pointer; transition: background-color 0.2s; }
@@ -998,11 +877,8 @@
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-file-earmark-medical"></i> AI 장애 보고서</h5>
                 <div>
-                    <button class="btn btn-sm btn-light" id="generate-report-btn">
-                        <i class="bi bi-lightning"></i> 보고서 생성
-                    </button>
-                    <button class="btn btn-sm btn-light ms-2" id="download-all-reports-btn">
-                        <i class="bi bi-download"></i> 전체 다운로드
+                    <button class="btn btn-sm btn-light" id="refresh-report-btn">
+                        <i class="bi bi-arrow-clockwise"></i> 분석 갱신
                     </button>
                 </div>
             </div>
@@ -1011,21 +887,80 @@
                     <i class="bi bi-info-circle"></i> 현재 감지된 장애가 없습니다.
                 </div>
                 
-                <div id="incidents-summary" style="display: none;">
+                <div id="incidents-summary">
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <h6><i class="bi bi-exclamation-triangle"></i> 감지된 장애 요약</h6>
                             <span class="badge bg-danger incident-count">0</span>
                         </div>
-                        <div class="progress">
+                        <div class="progress mb-3">
                             <div class="progress-bar bg-danger" id="critical-progress" style="width: 0%">0 심각</div>
                             <div class="progress-bar bg-warning" id="warning-progress" style="width: 0%">0 경고</div>
                             <div class="progress-bar bg-success" id="normal-progress" style="width: 0%">0 정상</div>
                         </div>
+                        
+                        <!-- 서버 선택 드롭다운 추가 -->
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="server-select" class="form-label">서버 선택</label>
+                                <select class="form-select" id="server-select">
+                                    <option value="">-- 서버를 선택하세요 --</option>
+                                    <!-- 서버 목록은 자바스크립트로 동적 생성됨 -->
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" id="generate-selected-report-btn">
+                                    보고서 생성
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="accordion" id="incidents-accordion">
-                        <!-- 동적으로 채워질 장애 아코디언 항목들 -->
+                    <!-- 선택한 서버의 보고서 표시 영역 -->
+                    <div class="report-container p-3 border rounded mb-3" style="display: none;" id="report-container">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 id="report-server-name" class="mb-0"></h6>
+                            <button class="btn btn-sm btn-outline-primary" id="download-report-btn">
+                                <i class="bi bi-download"></i> 보고서 다운로드
+                            </button>
+                        </div>
+                        <div class="report-content bg-light p-3 rounded" id="report-content">
+                            <div class="text-center" id="report-loading">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">보고서 생성 중...</span>
+                                </div>
+                                <p class="mt-2">AI가 서버 데이터를 분석하여 보고서를 생성 중입니다...</p>
+                            </div>
+                            <pre id="report-text" class="mb-0" style="display: none; white-space: pre-wrap;"></pre>
+                        </div>
+                    </div>
+
+                    <!-- 문제 있는 서버 목록 -->
+                    <div class="problem-servers mb-3">
+                        <h6 class="mb-2">심각/경고 상태 서버 목록</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>서버명</th>
+                                        <th>상태</th>
+                                        <th>CPU</th>
+                                        <th>메모리</th>
+                                        <th>디스크</th>
+                                        <th>작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="problem-servers-table">
+                                    <!-- 문제 있는 서버 목록은 자바스크립트로 동적 생성됨 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button class="btn btn-outline-secondary" id="download-all-reports-btn">
+                            <i class="bi bi-download"></i> 전체 보고서 다운로드
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1374,27 +1309,224 @@
             // 다른 차트들도 동일한 방식으로 업데이트 (코드 생략)...
         }
 
-        // AI 질의 처리
-        async function handleQuery(queryText) {
-            if (!queryText.trim()) return;
+        // 장애 보고서 관련 함수들
+        
+        // 장애 보고서 목록 업데이트
+        function updateIncidentReports() {
+            // 로딩 표시
+            document.getElementById('refresh-report-btn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 분석 중...';
             
-            const queryLoading = document.getElementById('queryLoading');
-            const queryResult = document.getElementById('queryResult');
+            setTimeout(() => {
+                // 문제가 있는 서버 찾기
+                const criticalServers = serverData.filter(server => 
+                    server.cpu_usage >= 90 || 
+                    server.memory_usage_percent >= 90 || 
+                    server.disk[0].disk_usage_percent >= 90 ||
+                    server.errors.length > 0 ||
+                    Object.values(server.services).includes('stopped')
+                );
+                
+                const warningServers = serverData.filter(server => 
+                    !criticalServers.includes(server) &&
+                    ((server.cpu_usage >= 70 && server.cpu_usage < 90) || 
+                    (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
+                    (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90))
+                );
+                
+                // UI 업데이트
+                const noIncidentsAlert = document.getElementById('no-incidents-alert');
+                const incidentsSummary = document.getElementById('incidents-summary');
+                
+                if (criticalServers.length === 0 && warningServers.length === 0) {
+                    noIncidentsAlert.style.display = 'block';
+                    incidentsSummary.style.display = 'none';
+                    document.getElementById('refresh-report-btn').innerHTML = '<i class="bi bi-arrow-clockwise"></i> 분석 갱신';
+                    return;
+                }
+                
+                // 장애가 있으면 요약 표시
+                noIncidentsAlert.style.display = 'none';
+                incidentsSummary.style.display = 'block';
+                
+                // 상태 카운트 업데이트
+                const totalServers = serverData.length;
+                const normalCount = totalServers - criticalServers.length - warningServers.length;
+                
+                document.querySelector('.incident-count').textContent = criticalServers.length + warningServers.length;
+                
+                // 프로그레스바 업데이트
+                const criticalPercent = (criticalServers.length / totalServers * 100).toFixed(1);
+                const warningPercent = (warningServers.length / totalServers * 100).toFixed(1);
+                const normalPercent = (normalCount / totalServers * 100).toFixed(1);
+                
+                document.getElementById('critical-progress').style.width = criticalPercent + '%';
+                document.getElementById('critical-progress').textContent = criticalServers.length + ' 심각';
+                
+                document.getElementById('warning-progress').style.width = warningPercent + '%';
+                document.getElementById('warning-progress').textContent = warningServers.length + ' 경고';
+                
+                document.getElementById('normal-progress').style.width = normalPercent + '%';
+                document.getElementById('normal-progress').textContent = normalCount + ' 정상';
+                
+                // 서버 선택 드롭다운 업데이트
+                updateServerSelectOptions(criticalServers, warningServers);
+                
+                // 문제 있는 서버 테이블 업데이트
+                updateProblemServersTable(criticalServers, warningServers);
+                
+                document.getElementById('refresh-report-btn').innerHTML = '<i class="bi bi-arrow-clockwise"></i> 분석 갱신';
+            }, 1000); // 1초 지연 (분석 효과)
+        }
+        
+        // 서버 선택 드롭다운 옵션 업데이트
+        function updateServerSelectOptions(criticalServers, warningServers) {
+            const serverSelect = document.getElementById('server-select');
+            serverSelect.innerHTML = '<option value="">-- 서버를 선택하세요 --</option>';
             
-            queryLoading.classList.add('active');
-            queryResult.classList.remove('active');
+            // 심각 상태 서버 옵션 추가
+            if (criticalServers.length > 0) {
+                const criticalOptgroup = document.createElement('optgroup');
+                criticalOptgroup.label = '심각 상태 서버';
+                
+                criticalServers.forEach(server => {
+                    const option = document.createElement('option');
+                    option.value = server.hostname;
+                    option.textContent = `${server.hostname} (CPU: ${server.cpu_usage.toFixed(1)}%, MEM: ${server.memory_usage_percent.toFixed(1)}%)`;
+                    option.dataset.status = 'critical';
+                    criticalOptgroup.appendChild(option);
+                });
+                
+                serverSelect.appendChild(criticalOptgroup);
+            }
+            
+            // 경고 상태 서버 옵션 추가
+            if (warningServers.length > 0) {
+                const warningOptgroup = document.createElement('optgroup');
+                warningOptgroup.label = '경고 상태 서버';
+                
+                warningServers.forEach(server => {
+                    const option = document.createElement('option');
+                    option.value = server.hostname;
+                    option.textContent = `${server.hostname} (CPU: ${server.cpu_usage.toFixed(1)}%, MEM: ${server.memory_usage_percent.toFixed(1)}%)`;
+                    option.dataset.status = 'warning';
+                    warningOptgroup.appendChild(option);
+                });
+                
+                serverSelect.appendChild(warningOptgroup);
+            }
+        }
+        
+        // 문제 있는 서버 테이블 업데이트
+        function updateProblemServersTable(criticalServers, warningServers) {
+            const tableBody = document.getElementById('problem-servers-table');
+            tableBody.innerHTML = '';
+            
+            // 심각 상태 서버 행 추가
+            criticalServers.forEach(server => {
+                const row = document.createElement('tr');
+                row.className = 'table-danger';
+                
+                row.innerHTML = `
+                    <td>${server.hostname}</td>
+                    <td><span class="badge bg-danger">심각</span></td>
+                    <td>${server.cpu_usage.toFixed(1)}%</td>
+                    <td>${server.memory_usage_percent.toFixed(1)}%</td>
+                    <td>${server.disk[0].disk_usage_percent.toFixed(1)}%</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary generate-report-btn" data-server="${server.hostname}">
+                            보고서 생성
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 경고 상태 서버 행 추가
+            warningServers.forEach(server => {
+                const row = document.createElement('tr');
+                row.className = 'table-warning';
+                
+                row.innerHTML = `
+                    <td>${server.hostname}</td>
+                    <td><span class="badge bg-warning text-dark">경고</span></td>
+                    <td>${server.cpu_usage.toFixed(1)}%</td>
+                    <td>${server.memory_usage_percent.toFixed(1)}%</td>
+                    <td>${server.disk[0].disk_usage_percent.toFixed(1)}%</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary generate-report-btn" data-server="${server.hostname}">
+                            보고서 생성
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 테이블의 보고서 생성 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.generate-report-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const serverName = this.dataset.server;
+                    generateReportForServer(serverName);
+                });
+            });
+        }
+        
+        // 선택한 서버에 대한 보고서 생성
+        async function generateReportForServer(serverName) {
+            // 보고서 컨테이너 표시
+            const reportContainer = document.getElementById('report-container');
+            reportContainer.style.display = 'block';
+            
+            // 서버 이름 설정
+            document.getElementById('report-server-name').textContent = serverName;
+            
+            // 로딩 표시
+            document.getElementById('report-loading').style.display = 'block';
+            document.getElementById('report-text').style.display = 'none';
             
             try {
-                const response = await processQuery(queryText);
-                queryResult.textContent = response;
-                queryResult.classList.add('active');
+                // 서버 선택 드롭다운 값 설정
+                document.getElementById('server-select').value = serverName;
+                
+                // 보고서 생성 (ai_processor.js에 구현된 함수 호출)
+                const report = await window.generateIncidentReport(serverName);
+                
+                // 보고서 내용 설정
+                const reportTextEl = document.getElementById('report-text');
+                reportTextEl.textContent = report;
+                
+                // 로딩 숨김, 보고서 표시
+                document.getElementById('report-loading').style.display = 'none';
+                reportTextEl.style.display = 'block';
+                
+                // 보고서까지 스크롤
+                reportContainer.scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
-                console.error('AI 처리 오류:', error);
-                queryResult.textContent = '죄송합니다. 처리 중 오류가 발생했습니다. 다시 시도해주세요.';
-                queryResult.classList.add('active');
-            } finally {
-                queryLoading.classList.remove('active');
+                console.error('보고서 생성 오류:', error);
+                document.getElementById('report-text').textContent = '보고서 생성 중 오류가 발생했습니다. 다시 시도해주세요.';
+                document.getElementById('report-loading').style.display = 'none';
+                document.getElementById('report-text').style.display = 'block';
             }
+        }
+        
+        // 보고서 다운로드
+        function downloadReport() {
+            const serverName = document.getElementById('report-server-name').textContent;
+            const reportText = document.getElementById('report-text').textContent;
+            
+            if (!reportText) return;
+            
+            // 보고서 파일 다운로드
+            const blob = new Blob([reportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `장애보고서_${serverName}_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // 이벤트 리스너 설정
@@ -1441,430 +1573,59 @@
                 }
             });
             
+            // 보고서 관련 이벤트 리스너
+            document.getElementById('refresh-report-btn').addEventListener('click', updateIncidentReports);
+            
+            document.getElementById('generate-selected-report-btn').addEventListener('click', function() {
+                const serverName = document.getElementById('server-select').value;
+                if (serverName) {
+                    generateReportForServer(serverName);
+                } else {
+                    alert('보고서를 생성할 서버를 선택해주세요.');
+                }
+            });
+            
+            document.getElementById('download-report-btn').addEventListener('click', downloadReport);
+            
+            document.getElementById('download-all-reports-btn').addEventListener('click', downloadAllReports);
+            
             // AI 질의 입력
             document.getElementById('queryInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    handleQuery(this.value);
+                    const query = this.value.trim();
+                    if (query) {
+                        processUserQuery(query);
+                    }
                 }
             });
             
-            // 보고서 생성 버튼
-            document.getElementById('generate-report-btn').addEventListener('click', generateIncidentReports);
-            
-            // 전체 보고서 다운로드 버튼
-            document.getElementById('download-all-reports-btn').addEventListener('click', downloadAllReports);
-            
-            // 페이지 로드 시 보고서 자동 생성 (3초 후)
-            setTimeout(generateIncidentReports, 3000);
-            
-            // 10분마다 자동 갱신
-            setInterval(loadServerData, 10 * 60 * 1000);
+            // 페이지 로드 시 장애 보고서 자동 생성 (3초 후)
+            setTimeout(updateIncidentReports, 3000);
         }
-
-        // 장애 보고서 관련 함수들
         
-        // 장애 보고서 생성 함수
-        function generateIncidentReports() {
+        // 사용자 질의 처리
+        async function processUserQuery(query) {
+            const queryLoading = document.getElementById('queryLoading');
+            const queryResult = document.getElementById('queryResult');
+            
             // 로딩 표시
-            document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-hourglass"></i> 생성 중...';
+            queryLoading.classList.add('active');
+            queryResult.classList.remove('active');
             
-            setTimeout(() => {
-                // 문제가 있는 서버 찾기
-                const criticalServers = serverData.filter(server => 
-                    server.cpu_usage >= 90 || 
-                    server.memory_usage_percent >= 90 || 
-                    server.disk[0].disk_usage_percent >= 90 ||
-                    server.errors.length > 0
-                );
+            try {
+                // AI 프로세서의 processQuery 함수 호출
+                const response = await window.processQuery(query);
                 
-                const warningServers = serverData.filter(server => 
-                    (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
-                    (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
-                    (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90) ||
-                    Object.values(server.services).includes('stopped')
-                );
-                
-                // UI 업데이트
-                const noIncidentsAlert = document.getElementById('no-incidents-alert');
-                const incidentsSummary = document.getElementById('incidents-summary');
-                
-                if (criticalServers.length === 0 && warningServers.length === 0) {
-                    noIncidentsAlert.style.display = 'block';
-                    incidentsSummary.style.display = 'none';
-                    document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-lightning"></i> 보고서 생성';
-                    return;
-                }
-                
-                // 장애가 있으면 요약 표시
-                noIncidentsAlert.style.display = 'none';
-                incidentsSummary.style.display = 'block';
-                
-                // 상태 카운트 업데이트
-                const totalServers = serverData.length;
-                const normalCount = totalServers - criticalServers.length - warningServers.length;
-                
-                document.querySelector('.incident-count').textContent = criticalServers.length + warningServers.length;
-                
-                // 프로그레스바 업데이트
-                const criticalPercent = (criticalServers.length / totalServers * 100).toFixed(1);
-                const warningPercent = (warningServers.length / totalServers * 100).toFixed(1);
-                const normalPercent = (normalCount / totalServers * 100).toFixed(1);
-                
-                document.getElementById('critical-progress').style.width = criticalPercent + '%';
-                document.getElementById('critical-progress').textContent = criticalServers.length + ' 심각';
-                
-                document.getElementById('warning-progress').style.width = warningPercent + '%';
-                document.getElementById('warning-progress').textContent = warningServers.length + ' 경고';
-                
-                document.getElementById('normal-progress').style.width = normalPercent + '%';
-                document.getElementById('normal-progress').textContent = normalCount + ' 정상';
-                
-                // 아코디언 항목 생성
-                generateIncidentAccordionItems(criticalServers, warningServers);
-                
-                document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-lightning"></i> 보고서 갱신';
-            }, 1000); // 1초 지연 (보고서 생성 효과)
-        }
-        
-        // 장애 아코디언 항목 생성
-        function generateIncidentAccordionItems(criticalServers, warningServers) {
-            const accordion = document.getElementById('incidents-accordion');
-            accordion.innerHTML = '';
-            
-            // 심각 서버 먼저 처리
-            criticalServers.forEach((server, index) => {
-                const serverId = server.hostname.replace(/[^a-zA-Z0-9]/g, '-');
-                const problems = detectServerProblems(server);
-                
-                const accordionItem = document.createElement('div');
-                accordionItem.className = 'accordion-item';
-                accordionItem.innerHTML = `
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${serverId}">
-                            <span class="badge bg-danger me-2">심각</span>
-                            <strong>${server.hostname}</strong> - ${problems.map(p => p.type).join(', ')}
-                        </button>
-                    </h2>
-                    <div id="collapse-${serverId}" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="incident-details">
-                                <div class="mb-3">
-                                    <h6>감지된 문제:</h6>
-                                    <ul class="problem-list">
-                                        ${problems.map(p => `<li>${p.description}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="mb-3">
-                                    <h6>권장 조치:</h6>
-                                    <ul class="solution-list">
-                                        ${problems.map(p => `<li>${p.solution}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="text-end">
-                                    <button class="btn btn-sm btn-primary download-report-btn" data-server="${server.hostname}">
-                                        <i class="bi bi-download"></i> 보고서 다운로드
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                accordion.appendChild(accordionItem);
-            });
-            
-            // 경고 서버 처리
-            warningServers.forEach((server, index) => {
-                const serverId = server.hostname.replace(/[^a-zA-Z0-9]/g, '-');
-                const problems = detectServerProblems(server);
-                
-                const accordionItem = document.createElement('div');
-                accordionItem.className = 'accordion-item';
-                accordionItem.innerHTML = `
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${serverId}">
-                            <span class="badge bg-warning me-2">경고</span>
-                            <strong>${server.hostname}</strong> - ${problems.map(p => p.type).join(', ')}
-                        </button>
-                    </h2>
-                    <div id="collapse-${serverId}" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="incident-details">
-                                <div class="mb-3">
-                                    <h6>감지된 문제:</h6>
-                                    <ul class="problem-list">
-                                        ${problems.map(p => `<li>${p.description}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="mb-3">
-                                    <h6>권장 조치:</h6>
-                                    <ul class="solution-list">
-                                        ${problems.map(p => `<li>${p.solution}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="text-end">
-                                    <button class="btn btn-sm btn-primary download-report-btn" data-server="${server.hostname}">
-                                        <i class="bi bi-download"></i> 보고서 다운로드
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                accordion.appendChild(accordionItem);
-            });
-            
-            // 다운로드 버튼 이벤트 추가
-            document.querySelectorAll('.download-report-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const serverName = this.dataset.server;
-                    downloadIncidentReport(serverName);
-                });
-            });
-        }
-        
-        // 서버 문제 감지 함수
-        function detectServerProblems(server) {
-            const problems = [];
-            
-            // CPU 문제
-            if (server.cpu_usage >= 90) {
-                problems.push({
-                    type: 'CPU 과부하',
-                    description: `CPU 사용률이 ${server.cpu_usage.toFixed(2)}%로 매우 높음 (임계값: 90%)`,
-                    solution: '불필요한 프로세스 종료, CPU 사용량이 높은 애플리케이션 최적화, 서버 스케일업 고려'
-                });
-            } else if (server.cpu_usage >= 70) {
-                problems.push({
-                    type: 'CPU 부하',
-                    description: `CPU 사용률이 ${server.cpu_usage.toFixed(2)}%로 높음 (임계값: 70%)`,
-                    solution: 'CPU 사용량 모니터링, 지속적인 증가 시 원인 파악 필요'
-                });
+                // 결과 표시
+                queryResult.textContent = response;
+                queryResult.classList.add('active');
+            } catch (error) {
+                console.error('질의 처리 오류:', error);
+                queryResult.textContent = '죄송합니다. 질의를 처리하는 동안 오류가 발생했습니다. 다시 시도해주세요.';
+                queryResult.classList.add('active');
+            } finally {
+                queryLoading.classList.remove('active');
             }
-            
-            // 메모리 문제
-            if (server.memory_usage_percent >= 90) {
-                problems.push({
-                    type: '메모리 부족',
-                    description: `메모리 사용률이 ${server.memory_usage_percent.toFixed(2)}%로 매우 높음 (임계값: 90%)`,
-                    solution: '메모리 누수 점검, 불필요한 프로세스 종료, 메모리 증설 고려'
-                });
-            } else if (server.memory_usage_percent >= 70) {
-                problems.push({
-                    type: '메모리 부하',
-                    description: `메모리 사용률이 ${server.memory_usage_percent.toFixed(2)}%로 높음 (임계값: 70%)`,
-                    solution: '메모리 사용량 모니터링, 캐시 설정 최적화 검토'
-                });
-            }
-            
-            // 디스크 문제
-            if (server.disk[0].disk_usage_percent >= 90) {
-                problems.push({
-                    type: '디스크 공간 부족',
-                    description: `디스크 사용률이 ${server.disk[0].disk_usage_percent.toFixed(2)}%로 매우 높음 (임계값: 90%)`,
-                    solution: '불필요한 파일 정리, 로그 파일 압축/제거, 디스크 확장 고려'
-                });
-            } else if (server.disk[0].disk_usage_percent >= 70) {
-                problems.push({
-                    type: '디스크 공간 주의',
-                    description: `디스크 사용률이 ${server.disk[0].disk_usage_percent.toFixed(2)}%로 높음 (임계값: 70%)`,
-                    solution: '디스크 사용량 모니터링, 대용량 파일 위치 확인'
-                });
-            }
-            
-            // 서비스 문제
-            const stoppedServices = [];
-            Object.entries(server.services).forEach(([service, status]) => {
-                if (status === 'stopped') {
-                    stoppedServices.push(service);
-                }
-            });
-            
-            if (stoppedServices.length > 0) {
-                problems.push({
-                    type: '서비스 중단',
-                    description: `${stoppedServices.length}개 서비스 중단됨: ${stoppedServices.join(', ')}`,
-                    solution: '서비스 로그 확인 후 재시작, 의존성 확인, 서비스 구성 파일 검토'
-                });
-            }
-            
-            // 오류 메시지
-            if (server.errors.length > 0) {
-                problems.push({
-                    type: '오류 발생',
-                    description: `${server.errors.length}개의 오류 발생: ${server.errors.join(', ')}`,
-                    solution: '오류 로그 분석, 애플리케이션 재시작, 관련 구성 파일 검토'
-                });
-            }
-            
-            return problems;
-        }
-        
-        // 장애 보고서 다운로드 함수
-        function downloadIncidentReport(serverName) {
-            const server = serverData.find(s => s.hostname === serverName);
-            if (!server) return;
-            
-            const problems = detectServerProblems(server);
-            
-            // 보고서 내용 생성
-            let reportContent = `=== OpenManager AI - 장애 보고서 ===\n\n`;
-            reportContent += `서버: ${server.hostname}\n`;
-            reportContent += `시간: ${new Date().toLocaleString()}\n`;
-            reportContent += `OS: ${server.os}\n`;
-            reportContent += `가동시간: ${server.uptime}\n\n`;
-            
-            reportContent += `=== 시스템 상태 ===\n`;
-            reportContent += `CPU 사용률: ${server.cpu_usage.toFixed(2)}%\n`;
-            reportContent += `메모리 사용률: ${server.memory_usage_percent.toFixed(2)}%\n`;
-            reportContent += `디스크 사용률: ${server.disk[0].disk_usage_percent.toFixed(2)}%\n`;
-            reportContent += `Load Average (1m): ${server.load_avg_1m}\n\n`;
-            
-            reportContent += `=== 감지된 문제 ===\n`;
-            problems.forEach((problem, index) => {
-                reportContent += `${index + 1}. ${problem.type}: ${problem.description}\n`;
-            });
-            
-            reportContent += `\n=== 권장 조치 ===\n`;
-            problems.forEach((problem, index) => {
-                reportContent += `${index + 1}. ${problem.solution}\n`;
-            });
-            
-            reportContent += `\n=== 서비스 상태 ===\n`;
-            Object.entries(server.services).forEach(([service, status]) => {
-                reportContent += `${service}: ${status}\n`;
-            });
-            
-            if (server.errors.length > 0) {
-                reportContent += `\n=== 오류 메시지 ===\n`;
-                server.errors.forEach((error, index) => {
-                    reportContent += `${index + 1}. ${error}\n`;
-                });
-            }
-            
-            // 보고서 파일 다운로드
-            const blob = new Blob([reportContent], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `장애보고서_${server.hostname}_${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-        
-        // 전체 보고서 다운로드
-        function downloadAllReports() {
-            const criticalServers = serverData.filter(server => 
-                server.cpu_usage >= 90 || 
-                server.memory_usage_percent >= 90 || 
-                server.disk[0].disk_usage_percent >= 90 ||
-                server.errors.length > 0
-            );
-            
-            const warningServers = serverData.filter(server => 
-                (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
-                (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
-                (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90) ||
-                Object.values(server.services).includes('stopped')
-            );
-            
-            if (criticalServers.length === 0 && warningServers.length === 0) {
-                alert('다운로드할 장애 보고서가 없습니다.');
-                return;
-            }
-            
-            // 요약 보고서 생성
-            let summaryReport = `=== OpenManager AI - 전체 장애 요약 보고서 ===\n\n`;
-            summaryReport += `생성 시간: ${new Date().toLocaleString()}\n`;
-            summaryReport += `전체 서버 수: ${serverData.length}대\n`;
-            summaryReport += `심각 상태 서버: ${criticalServers.length}대\n`;
-            summaryReport += `경고 상태 서버: ${warningServers.length}대\n`;
-            summaryReport += `정상 상태 서버: ${serverData.length - criticalServers.length - warningServers.length}대\n\n`;
-            
-            summaryReport += `=== 심각 상태 서버 목록 ===\n`;
-            criticalServers.forEach((server, index) => {
-                const problems = detectServerProblems(server);
-                summaryReport += `${index + 1}. ${server.hostname}: ${problems.map(p => p.type).join(', ')}\n`;
-            });
-            
-            summaryReport += `\n=== 경고 상태 서버 목록 ===\n`;
-            warningServers.forEach((server, index) => {
-                const problems = detectServerProblems(server);
-                summaryReport += `${index + 1}. ${server.hostname}: ${problems.map(p => p.type).join(', ')}\n`;
-            });
-            
-            // 개별 서버 보고서 추가
-            summaryReport += `\n\n============= 개별 서버 상세 보고서 =============\n\n`;
-            
-            // 심각 서버 먼저
-            criticalServers.forEach(server => {
-                summaryReport += `\n\n=============================================\n`;
-                summaryReport += `서버: ${server.hostname} (심각)\n`;
-                summaryReport += `=============================================\n\n`;
-                
-                const problems = detectServerProblems(server);
-                
-                summaryReport += `CPU: ${server.cpu_usage.toFixed(2)}%, 메모리: ${server.memory_usage_percent.toFixed(2)}%, 디스크: ${server.disk[0].disk_usage_percent.toFixed(2)}%\n\n`;
-                
-                summaryReport += `--- 감지된 문제 ---\n`;
-                problems.forEach((problem, index) => {
-                    summaryReport += `${index + 1}. ${problem.type}: ${problem.description}\n`;
-                });
-                
-                summaryReport += `\n--- 권장 조치 ---\n`;
-                problems.forEach((problem, index) => {
-                    summaryReport += `${index + 1}. ${problem.solution}\n`;
-                });
-                
-                if (server.errors.length > 0) {
-                    summaryReport += `\n--- 오류 메시지 ---\n`;
-                    server.errors.forEach((error, index) => {
-                        summaryReport += `${index + 1}. ${error}\n`;
-                    });
-                }
-            });
-            
-            // 경고 서버 추가
-            warningServers.forEach(server => {
-                summaryReport += `\n\n=============================================\n`;
-                summaryReport += `서버: ${server.hostname} (경고)\n`;
-                summaryReport += `=============================================\n\n`;
-                
-                const problems = detectServerProblems(server);
-                
-                summaryReport += `CPU: ${server.cpu_usage.toFixed(2)}%, 메모리: ${server.memory_usage_percent.toFixed(2)}%, 디스크: ${server.disk[0].disk_usage_percent.toFixed(2)}%\n\n`;
-                
-                summaryReport += `--- 감지된 문제 ---\n`;
-                problems.forEach((problem, index) => {
-                    summaryReport += `${index + 1}. ${problem.type}: ${problem.description}\n`;
-                });
-                
-                summaryReport += `\n--- 권장 조치 ---\n`;
-                problems.forEach((problem, index) => {
-                    summaryReport += `${index + 1}. ${problem.solution}\n`;
-                });
-                
-                if (server.errors.length > 0) {
-                    summaryReport += `\n--- 오류 메시지 ---\n`;
-                    server.errors.forEach((error, index) => {
-                        summaryReport += `${index + 1}. ${error}\n`;
-                    });
-                }
-            });
-            
-            // 전체 보고서 다운로드
-            const blob = new Blob([summaryReport], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `전체_장애_보고서_${new Date().toISOString().slice(0, 10)}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
 
         // 페이지 로드 시 초기화

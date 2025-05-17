@@ -637,11 +637,193 @@ class AIProcessor {
 
 // 전역 함수 - 외부에서 호출
 async function processQuery(query) {
-    // AIProcessor 인스턴스가 없으면 생성
+    // AI 프로세서 인스턴스를 가져오거나 생성
     if (!window.aiProcessor) {
         window.aiProcessor = new AIProcessor();
     }
     
-    // 쿼리 처리하고 결과 반환
-    return await window.aiProcessor.processQuery(query);
-} 
+    try {
+        // 약간의 지연을 주어 처리 중인 느낌 제공
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 실제 질의 처리
+        const response = await window.aiProcessor.processQuery(query);
+        return response;
+    } catch (error) {
+        console.error('AI 처리 오류:', error);
+        return '죄송합니다. 요청을 처리하는 동안 오류가 발생했습니다. 다시 시도해주세요.';
+    }
+}
+
+// 서버 분석 및 보고서 캐시
+let reportCache = {
+    lastGenerated: null,
+    reports: {},
+    ttl: 10 * 60 * 1000  // 10분 캐시
+};
+
+// 장애 보고서 생성 함수
+async function generateIncidentReport(serverName) {
+    if (!window.aiProcessor) {
+        window.aiProcessor = new AIProcessor();
+    }
+    
+    const server = window.serverData.find(s => s.hostname === serverName);
+    if (!server) {
+        return '서버를 찾을 수 없습니다.';
+    }
+    
+    // 캐시에서 보고서 확인
+    const now = new Date().getTime();
+    if (reportCache.reports[serverName] && 
+        reportCache.lastGenerated && 
+        (now - reportCache.lastGenerated < reportCache.ttl)) {
+        return reportCache.reports[serverName];
+    }
+    
+    // 서버 문제 분석
+    const problems = detectServerProblems(server);
+    
+    // 보고서 생성
+    let report = `# ${server.hostname} 장애 분석 보고서\n\n`;
+    report += `## 시스템 정보\n`;
+    report += `- 호스트명: ${server.hostname}\n`;
+    report += `- OS: ${server.os}\n`;
+    report += `- 가동시간: ${server.uptime}\n`;
+    report += `- 서버 유형: ${server.server_type}\n\n`;
+    
+    report += `## 현재 리소스 상태\n`;
+    report += `- CPU 사용률: ${server.cpu_usage.toFixed(1)}%\n`;
+    report += `- 메모리 사용률: ${server.memory_usage_percent.toFixed(1)}%\n`;
+    report += `- 디스크 사용률: ${server.disk[0].disk_usage_percent.toFixed(1)}%\n`;
+    report += `- 로드 평균(1분): ${server.load_avg_1m}\n\n`;
+    
+    if (problems.length > 0) {
+        report += `## 감지된 문제\n`;
+        problems.forEach((problem, index) => {
+            report += `### ${index + 1}. ${problem.type}\n`;
+            report += `- 상세 내용: ${problem.description}\n`;
+            report += `- 심각도: ${problem.severity}\n`;
+            report += `- 권장 조치: ${problem.solution}\n\n`;
+        });
+    } else {
+        report += `## 상태 평가\n`;
+        report += `현재 시스템에서 특별한 문제가 감지되지 않았습니다.\n\n`;
+    }
+    
+    report += `## 서비스 상태\n`;
+    Object.entries(server.services).forEach(([service, status]) => {
+        report += `- ${service}: ${status === 'running' ? '정상 실행 중' : '중단됨'}\n`;
+    });
+    
+    if (server.errors.length > 0) {
+        report += `\n## 오류 메시지\n`;
+        server.errors.forEach((error, index) => {
+            report += `- ${error}\n`;
+        });
+    }
+    
+    report += `\n## 생성 시간\n`;
+    report += `- ${new Date().toLocaleString('ko-KR')}\n`;
+    
+    // 캐시에 보고서 저장
+    reportCache.reports[serverName] = report;
+    reportCache.lastGenerated = now;
+    
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return report;
+}
+
+// 서버 문제 감지 함수
+function detectServerProblems(server) {
+    if (!window.aiProcessor) {
+        window.aiProcessor = new AIProcessor();
+    }
+    
+    const problems = [];
+    
+    // CPU 문제
+    if (server.cpu_usage >= 90) {
+        problems.push({
+            type: 'CPU 과부하',
+            description: `CPU 사용률이 ${server.cpu_usage.toFixed(1)}%로 매우 높음 (임계값: 90%)`,
+            severity: '심각',
+            solution: '불필요한 프로세스 종료, CPU 사용량이 높은 애플리케이션 최적화, 서버 스케일업 고려'
+        });
+    } else if (server.cpu_usage >= 70) {
+        problems.push({
+            type: 'CPU 부하',
+            description: `CPU 사용률이 ${server.cpu_usage.toFixed(1)}%로 높음 (임계값: 70%)`,
+            severity: '경고',
+            solution: 'CPU 사용량 모니터링, 지속적인 증가 시 원인 파악 필요'
+        });
+    }
+    
+    // 메모리 문제
+    if (server.memory_usage_percent >= 90) {
+        problems.push({
+            type: '메모리 부족',
+            description: `메모리 사용률이 ${server.memory_usage_percent.toFixed(1)}%로 매우 높음 (임계값: 90%)`,
+            severity: '심각',
+            solution: '메모리 누수 점검, 불필요한 프로세스 종료, 메모리 증설 고려'
+        });
+    } else if (server.memory_usage_percent >= 70) {
+        problems.push({
+            type: '메모리 부하',
+            description: `메모리 사용률이 ${server.memory_usage_percent.toFixed(1)}%로 높음 (임계값: 70%)`,
+            severity: '경고',
+            solution: '메모리 사용량 모니터링, 캐시 설정 최적화 검토'
+        });
+    }
+    
+    // 디스크 문제
+    if (server.disk[0].disk_usage_percent >= 90) {
+        problems.push({
+            type: '디스크 공간 부족',
+            description: `디스크 사용률이 ${server.disk[0].disk_usage_percent.toFixed(1)}%로 매우 높음 (임계값: 90%)`,
+            severity: '심각',
+            solution: '불필요한 파일 정리, 로그 파일 압축/제거, 디스크 확장 고려'
+        });
+    } else if (server.disk[0].disk_usage_percent >= 70) {
+        problems.push({
+            type: '디스크 공간 주의',
+            description: `디스크 사용률이 ${server.disk[0].disk_usage_percent.toFixed(1)}%로 높음 (임계값: 70%)`,
+            severity: '경고',
+            solution: '디스크 사용량 모니터링, 대용량 파일 위치 확인'
+        });
+    }
+    
+    // 서비스 문제
+    const stoppedServices = [];
+    Object.entries(server.services).forEach(([service, status]) => {
+        if (status === 'stopped') {
+            stoppedServices.push(service);
+        }
+    });
+    
+    if (stoppedServices.length > 0) {
+        problems.push({
+            type: '서비스 중단',
+            description: `${stoppedServices.length}개 서비스 중단됨: ${stoppedServices.join(', ')}`,
+            severity: '심각',
+            solution: '서비스 로그 확인 후 재시작, 의존성 확인, 서비스 구성 파일 검토'
+        });
+    }
+    
+    // 오류 메시지
+    if (server.errors.length > 0) {
+        problems.push({
+            type: '오류 발생',
+            description: `${server.errors.length}개의 오류 발생: ${server.errors.join(', ')}`,
+            severity: '경고',
+            solution: '오류 로그 분석, 애플리케이션 재시작, 관련 구성 파일 검토'
+        });
+    }
+    
+    return problems;
+}
+
+// 전역 함수로 노출
+window.processQuery = processQuery;
+window.generateIncidentReport = generateIncidentReport;
+window.detectServerProblems = detectServerProblems; 
