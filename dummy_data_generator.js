@@ -15,10 +15,17 @@ class DummyDataGenerator {
         this.initialBatchSize = 10; // 첫 로딩시 10대만 우선 생성
         this.updateInterval = 10 * 60 * 1000; // 10분 (밀리초 단위)
         
-        // 장애 확률 설정 (심각: 4%, 경고: 10%, 정상: 86%)
-        this.criticalProbability = 0.04; // 심각 상태 확률 (50대 중 2대)
-        this.warningProbability = 0.10; // 경고 상태 확률 (50대 중 5대)
-        this.errorProbability = 0.15; // 서비스 장애 및 오류 메시지 발생 확률
+        // 최종 상태 목표치 (ai_processor.js가 판단)
+        this.targetCriticalRatio = 0.04; // 심각 상태 서버 비율 목표 (50대 중 2대)
+        this.targetWarningRatio = 0.10;  // 경고 상태 서버 비율 목표 (50대 중 5대)
+
+        // "재료" 발생 확률 (이 값들을 조정하여 위 목표치에 근접하도록 함)
+        // 이 확률들은 독립적으로 작용하거나 여러개가 동시에 발생할 수 있음
+        this.highResourceUsageCriticalProb = 0.03; // 리소스 하나가 90% 넘을 확률
+        this.highResourceUsageWarningProb = 0.08; // 리소스 하나가 70-89% 될 확률
+        this.criticalErrorProb = 0.02;             // "Critical" 오류 메시지 발생 확률
+        this.warningErrorProb = 0.05;              // "Error" 또는 "Warning" 오류 메시지 발생 확률
+        this.serviceStoppedProb = 0.02;            // 서비스 중단 발생 확률
         
         // 서버 구성 정보
         this.serverConfigurations = [
@@ -182,187 +189,105 @@ class DummyDataGenerator {
         const region = this.getRandomItem(this.regions);
         const hostname = `${selectedConfig.prefix}-${region}-${serverNumber}`;
         
-        // 서버 상태 결정 (심각, 경고, 정상)
-        // 통합 로직으로 대체할 것이므로 여기서는 리소스 변동 값만 결정
-        const rand = Math.random();
-        const isCritical = rand < this.criticalProbability;
-        const isWarning = !isCritical && rand < (this.criticalProbability + this.warningProbability);
-        
         // 시간대별 부하 가중치 적용 (현재 시간 기준)
         const timeWeightMultiplier = this.timePatterns.dailyPattern[this.currentHour] / 100;
         
-        // 서버 유형에 맞는 리소스 사용량 계산
+        // 1. 리소스 사용량 생성
         let cpuBase = selectedConfig.cpu.base + this.getRandomInt(-selectedConfig.cpu.variation, selectedConfig.cpu.variation);
-        const cpuVariation = this.getRandomInt(-10, 10); // 기본 변동폭
-        
-        // 심각 상태 서버는 CPU, 메모리, 디스크 중 하나 이상이 90% 이상
-        if (isCritical) {
-            // 어떤 리소스가 심각 상태가 될지 랜덤하게 결정 (1: CPU, 2: 메모리, 3: 디스크, 4: 여러개)
-            const criticalType = this.getRandomInt(1, 4);
-            if (criticalType === 1 || criticalType === 4) {
-                cpuBase = 90 + this.getRandomInt(0, 8); // CPU 90-98%
-            }
-        }
-        // 경고 상태 서버는 CPU, 메모리, 디스크 중 하나 이상이 70-89%
-        else if (isWarning) {
-            // 어떤 리소스가 경고 상태가 될지 랜덤하게 결정 (1: CPU, 2: 메모리, 3: 디스크, 4: 여러개)
-            const warningType = this.getRandomInt(1, 4);
-            if (warningType === 1 || warningType === 4) {
-                cpuBase = 70 + this.getRandomInt(0, 19); // CPU 70-89%
-            }
-        }
-        
-        const cpu_usage = parseFloat(Math.min(Math.max(Math.floor(cpuBase * timeWeightMultiplier) + cpuVariation, 5), 98).toFixed(2));
-        
         let memoryBase = selectedConfig.memory.base + this.getRandomInt(-selectedConfig.memory.variation, selectedConfig.memory.variation);
-        const memoryVariation = this.getRandomInt(-10, 10);
-        
-        // 심각 상태의 메모리 설정
-        if (isCritical) {
-            const criticalType = this.getRandomInt(1, 4);
-            if (criticalType === 2 || criticalType === 4) {
-                memoryBase = 90 + this.getRandomInt(0, 8); // 메모리 90-98%
-            }
-        }
-        // 경고 상태의 메모리 설정
-        else if (isWarning) {
-            const warningType = this.getRandomInt(1, 4);
-            if (warningType === 2 || warningType === 4) {
-                memoryBase = 70 + this.getRandomInt(0, 19); // 메모리 70-89%
-            }
-        }
-        
-        const memory_usage_percent = parseFloat(Math.min(Math.max(Math.floor(memoryBase * timeWeightMultiplier) + memoryVariation, 5), 98).toFixed(2));
-        
         let diskBase = selectedConfig.disk.base + this.getRandomInt(-selectedConfig.disk.variation, selectedConfig.disk.variation);
-        const diskVariation = this.getRandomInt(-5, 5);
-        
-        // 심각 상태의 디스크 설정
-        if (isCritical) {
-            const criticalType = this.getRandomInt(1, 4);
-            if (criticalType === 3 || criticalType === 4) {
-                diskBase = 90 + this.getRandomInt(0, 8); // 디스크 90-98%
-            }
-        }
-        // 경고 상태의 디스크 설정
-        else if (isWarning) {
-            const warningType = this.getRandomInt(1, 4);
-            if (warningType === 3 || warningType === 4) {
-                diskBase = 70 + this.getRandomInt(0, 19); // 디스크 70-89%
-            }
+
+        // 확률에 따라 리소스 사용량 급증 시뮬레이션
+        if (Math.random() < this.highResourceUsageCriticalProb) {
+            const resourceType = this.getRandomInt(1, 3); // 1:CPU, 2:Mem, 3:Disk
+            if (resourceType === 1) cpuBase = 90 + this.getRandomInt(0, 8);
+            else if (resourceType === 2) memoryBase = 90 + this.getRandomInt(0, 8);
+            else diskBase = 90 + this.getRandomInt(0, 8);
+        } else if (Math.random() < this.highResourceUsageWarningProb) {
+            const resourceType = this.getRandomInt(1, 3);
+            if (resourceType === 1) cpuBase = 70 + this.getRandomInt(0, 19);
+            else if (resourceType === 2) memoryBase = 70 + this.getRandomInt(0, 19);
+            else diskBase = 70 + this.getRandomInt(0, 19);
         }
         
-        const disk_usage_percent = parseFloat(Math.min(Math.max(Math.floor(diskBase * timeWeightMultiplier) + diskVariation, 5), 98).toFixed(2));
-        
-        // 서버 유형에 따른 메모리 크기 차별화
-        let memorySize;
-        if (selectedConfig.prefix === 'db' || selectedConfig.prefix === 'app') {
-            memorySize = this.getRandomInt(16, 64) * 1024 * 1024 * 1024; // 16GB ~ 64GB
-        } else if (selectedConfig.prefix === 'cache') {
-            memorySize = this.getRandomInt(32, 128) * 1024 * 1024 * 1024; // 32GB ~ 128GB
-        } else {
-            memorySize = this.getRandomInt(8, 32) * 1024 * 1024 * 1024; // 8GB ~ 32GB
-        }
-        
-        const memory_total = memorySize;
-        const memory_usage = Math.floor(memory_total * (memory_usage_percent / 100));
-        
-        // 서버 유형에 따른 디스크 크기 차별화
-        let diskSize;
-        if (selectedConfig.prefix === 'db' || selectedConfig.prefix === 'monitor') {
-            diskSize = this.getRandomInt(500, 2000) * 1024 * 1024 * 1024; // 500GB ~ 2TB
-        } else if (selectedConfig.prefix === 'web' || selectedConfig.prefix === 'app') {
-            diskSize = this.getRandomInt(200, 500) * 1024 * 1024 * 1024; // 200GB ~ 500GB
-        } else {
-            diskSize = this.getRandomInt(100, 300) * 1024 * 1024 * 1024; // 100GB ~ 300GB
-        }
-        
-        const disk = [{
-            mount: '/',
-            disk_total: diskSize,
-            disk_used: Math.floor(diskSize * (disk_usage_percent / 100)),
-            disk_usage_percent: disk_usage_percent
+        const cpu_usage = parseFloat(Math.min(Math.max(Math.floor(cpuBase * timeWeightMultiplier) + this.getRandomInt(-10, 10), 5), 98).toFixed(2));
+        const memory_usage_percent = parseFloat(Math.min(Math.max(Math.floor(memoryBase * timeWeightMultiplier) + this.getRandomInt(-10, 10), 5), 98).toFixed(2));
+        const disk_info = [{
+            mount: '/data',
+            total: '100GB', // 예시 값
+            used: '0GB',    // 아래에서 계산
+            available: '0GB', // 아래에서 계산
+            disk_usage_percent: parseFloat(Math.min(Math.max(Math.floor(diskBase * timeWeightMultiplier) + this.getRandomInt(-5, 5), 5), 98).toFixed(2))
         }];
+        disk_info[0].used = (disk_info[0].disk_usage_percent / 100 * 100).toFixed(1) + 'GB';
+        disk_info[0].available = (100 - (disk_info[0].disk_usage_percent / 100 * 100)).toFixed(1) + 'GB';
         
-        // 네트워크 트래픽 (서버 유형에 따라 차별화)
-        let networkMultiplier;
-        if (selectedConfig.prefix === 'web' || selectedConfig.prefix === 'api') {
-            networkMultiplier = this.getRandomInt(20, 50); // 높은 트래픽
-        } else if (selectedConfig.prefix === 'db') {
-            networkMultiplier = this.getRandomInt(10, 30); // 중간 트래픽
-        } else {
-            networkMultiplier = this.getRandomInt(5, 15); // 낮은 트래픽
-        }
-        
-        const net = {
-            interface: 'eth0',
-            rx_bytes: networkMultiplier * 1024 * 1024 * Math.random() * timeWeightMultiplier, // 트래픽 * 시간 가중치
-            tx_bytes: networkMultiplier * 1024 * 1024 * Math.random() * timeWeightMultiplier,
-            rx_errors: Math.random() < this.errorProbability ? this.getRandomInt(1, 100) : 0,
-            tx_errors: Math.random() < this.errorProbability ? this.getRandomInt(1, 50) : 0
-        };
-        
-        // 서비스 상태
-        const services = {};
-        const serviceCount = this.getRandomInt(
-            selectedConfig.serviceCount.min, 
-            selectedConfig.serviceCount.max
-        );
-        
-        const selectedServices = this.getRandomItems(selectedConfig.services, serviceCount);
-        selectedServices.forEach(service => {
-            // 서비스 중단 확률 (심각/경고 상태와 연계)
-            let stopProbability = this.errorProbability;
-            if (isCritical) stopProbability = 0.4; // 심각 상태는 서비스 중단 확률 높음
-            else if (isWarning) stopProbability = 0.2; // 경고 상태는 서비스 중단 확률 중간
-            
-            services[service] = Math.random() < stopProbability ? 'stopped' : 'running';
-        });
-        
-        // 오류 메시지 (있을 경우)
+        // 2. 오류 메시지 생성
         const errors = [];
-        
-        // 오류 메시지 발생 확률 (심각/경고 상태와 연계)
-        let errorMsgProbability = this.errorProbability;
-        if (isCritical) errorMsgProbability = 0.7; // 심각 상태는 오류 메시지 확률 높음
-        else if (isWarning) errorMsgProbability = 0.4; // 경고 상태는 오류 메시지 확률 중간
-        
-        if (Math.random() < errorMsgProbability) {
-            const errorCount = isCritical ? this.getRandomInt(2, 3) : this.getRandomInt(1, 2);
-            for (let i = 0; i < errorCount; i++) {
-                errors.push(this.generateErrorMessage(selectedConfig.prefix));
+        if (Math.random() < this.criticalErrorProb) {
+            errors.push(this.generateErrorMessage(selectedConfig.prefix, 'Critical'));
+        } else if (Math.random() < this.warningErrorProb) {
+            const errorType = Math.random() < 0.5 ? 'Error' : 'Warning';
+            errors.push(this.generateErrorMessage(selectedConfig.prefix, errorType));
+        }
+        if (selectedConfig.prefix === 'db' && Math.random() < 0.1) { // DB 서버는 가끔 추가 오류
+            errors.push(this.generateErrorMessage('db', 'Warning', 'Slow query detected'));
+        }
+
+
+        // 3. 서비스 상태 생성
+        const services = {};
+        const numServices = this.getRandomInt(selectedConfig.serviceCount.min, selectedConfig.serviceCount.max);
+        const availableServices = [...selectedConfig.services];
+        let stoppedServiceInjected = false;
+
+        for (let i = 0; i < numServices && availableServices.length > 0; i++) {
+            const serviceIndex = this.getRandomInt(0, availableServices.length - 1);
+            const serviceName = availableServices.splice(serviceIndex, 1)[0];
+            
+            let status = 'running';
+            // 첫 번째 서비스에 대해서만 낮은 확률로 stopped 상태 주입 (단, criticalError가 이미 발생하지 않았다면)
+            // 여러 서비스가 동시에 중단되는 상황은 ai_processor에서 critical로 처리
+            if (i === 0 && !stoppedServiceInjected && errors.every(e => !e.toLowerCase().includes('critical')) && Math.random() < this.serviceStoppedProb) {
+                status = 'stopped';
+                stoppedServiceInjected = true; // 중복 방지
             }
+            services[serviceName] = status;
         }
         
-        // 서버 유형에 따른 가동시간 차별화
-        let uptimeDays;
-        if (Math.random() < 0.8) { // 80% 확률로 정상적인 가동시간
-            uptimeDays = this.getRandomInt(5, 120); // 5일 ~ 120일
-        } else {
-            uptimeDays = this.getRandomInt(1, 4); // 최근 재부팅된 서버
-        }
+        // 4. 네트워크 트래픽 및 기타 정보
+        const net_rx_bytes = this.getRandomInt(100000, 50000000); // 예시 범위
+        const net_tx_bytes = this.getRandomInt(100000, 50000000); // 예시 범위
         
-        // 현재 시간 기반 타임스탬프
-        const now = new Date();
-        
-        return {
-            hostname,
+        const server = {
+            hostname: hostname,
+            ip: `10.${index % 25}.${Math.floor(index / 25)}.${(index % 50) + 10}`,
             os: this.getRandomItem(this.osTypes),
-            uptime: `${uptimeDays} days, ${this.getRandomInt(0, 23)} hours`,
-            load_avg_1m: parseFloat((cpu_usage / 100 * this.getRandomInt(80, 120) / 100).toFixed(2)),
-            process_count: this.getRandomInt(100, 500),
-            zombie_count: Math.random() < 0.2 ? this.getRandomInt(1, 5) : 0,
-            cpu_usage,
-            memory_total,
-            memory_usage,
-            memory_usage_percent,
-            disk,
-            net,
-            services,
-            errors,
-            timestamp: now.toISOString(),
-            server_type: selectedConfig.prefix
+            cpu_usage: cpu_usage,
+            memory_total: '16GB', // 예시
+            memory_usage_percent: memory_usage_percent,
+            memory_free: `${(100 - memory_usage_percent) / 100 * 16}GB`, // 예시
+            disk: disk_info,
+            services: services,
+            errors: errors,
+            net: {
+                rx_bytes: net_rx_bytes,
+                tx_bytes: net_tx_bytes,
+                rx_packets: this.getRandomInt(net_rx_bytes / 1000, net_rx_bytes / 500),
+                tx_packets: this.getRandomInt(net_tx_bytes / 1000, net_tx_bytes / 500),
+                rx_errors: errors.length > 0 && Math.random() < 0.2 ? this.getRandomInt(1, 50) : 0, // 오류 있을 시 네트워크 오류 확률 증가
+                tx_errors: errors.length > 0 && Math.random() < 0.1 ? this.getRandomInt(1, 20) : 0
+            },
+            uptime: `${this.getRandomInt(1, 365)}d ${this.getRandomInt(0,23)}h ${this.getRandomInt(0,59)}m`,
+            load_avg: [parseFloat(Math.random().toFixed(2)), parseFloat(Math.random().toFixed(2)), parseFloat(Math.random().toFixed(2))],
+            processes: this.getRandomInt(50, 300),
+            last_updated: new Date().toISOString(),
+            region: region,
+            server_type: selectedConfig.prefix, // server_type 추가
+            // status 필드는 ai_processor에서 결정하므로 여기서는 생성하지 않음
         };
+        
+        return server;
     }
     
     // 나머지 서버 데이터를 비동기적으로 생성
@@ -479,8 +404,8 @@ class DummyDataGenerator {
             else {
                 // 정상 → 경고 또는 심각 
                 // 전체 심각/경고 상태 서버 수에 따라 확률 조정
-                const targetCritical = Math.floor(this.serverData.length * this.criticalProbability);
-                const targetWarning = Math.floor(this.serverData.length * this.warningProbability);
+                const targetCritical = Math.floor(this.serverData.length * this.targetCriticalRatio);
+                const targetWarning = Math.floor(this.serverData.length * this.targetWarningRatio);
                 
                 // 심각 상태가 목표보다 적으면 심각 상태로 변경 확률 증가
                 if (criticalCount < targetCritical && Math.random() < 0.05) {
@@ -700,79 +625,36 @@ class DummyDataGenerator {
     }
     
     // 서버 유형별 맞춤형 오류 메시지 생성
-    generateErrorMessage(serverType) {
-        // 공통 오류 유형
-        const commonErrorTypes = [
-            'Out of memory', 
-            'Process terminated',
-            'Permission denied',
-            'Timeout exceeded',
-            'Resource temporarily unavailable',
-            'Configuration error'
-        ];
-        
-        // 서버 유형별 특화 오류
-        const serverSpecificErrors = {
-            'web': [
-                'Connection refused',
-                'HTTP 500 Internal Server Error',
-                'SSL certificate expired',
-                'Web server restart required',
-                'Virtual host configuration error'
+    generateErrorMessage(serverType, severity = 'Warning', customMessage = null) {
+        const messages = {
+            Critical: [
+                `CRITICAL: Core service ${serverType.toUpperCase()}_SERVICE_01 failed to start. System integrity compromised.`,
+                `CRITICAL: Unrecoverable hardware error detected on ${serverType}. Immediate action required.`,
+                `CRITICAL: Security breach attempt detected on ${serverType}! System locked down.`,
+                `CRITICAL: Kernel panic - not syncing: Fatal exception in interrupt on ${serverType}`
             ],
-            'app': [
-                'Application crashed',
-                'Memory leak detected',
-                'Thread deadlock',
-                'Unhandled exception',
-                'Runtime dependency missing'
+            Error: [
+                `ERROR: ${serverType.toUpperCase()}_APP_MODULE_X crashed due to an unhandled exception.`,
+                `ERROR: Failed to connect to remote DB from ${serverType}. Timeout occurred.`,
+                `ERROR: Configuration file for ${serverType.toUpperCase()}_SERVICE_02 is corrupted.`,
+                `ERROR: High number of I/O errors on /dev/sdX on ${serverType}. Disk may be failing.`
             ],
-            'db': [
-                'Database connection failed',
-                'Deadlock detected',
-                'Transaction log full',
-                'Replication lag',
-                'Table corruption detected'
-            ],
-            'cache': [
-                'Cache eviction rate high',
-                'Memory fragmentation',
-                'Connection pool exhausted',
-                'Cache miss rate high',
-                'Inconsistent data detected'
-            ],
-            'api': [
-                'Rate limit exceeded',
-                'API response timeout',
-                'Authentication failure',
-                'Service dependency unavailable',
-                'Invalid request format'
-            ],
-            'monitor': [
-                'Metrics collection failed',
-                'Alert delivery failed',
-                'Dashboard rendering error',
-                'Data retention policy exceeded',
-                'Agent communication failure'
+            Warning: [
+                `WARNING: High CPU load average on ${serverType} for the last 15 minutes.`,
+                `WARNING: Memory usage on ${serverType} is approaching critical levels (85%).`,
+                `WARNING: Disk space on /var/log on ${serverType} is running low (currently 80% full).`,
+                `WARNING: Unexpected spike in network latency for ${serverType}.`
             ]
         };
-        
-        // 오류 타입 선택
-        let errorTypes = [...commonErrorTypes];
-        if (serverSpecificErrors[serverType]) {
-            errorTypes = [...errorTypes, ...serverSpecificErrors[serverType]];
+
+        if (customMessage) {
+            return `${severity.toUpperCase()}: ${customMessage} on ${serverType}.`;
         }
+
+        const severityMessages = messages[severity];
+        if (!severityMessages) return `${severity.toUpperCase()}: Unknown issue on ${serverType}.`;
         
-        const errorSeverities = ['Warning', 'Error', 'Critical'];
-        const services = serverType === 'db' ? 
-            ['mysql', 'postgresql', 'mongodb', 'redis'] : 
-            ['system', 'network', 'app', 'disk', 'cpu', 'memory'];
-        
-        const errorType = this.getRandomItem(errorTypes);
-        const severity = this.getRandomItem(errorSeverities);
-        const service = this.getRandomItem(services);
-        
-        return `[${severity}] ${service}: ${errorType}`;
+        return this.getRandomItem(severityMessages);
     }
     
     // 유틸리티 함수
