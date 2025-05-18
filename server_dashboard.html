@@ -1256,7 +1256,7 @@
             renderServerTable();
             updateCharts();
             updateTimestamp();
-            updateStatusCounts(); // 상태 요약 카운트 업데이트
+            // updateStatusCounts(); // 상태 요약 카운트 업데이트 - 이 줄을 주석 처리 (data_processor.js의 updateGlobalStatusSummary로 대체됨)
             createStatusChart(); // 상태 요약 차트 생성
             generateIncidentReports(); // 장애 보고서 자동 생성
         }
