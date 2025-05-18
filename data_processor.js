@@ -226,6 +226,15 @@ class DataProcessor {
             downloadReportButton.addEventListener('click', () => this.downloadErrorReport());
         }
         
+        // 전체 문제 보기 버튼 이벤트 처리
+        const viewAllProblemsBtn = document.getElementById('viewAllProblemsBtn');
+        if (viewAllProblemsBtn) {
+            viewAllProblemsBtn.addEventListener('click', () => {
+                // 현재 모든 문제를 모달로 표시하도록 수정
+                this.showAllProblems();
+            });
+        }
+        
         // 프리셋 태그 버튼 이벤트
         document.querySelectorAll('.preset-tag').forEach(tag => {
             tag.addEventListener('click', () => {
@@ -280,7 +289,7 @@ class DataProcessor {
         try {
             // 1. generateDummyData 함수 검사 및 호출
             if (typeof generateDummyData === 'function') {
-                window.serverData = generateDummyData(30); // 30개 서버 데이터 생성
+                window.serverData = generateDummyData(10); // 30개에서 10개로 줄임
                 if (window.serverData && window.serverData.length > 0) {
                     this.handleDataUpdate(window.serverData);
                     return;
@@ -409,7 +418,7 @@ class DataProcessor {
         if (typeof generateDummyData === 'function') {
             try {
                 console.log('더미 데이터 다시 생성...');
-                window.serverData = generateDummyData(30); // 30개 서버 데이터 생성
+                window.serverData = generateDummyData(10); // 30개에서 10개로 줄임
                 
                 // 데이터 업데이트 이벤트 발생시키기
                 const event = new CustomEvent('serverDataUpdated', { 
@@ -1540,6 +1549,133 @@ class DataProcessor {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    // 모든 문제를 보여주는 모달 표시
+    showAllProblems() {
+        if (!this.aiProcessor) {
+            alert('AI 프로세서가 초기화되지 않아 문제 목록을 가져올 수 없습니다.');
+            return;
+        }
+        
+        // 문제 데이터 가져오기
+        let problems = [];
+        try {
+            if (typeof this.aiProcessor.detectProblems === 'function') {
+                problems = this.aiProcessor.detectProblems();
+            } else {
+                console.warn("AI 프로세서에 detectProblems 메소드가 없습니다.");
+                alert('문제 목록을 불러올 수 없습니다.');
+                return;
+            }
+            
+            // 결과가 배열이 아니거나 undefined인 경우 빈 배열로 처리
+            if (!Array.isArray(problems)) {
+                console.warn("detectProblems() 함수가 배열을 반환하지 않았습니다.");
+                problems = [];
+            }
+            
+            // Normal 상태는 제외
+            problems = problems.filter(p => p && (p.severity === 'Critical' || p.severity === 'Warning' || p.severity === 'Error'));
+            
+            // 정렬: Critical 우선, 그 다음 Warning/Error
+            problems.sort((a, b) => {
+                const severityScore = (severity) => {
+                    if (severity === 'Critical') return 2;
+                    if (severity === 'Warning' || severity === 'Error') return 1;
+                    return 0;
+                };
+                return severityScore(b.severity) - severityScore(a.severity);
+            });
+        } catch (error) {
+            console.error("문제 목록 가져오기 오류:", error);
+            alert('문제 목록을 불러오는 중 오류가 발생했습니다.');
+            return;
+        }
+        
+        // 문제가 없는 경우
+        if (problems.length === 0) {
+            alert('현재 감지된 문제가 없습니다.');
+            return;
+        }
+        
+        // 기존 모달이 있으면 제거
+        const existingModal = document.getElementById('allProblemsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // 모든 문제를 표시하는 모달 생성
+        const modalHTML = `
+            <div class="modal fade" id="allProblemsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-exclamation-triangle me-2 text-danger"></i> 전체 서버 문제 목록
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="problems-count mb-3">
+                                총 <span class="fw-bold">${problems.length}</span>개의 문제가 감지되었습니다.
+                            </div>
+                            <ul class="list-group all-problems-list">
+                                ${problems.map(problem => `
+                                    <li class="list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1 problem-description">${problem.description}</h6>
+                                            <small class="text-muted">${problem.serverHostname || '알 수 없는 서버'}</small>
+                                        </div>
+                                        <p class="mb-1 problem-solution">${problem.solution || '제안된 해결책 없음'}</p>
+                                        <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" id="downloadModalReport">
+                                <i class="bi bi-download"></i> 보고서 다운로드
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 모달 추가 및 표시
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Bootstrap 모달 인스턴스 생성 및 표시
+        const modalElement = document.getElementById('allProblemsModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        
+        // 문제 항목 클릭 이벤트 추가
+        modalElement.querySelectorAll('.problem-item').forEach((item, index) => {
+            item.addEventListener('click', () => {
+                // 해당 서버 모달 표시
+                const serverHostname = problems[index].serverHostname;
+                if (!serverHostname) return;
+                
+                const server = this.serverData.find(s => s.hostname === serverHostname);
+                if (server) {
+                    modal.hide(); // 현재 모달 닫기
+                    setTimeout(() => {
+                        this.showServerDetail(server); // 서버 상세 모달 표시
+                    }, 500);
+                }
+            });
+        });
+        
+        // 보고서 다운로드 버튼 이벤트
+        const downloadBtn = document.getElementById('downloadModalReport');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => {
+                this.downloadErrorReport();
+            });
+        }
     }
 }
 
