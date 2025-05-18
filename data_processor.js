@@ -1063,14 +1063,12 @@ class DataProcessor {
     
     updateProblemsList() {
         if (!this.aiProcessor) return;
-
+        
         const problemListContainer = document.getElementById('aiProblemList');
         const loadingIndicator = document.getElementById('aiProblemsLoading');
         const emptyIndicator = document.getElementById('aiProblemsEmpty');
-        const toggleButtonContainer = document.getElementById('aiProblemListToggle');
-        const toggleButton = document.getElementById('toggleAiProblemListBtn');
 
-        if (!problemListContainer || !loadingIndicator || !emptyIndicator || !toggleButtonContainer || !toggleButton) {
+        if (!problemListContainer || !loadingIndicator || !emptyIndicator) {
             console.error("AI Problem list UI elements not found.");
             return;
         }
@@ -1078,7 +1076,6 @@ class DataProcessor {
         loadingIndicator.style.display = 'block';
         emptyIndicator.style.display = 'none';
         problemListContainer.innerHTML = '';
-        toggleButtonContainer.style.display = 'none';
 
         try {
             // detectProblems 메소드가 존재하고 호출 가능한지 확인
@@ -1118,38 +1115,30 @@ class DataProcessor {
             // Normal 상태는 제외 (detectProblems에서 이미 처리되었거나, 여기서 한번 더 필터링)
             problems = problems.filter(p => p && (p.severity === 'Critical' || p.severity === 'Warning' || p.severity === 'Error'));
     
-            // 정렬: Warning(Error 포함) 우선, 그 다음 Critical (오름차순)
+            // 정렬: Critical 우선, 그 다음 Warning(Error 포함) (내림차순)
             problems.sort((a, b) => {
                 const severityScore = (severity) => {
                     if (severity === 'Critical') return 2;
                     if (severity === 'Warning' || severity === 'Error') return 1;
                     return 0; // 그 외 (정상 등, 실제로는 필터링됨)
                 };
-                return severityScore(a.severity) - severityScore(b.severity);
+                return severityScore(b.severity) - severityScore(a.severity);
             });
     
             loadingIndicator.style.display = 'none';
-    
+        
             if (problems.length === 0) {
                 emptyIndicator.style.display = 'block';
-                problemListContainer.style.maxHeight = 'none'; // 내용 없을 시 maxHeight 제거
                 return;
             }
-    
-            const maxInitialItems = 3;
-            const maxExpandedItems = 10;
-            this.problemsData = problems; // 클래스 멤버로 저장해서 다른 메소드에서 접근 가능하게 함
-
-            // 확장 상태 초기화
-            this.isProblemListExpanded = false;
-            toggleButton.dataset.expanded = 'false';
             
-            // 표시할 항목 수 결정
-            const itemsToShow = Math.min(problems.length, maxInitialItems);
+            // 최대 5개의 문제만 표시
+            const maxProblems = 5;
+            const totalProblems = problems.length;
+            const displayProblems = problems.slice(0, maxProblems);
             
             // 목록 렌더링
-            for (let i = 0; i < problems.length; i++) {
-                const problem = problems[i];
+            displayProblems.forEach(problem => {
                 const listItem = document.createElement('li');
                 listItem.className = `list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}`;
                 listItem.innerHTML = `
@@ -1161,7 +1150,6 @@ class DataProcessor {
                     <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
                 `;
                 
-                // 서버 카드와 상태 일치: 서버 카드는 getServerStatus()를 통해 이미 aiProcessor의 판단을 따르므로 별도 조치 불필요.
                 // 문제 항목 클릭 시 액션 (예: 서버 상세 모달)
                 listItem.addEventListener('click', () => {
                     const server = this.serverData.find(s => s.hostname === problem.serverHostname);
@@ -1169,70 +1157,21 @@ class DataProcessor {
                 });
                 
                 problemListContainer.appendChild(listItem);
-                
-                // 초기 상태에서 maxInitialItems 이상 항목은 숨김
-                if (i >= maxInitialItems) {
-                    listItem.style.display = 'none';
-                }
-            }
+            });
             
-            // 더보기 버튼 표시 여부 결정
-            if (problems.length > maxInitialItems) {
-                toggleButtonContainer.style.display = 'block';
-                const remainingCount = problems.length - maxInitialItems;
-                toggleButton.textContent = `더 보기 (${Math.min(remainingCount, problems.length - maxInitialItems)}개 더 있음)`;
-                
-                // 이벤트 리스너 등록
-                toggleButton.removeEventListener('click', this.toggleProblemList);
-                toggleButton.addEventListener('click', this.toggleProblemList.bind(this));
-            } else {
-                toggleButtonContainer.style.display = 'none';
+            // 총 문제 수가 5개를 초과하는 경우 문제가 더 있다는 것을 표시
+            if (totalProblems > maxProblems) {
+                const remainingCount = totalProblems - maxProblems;
+                const moreInfoItem = document.createElement('li');
+                moreInfoItem.className = 'list-group-item text-center text-muted';
+                moreInfoItem.innerHTML = `그 외 ${remainingCount}개의 문제가 더 있습니다.`;
+                problemListContainer.appendChild(moreInfoItem);
             }
         } catch (error) {
             console.error("AI 문제 목록 업데이트 중 오류 발생:", error);
             loadingIndicator.style.display = 'none';
             emptyIndicator.textContent = "문제 목록을 불러오는 중 오류가 발생했습니다.";
             emptyIndicator.style.display = 'block';
-        }
-    }
-    
-    // 문제 목록 접기/펼치기 토글 함수
-    toggleProblemList(event) {
-        // DOM 요소 찾기
-        const problemListContainer = document.getElementById('aiProblemList');
-        const toggleButton = event && event.currentTarget ? event.currentTarget : document.getElementById('toggleAiProblemListBtn');
-        
-        if (!problemListContainer || !toggleButton || !this.problemsData) {
-            console.error("필요한 DOM 요소 또는 데이터가 없습니다.");
-            return;
-        }
-        
-        // 현재 상태 토글
-        this.isProblemListExpanded = !this.isProblemListExpanded;
-        toggleButton.dataset.expanded = this.isProblemListExpanded ? 'true' : 'false';
-        
-        // 목록 항목 표시 상태 변경
-        const listItems = problemListContainer.querySelectorAll('li');
-        const maxInitialItems = 3;
-        
-        listItems.forEach((item, index) => {
-            if (index >= maxInitialItems) {
-                item.style.display = this.isProblemListExpanded ? 'block' : 'none';
-            }
-        });
-        
-        // 버튼 텍스트 변경
-        if (this.isProblemListExpanded) {
-            toggleButton.textContent = '접기';
-            // 보기 좋게 스크롤 추가
-            problemListContainer.style.maxHeight = '400px';
-            problemListContainer.style.overflowY = 'auto';
-        } else {
-            const remainingCount = this.problemsData.length - maxInitialItems;
-            toggleButton.textContent = `더 보기 (${remainingCount}개 더 있음)`;
-            // 스크롤 제거
-            problemListContainer.style.maxHeight = '';
-            problemListContainer.style.overflowY = '';
         }
     }
     
