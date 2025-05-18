@@ -150,6 +150,32 @@ class DataProcessor {
         if (downloadReportButton) {
             downloadReportButton.addEventListener('click', () => this.downloadErrorReport());
         }
+        
+        // AI 자동 장애 보고서 '더 보기' 버튼 이벤트
+        const toggleProblemListBtn = document.getElementById('toggleAiProblemListBtn');
+        if (toggleProblemListBtn) {
+            toggleProblemListBtn.addEventListener('click', function() {
+                const list = document.getElementById('aiProblemList');
+                if (!list) return;
+                
+                const btn = this;
+                const expanded = btn.getAttribute('data-expanded') === 'true';
+
+                if (expanded) {
+                    // 목록 줄이기
+                    [...list.children].forEach((item, index) => {
+                        if (index >= 5) item.style.display = 'none';
+                    });
+                    btn.innerText = `더 보기 (${list.children.length - 5}개 더 있음)`;
+                    btn.setAttribute('data-expanded', 'false');
+                } else {
+                    // 전체 펼치기
+                    [...list.children].forEach(item => item.style.display = 'block');
+                    btn.innerText = '접기';
+                    btn.setAttribute('data-expanded', 'true');
+                }
+            });
+        }
     }
     
     loadData() {
