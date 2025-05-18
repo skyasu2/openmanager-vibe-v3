@@ -29,15 +29,18 @@ class DataProcessor {
         };
         
         // UI 요소 참조
-        this.serverGrid = document.getElementById('server-grid');
-        this.pagination = document.getElementById('pagination');
-        this.loadingIndicator = document.getElementById('loading-indicator');
-        this.filterButtons = document.querySelectorAll('.filter-btn');
-        this.sortSelect = document.getElementById('sort-servers');
-        this.searchInput = document.getElementById('search-server');
-        this.refreshButton = document.querySelector('.refresh-data-btn');
-        this.modalElement = document.getElementById('server-detail-modal');
-        this.closeModalButton = document.getElementById('close-modal');
+        this.serverGrid = document.getElementById('serverGrid');
+        this.loadingIndicator = document.getElementById('loadingIndicator');
+        this.searchInput = document.getElementById('searchInput');
+        this.statusFilter = document.getElementById('statusFilter');
+        this.pageSize = document.getElementById('pageSize');
+        this.prevPageBtn = document.getElementById('prevPageBtn');
+        this.nextPageBtn = document.getElementById('nextPageBtn');
+        this.serverCount = document.getElementById('serverCount');
+        this.currentPage = document.getElementById('currentPage');
+        this.refreshButton = document.getElementById('refreshBtn');
+        this.modalElement = document.getElementById('serverDetailModal');
+        this.closeModalButton = document.querySelector('.btn-close[data-bs-dismiss="modal"]');
         
         // 이벤트 리스너 등록
         this.registerEventListeners();
@@ -53,35 +56,63 @@ class DataProcessor {
     }
     
     registerEventListeners() {
-        // 필터 버튼 이벤트
-        this.filterButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.filterButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.currentFilter = btn.dataset.filter;
+        // 필터링 이벤트
+        if (this.statusFilter) {
+            this.statusFilter.addEventListener('change', () => {
+                this.currentFilter = this.statusFilter.value;
                 this.currentPage = 1; // 필터 변경 시 첫 페이지로 리셋
                 this.applyFiltersAndSort();
             });
-        });
-        
-        // 정렬 변경 이벤트
-        this.sortSelect.addEventListener('change', () => {
-            this.currentSort = this.sortSelect.value;
-            this.applyFiltersAndSort();
-        });
+        }
         
         // 검색 이벤트
-        this.searchInput.addEventListener('input', () => {
-            this.searchQuery = this.searchInput.value.toLowerCase();
-            this.currentPage = 1; // 검색 시 첫 페이지로 리셋
-            this.applyFiltersAndSort();
-        });
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', () => {
+                this.searchQuery = this.searchInput.value.toLowerCase();
+                this.currentPage = 1; // 검색 시 첫 페이지로 리셋
+                this.applyFiltersAndSort();
+            });
+        }
+        
+        // 페이지 크기 이벤트
+        if (this.pageSize) {
+            this.pageSize.addEventListener('change', () => {
+                this.itemsPerPage = parseInt(this.pageSize.value);
+                this.currentPage = 1;
+                this.applyFiltersAndSort();
+            });
+        }
+        
+        // 이전 페이지 버튼
+        if (this.prevPageBtn) {
+            this.prevPageBtn.addEventListener('click', () => {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.applyFiltersAndSort();
+                }
+            });
+        }
+        
+        // 다음 페이지 버튼
+        if (this.nextPageBtn) {
+            this.nextPageBtn.addEventListener('click', () => {
+                const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
+                if (this.currentPage < totalPages) {
+                    this.currentPage++;
+                    this.applyFiltersAndSort();
+                }
+            });
+        }
         
         // 새로고침 이벤트
-        this.refreshButton.addEventListener('click', () => this.refreshData());
+        if (this.refreshButton) {
+            this.refreshButton.addEventListener('click', () => this.refreshData());
+        }
         
         // 모달 닫기 이벤트
-        this.closeModalButton.addEventListener('click', () => this.closeModal());
+        if (this.closeModalButton) {
+            this.closeModalButton.addEventListener('click', () => this.closeModal());
+        }
         
         // 서버 데이터 업데이트 이벤트 리스너
         window.addEventListener('serverDataUpdated', (event) => {
@@ -89,18 +120,16 @@ class DataProcessor {
         });
         
         // 초기 AI 도우미 기능 설정
-        document.getElementById('ai-query-submit').addEventListener('click', () => this.processAIQuery());
-        
-        // AI 질문 제안 클릭 이벤트
-        document.querySelectorAll('.ai-suggestion-tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                document.getElementById('ai-query-input').value = tag.dataset.query;
-                this.processAIQuery();
-            });
-        });
+        const aiQuerySubmitButton = document.getElementById('ai-query-submit');
+        if (aiQuerySubmitButton) {
+            aiQuerySubmitButton.addEventListener('click', () => this.processAIQuery());
+        }
         
         // 장애 보고서 다운로드 이벤트
-        document.getElementById('download-report').addEventListener('click', () => this.downloadErrorReport());
+        const downloadReportButton = document.getElementById('downloadAllReportsBtn');
+        if (downloadReportButton) {
+            downloadReportButton.addEventListener('click', () => this.downloadErrorReport());
+        }
     }
     
     loadData() {
@@ -822,25 +851,36 @@ class DataProcessor {
     processAIQuery() {
         if (!this.aiProcessor) return;
         
-        const queryInput = document.getElementById('ai-query-input');
-        const query = queryInput.value.trim();
+        const queryInput = document.getElementById('queryInput');
+        const query = queryInput ? queryInput.value.trim() : '';
         
         if (!query) return;
         
-        const responseElement = document.querySelector('.ai-response');
-        const responseContent = document.querySelector('.ai-response-content');
+        const queryLoadingElement = document.getElementById('queryLoading');
+        const queryResultElement = document.getElementById('queryResult');
         
         // 응답 영역 보이기
-        responseElement.style.display = 'block';
-        responseContent.innerHTML = '<div class="loading-spinner"></div> 분석 중...';
+        if (queryLoadingElement) queryLoadingElement.classList.add('active');
+        if (queryResultElement) queryResultElement.style.display = 'none';
         
         // AI 질의 처리
         this.aiProcessor.processQuery(query)
             .then(response => {
-                responseContent.innerHTML = response;
+                if (queryResultElement) {
+                    queryResultElement.innerHTML = response;
+                    queryResultElement.classList.add('active');
+                    queryResultElement.style.display = 'block';
+                }
             })
             .catch(error => {
-                responseContent.innerHTML = `오류가 발생했습니다: ${error.message}`;
+                if (queryResultElement) {
+                    queryResultElement.innerHTML = `오류가 발생했습니다: ${error.message}`;
+                    queryResultElement.classList.add('active');
+                    queryResultElement.style.display = 'block';
+                }
+            })
+            .finally(() => {
+                if (queryLoadingElement) queryLoadingElement.classList.remove('active');
             });
     }
     

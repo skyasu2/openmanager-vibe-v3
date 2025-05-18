@@ -1126,6 +1126,25 @@
         </div>
     </div>
 
+    <!-- 필요한 자바스크립트 함수 정의 -->
+    <script>
+        // 접이식 패널 토글 함수
+        function toggleCollapsible(header) {
+            const body = header.nextElementSibling;
+            const icon = header.querySelector('.collapse-toggle i');
+            
+            body.classList.toggle('expanded');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+            
+            // 각 패널의 확장 상태를 로컬 스토리지에 저장
+            if (body && body.parentElement && body.parentElement.id) {
+                const panelId = body.parentElement.id; // 부모 .collapsible-panel의 ID를 사용
+                localStorage.setItem(`panel_${panelId}_state`, body.classList.contains('expanded') ? 'expanded' : 'collapsed');
+            }
+        }
+    </script>
+
     <!-- 자바스크립트 라이브러리 및 소스 파일 -->
     <!-- 스크립트는 순서가 중요: 부트스트랩, dummy_data_generator.js, ai_processor.js, data_processor.js 순서로 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
