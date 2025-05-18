@@ -1128,4 +1128,29 @@ class DataProcessor {
 // 데이터 프로세서 인스턴스 생성
 window.addEventListener('DOMContentLoaded', () => {
     window.dataProcessor = new DataProcessor();
+    
+    // localStorage에서 각 패널의 상태(펼침/접힘)를 복원
+    document.querySelectorAll('.collapsible-panel').forEach(panel => {
+        const id = panel.id;
+        if (!id) return; // id가 없는 패널은 건너뜀
+        
+        const state = localStorage.getItem(`panel_${id}_state`);
+        const body = panel.querySelector('.collapsible-body');
+        const icon = panel.querySelector('.collapse-toggle i');
+        
+        if (!body || !icon) return; // 필요한 요소가 없으면 건너뜀
+        
+        if (state === 'expanded') {
+            // 패널을 펼침 상태로 설정
+            body.classList.add('expanded');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else if (state === 'collapsed') {
+            // 패널을 접힘 상태로 설정
+            body.classList.remove('expanded');
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+        // 저장된 상태가 없으면 기본 상태 유지
+    });
 });
