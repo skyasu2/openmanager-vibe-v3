@@ -642,6 +642,7 @@ class DataProcessor {
         
         this.serverGrid.innerHTML = '';
         
+        // 현재 페이지 사이즈 설정 사용 (더 이상 고정 값 사용 안 함)
         const startIndex = (this.currentPage - 1) * this.itemsPerPage;
         const endIndex = Math.min(startIndex + this.itemsPerPage, this.filteredData.length);
         
@@ -660,6 +661,9 @@ class DataProcessor {
             const serverCard = this.createServerCard(server);
             this.serverGrid.appendChild(serverCard);
         }
+        
+        // 페이지네이션 업데이트
+        this.updateNumericPagination();
     }
     
     updateNumericPagination() {
@@ -1346,6 +1350,9 @@ class DataProcessor {
                 <canvas id="globalStatusChart" height="150"></canvas>
             </div>
         `;
+        
+        // 상태 알림 생성 및 표시
+        this.updateStatusAlert(normalCount, warningCount, criticalCount);
 
         // 차트 업데이트
         const chartElement = document.getElementById('globalStatusChart');
@@ -1421,6 +1428,73 @@ class DataProcessor {
         
         // 서버 수 표시 업데이트
         this.updateServerCount();
+    }
+    
+    // 서버 상태 요약 알림 업데이트
+    updateStatusAlert(normalCount, warningCount, criticalCount) {
+        const alertElement = document.getElementById('statusSummaryAlert');
+        if (!alertElement) return;
+        
+        const iconContainer = alertElement.querySelector('.status-icon');
+        const messageContainer = alertElement.querySelector('.status-message');
+        
+        if (!iconContainer || !messageContainer) return;
+        
+        const totalServers = normalCount + warningCount + criticalCount;
+        
+        // 상태 결정 (최악의 상태를 기준으로)
+        let status = 'normal';
+        if (criticalCount > 0) status = 'critical';
+        else if (warningCount > 0) status = 'warning';
+        
+        // 알림 클래스와 아이콘 설정
+        let alertClass, iconHTML, message;
+        
+        switch(status) {
+            case 'critical':
+                alertClass = 'alert-danger';
+                iconHTML = '<i class="fas fa-exclamation-circle fa-2x"></i>';
+                
+                if (criticalCount === 1) {
+                    message = `<strong>긴급 주의 필요:</strong> 1개 서버가 심각한 상태입니다. 즉시 확인이 필요합니다.`;
+                } else {
+                    message = `<strong>긴급 주의 필요:</strong> ${criticalCount}개 서버가 심각한 상태입니다. 즉시 확인이 필요합니다.`;
+                }
+                break;
+                
+            case 'warning':
+                alertClass = 'alert-warning';
+                iconHTML = '<i class="fas fa-exclamation-triangle fa-2x"></i>';
+                
+                if (warningCount === 1) {
+                    message = `<strong>주의:</strong> 1개 서버에 경고 상태가 감지되었습니다. 상태를 확인해 주세요.`;
+                } else {
+                    message = `<strong>주의:</strong> ${warningCount}개 서버에 경고 상태가 감지되었습니다. 상태를 확인해 주세요.`;
+                }
+                break;
+                
+            default: // normal
+                alertClass = 'alert-success';
+                iconHTML = '<i class="fas fa-check-circle fa-2x"></i>';
+                message = `<strong>모두 정상:</strong> 현재 ${totalServers}개의 서버가 모두 정상 작동 중입니다.`;
+        }
+        
+        // 알림 업데이트
+        alertElement.className = `alert d-flex align-items-center ${alertClass}`;
+        iconContainer.innerHTML = iconHTML;
+        messageContainer.innerHTML = message;
+        
+        // 애니메이션 효과로 표시
+        alertElement.style.display = 'flex';
+        alertElement.style.opacity = '0';
+        alertElement.style.transform = 'translateY(-10px)';
+        
+        // 부드럽게 표시
+        setTimeout(() => {
+            alertElement.style.transition = 'all 0.5s ease';
+            alertElement.style.opacity = '1';
+            alertElement.style.transform = 'translateY(0)';
+        }, 100);
     }
     
     processAIQuery() {
