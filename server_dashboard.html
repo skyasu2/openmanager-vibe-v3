@@ -53,14 +53,15 @@
         .server-card {
             background-color: #fff;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             padding: 15px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 20px;
+            transition: transform 0.2s ease;
         }
         
         .server-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         
         .server-header {
@@ -74,7 +75,7 @@
         
         .server-name {
             font-size: 1.1rem;
-            font-weight: 500;
+            font-weight: 600;
             color: #333;
         }
         
@@ -86,37 +87,37 @@
         }
         
         .status-normal {
-            background-color: #e6f7e9;
-            color: #28a745;
+            background-color: #e8f5e9;
+            color: #2e7d32;
         }
         
         .status-warning {
-            background-color: #fff8e6;
-            color: #fd9a14;
+            background-color: #fff8e1;
+            color: #ff8f00;
         }
         
         .status-critical {
             background-color: #ffebee;
-            color: #dc3545;
+            color: #d32f2f;
         }
         
-        .server-details {
+        .server-metrics {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 15px;
         }
         
-        .detail-item {
+        .metric-item {
             margin-bottom: 10px;
         }
         
-        .detail-label {
+        .metric-label {
             font-size: 0.75rem;
             color: #666;
             margin-bottom: 3px;
         }
         
-        .detail-value {
+        .metric-value {
             font-size: 0.85rem;
             font-weight: 500;
         }
@@ -134,43 +135,29 @@
             border-radius: 3px;
         }
         
-        .progress-normal {
-            background-color: #28a745;
+        .services-container {
+            margin-top: 15px;
         }
         
-        .progress-warning {
-            background-color: #fd9a14;
-        }
-        
-        .progress-critical {
-            background-color: #dc3545;
-        }
-        
-        .services-list {
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-        
-        .service-badge {
+        .service-tag {
+            display: inline-block;
             font-size: 0.7rem;
             padding: 2px 6px;
             border-radius: 3px;
-            background-color: #f5f6fa;
-            border: 1px solid #e0e0e0;
+            margin-right: 5px;
+            margin-bottom: 5px;
         }
         
         .service-running {
-            background-color: #e6f7e9;
-            border-color: #c3e6cb;
-            color: #28a745;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
         }
         
         .service-stopped {
             background-color: #ffebee;
-            border-color: #f5c6cb;
-            color: #dc3545;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
         }
         
         .filter-options {
@@ -689,6 +676,48 @@
                 font-size: 14px;
             }
         }
+        
+        .error-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 3px 8px;
+            background-color: #ffebee;
+            color: #d32f2f;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .service-status-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .service-status-tag {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .service-status-tag.service-running {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .service-status-tag.service-stopped {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .status-indicator {
+            margin-left: 5px;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -784,25 +813,12 @@
                         <h5 class="mb-0 text-white">서버 목록</h5>
                         <span class="badge bg-white text-primary" id="serverCount">0 서버</span>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th onclick="sortTable('hostname')">호스트명 <i class="fas fa-sort ms-1"></i></th>
-                                        <th onclick="sortTable('cpu_usage')">CPU 사용률 <i class="fas fa-sort ms-1"></i></th>
-                                        <th onclick="sortTable('memory_usage_percent')">메모리 사용률 <i class="fas fa-sort ms-1"></i></th>
-                                        <th onclick="sortTable('disk_usage_percent')">디스크 사용률 <i class="fas fa-sort ms-1"></i></th>
-                                        <th>서비스 상태</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="serverTableBody">
-                                    <!-- 서버 데이터가 여기에 동적으로 추가됨 -->
-                                </tbody>
-                            </table>
+                    <div class="card-body">
+                        <div class="row" id="serverGrid">
+                            <!-- 서버 카드가 여기에 동적으로 추가됨 -->
                         </div>
-                        <!-- 페이징 컨트롤 추가 -->
-                        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                        <!-- 페이징 컨트롤 -->
+                        <div class="d-flex justify-content-between align-items-center p-3 border-top mt-3">
                             <div>
                                 <span id="pageInfo">1-10 / 50 서버</span>
                             </div>
@@ -818,10 +834,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div id="serverDetail" class="detail-card">
-            <!-- 서버 상세 정보가 여기에 표시됨 -->
         </div>
 
         <div class="row">
@@ -1097,13 +1109,13 @@
 
         // 서버 테이블 렌더링 함수
         function renderServerTable() {
-            const tbody = document.getElementById('serverTableBody');
-            tbody.innerHTML = '';
+            const serverGrid = document.getElementById('serverGrid');
+            if (!serverGrid) return;
+            
+            serverGrid.innerHTML = '';
 
             if (!filteredData || filteredData.length === 0) {
-                const emptyRow = document.createElement('tr');
-                emptyRow.innerHTML = `<td colspan="5" class="text-center py-4">표시할 서버 데이터가 없습니다.</td>`;
-                tbody.appendChild(emptyRow);
+                serverGrid.innerHTML = `<div class="col-12 text-center py-4">표시할 서버 데이터가 없습니다.</div>`;
                 return;
             }
 
@@ -1112,90 +1124,319 @@
             const endIndex = Math.min(startIndex + pageSize, filteredData.length);
             const currentPageData = filteredData.slice(startIndex, endIndex);
 
+            // 서버 카드 생성
             currentPageData.forEach(server => {
-                const row = document.createElement('tr');
-                row.className = 'server-row';
-                row.onclick = () => showServerDetail(server);
-
-                row.innerHTML = `
-                    <td>${server.hostname}</td>
-                    <td class="${getUsageColorClass(server.cpu_usage)}">${server.cpu_usage.toFixed(1)}%</td>
-                    <td class="${getUsageColorClass(server.memory_usage_percent)}">${server.memory_usage_percent.toFixed(1)}%</td>
-                    <td class="${getUsageColorClass(server.disk[0].disk_usage_percent)}">${server.disk[0].disk_usage_percent.toFixed(1)}%</td>
-                    <td>${renderServiceStatus(server.services)}</td>
+                const statusClass = getServerStatusClass(server);
+                const statusText = getServerStatusText(server);
+                
+                const serverCard = document.createElement('div');
+                serverCard.className = 'col-lg-3 col-md-4 col-sm-6 mb-4';
+                
+                serverCard.innerHTML = `
+                    <div class="server-card" onclick="showServerDetail(${JSON.stringify(server).replace(/"/g, '&quot;')})">
+                        <div class="server-header">
+                            <div class="server-name">${server.hostname}</div>
+                            <div class="server-status ${statusClass}">${statusText}</div>
+                        </div>
+                        <div class="server-metrics">
+                            <div class="metric-item">
+                                <div class="metric-label">CPU 사용량</div>
+                                <div class="metric-value">${server.cpu_usage.toFixed(1)}%</div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar ${getProgressClass(server.cpu_usage)}" style="width: ${server.cpu_usage}%"></div>
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">메모리</div>
+                                <div class="metric-value">${server.memory_usage_percent.toFixed(1)}%</div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar ${getProgressClass(server.memory_usage_percent)}" style="width: ${server.memory_usage_percent}%"></div>
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">디스크 (${server.disk[0].mount_point})</div>
+                                <div class="metric-value">${server.disk[0].disk_usage_percent.toFixed(1)}%</div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar ${getProgressClass(server.disk[0].disk_usage_percent)}" style="width: ${server.disk[0].disk_usage_percent}%"></div>
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">로드 평균</div>
+                                <div class="metric-value">${server.load_avg_1m}</div>
+                            </div>
+                        </div>
+                        <div class="services-container">
+                            ${renderServiceTags(server.services)}
+                        </div>
+                        ${server.errors.length > 0 ? `<div class="error-badge"><i class="fas fa-exclamation-triangle"></i> ${server.errors.length}개의 오류</div>` : ''}
+                    </div>
                 `;
-
-                tbody.appendChild(row);
+                
+                serverGrid.appendChild(serverCard);
             });
         }
 
-        // 서비스 상태 렌더링 함수
-        function renderServiceStatus(services) {
+        // 서비스 태그 렌더링 함수
+        function renderServiceTags(services) {
             return Object.entries(services)
                 .map(([service, status]) => 
-                    `<span class="badge ${status === 'running' ? 'bg-success' : 'bg-danger'}">${service}</span>`
+                    `<span class="service-tag ${status === 'running' ? 'service-running' : 'service-stopped'}">${service} (${status})</span>`
                 )
-                .join(' ');
+                .join('');
+        }
+        
+        // 서버 상태에 따른 클래스 반환
+        function getServerStatusClass(server) {
+            if (server.cpu_usage >= 90 || server.memory_usage_percent >= 90 || server.disk[0].disk_usage_percent >= 90) {
+                return 'status-critical';
+            } else if (server.cpu_usage >= 70 || server.memory_usage_percent >= 70 || server.disk[0].disk_usage_percent >= 70) {
+                return 'status-warning';
+            } else {
+                return 'status-normal';
+            }
+        }
+        
+        // 서버 상태 텍스트 반환
+        function getServerStatusText(server) {
+            if (server.cpu_usage >= 90 || server.memory_usage_percent >= 90 || server.disk[0].disk_usage_percent >= 90) {
+                return '심각';
+            } else if (server.cpu_usage >= 70 || server.memory_usage_percent >= 70 || server.disk[0].disk_usage_percent >= 70) {
+                return '경고';
+            } else {
+                return '정상';
+            }
+        }
+        
+        // 진행률 바 클래스 반환
+        function getProgressClass(value) {
+            if (value >= 90) {
+                return 'progress-critical';
+            } else if (value >= 70) {
+                return 'progress-warning';
+            } else {
+                return 'progress-normal';
+            }
         }
 
         // 서버 상세 정보 표시 함수
         function showServerDetail(server) {
-            const detailDiv = document.getElementById('serverDetail');
-            detailDiv.style.display = 'block';
+            // 모달 제목 설정
+            document.getElementById('modalServerName').textContent = `${server.hostname} ${getServerStatusText(server)}`;
             
+            // 시스템 정보 설정
+            document.getElementById('modalOS').textContent = server.os || '-';
+            document.getElementById('modalUptime').textContent = server.uptime || '-';
+            document.getElementById('modalProcessCount').textContent = server.process_count || '0';
+            document.getElementById('modalZombieCount').textContent = server.zombie_count || '0';
+            document.getElementById('modalLoadAvg').textContent = server.load_avg_1m || '0';
+            document.getElementById('modalLastUpdate').textContent = new Date().toLocaleString('ko-KR');
+            
+            // 네트워크 정보 설정
             const bytesToGB = bytes => (bytes / (1024 * 1024 * 1024)).toFixed(2);
+            document.getElementById('modalNetInterface').textContent = server.net.interface || 'eth0';
+            document.getElementById('modalRxBytes').textContent = `${bytesToGB(server.net.rx_bytes)} GB`;
+            document.getElementById('modalTxBytes').textContent = `${bytesToGB(server.net.tx_bytes)} GB`;
+            document.getElementById('modalRxErrors').textContent = server.net.rx_errors || '0';
+            document.getElementById('modalTxErrors').textContent = server.net.tx_errors || '0';
             
-            detailDiv.innerHTML = `
-                <div class="card">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0">${server.hostname} 상세 정보</h4>
-                        <button type="button" class="btn-close btn-close-white" onclick="closeServerDetail()"></button>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="metric-card">
-                                    <h5 class="mb-3">시스템 정보</h5>
-                                    <p><i class="fas fa-desktop me-2"></i> OS: ${server.os}</p>
-                                    <p><i class="fas fa-clock me-2"></i> 가동시간: ${server.uptime}</p>
-                                    <p><i class="fas fa-tachometer-alt me-2"></i> Load Average (1m): ${server.load_avg_1m}</p>
-                                    <p><i class="fas fa-microchip me-2"></i> 프로세스 수: ${server.process_count} (좀비 프로세스: ${server.zombie_count})</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="metric-card">
-                                    <h5 class="mb-3">네트워크 정보 (${server.net.interface})</h5>
-                                    <p><i class="fas fa-arrow-down me-2"></i> 수신: ${bytesToGB(server.net.rx_bytes)} GB</p>
-                                    <p><i class="fas fa-arrow-up me-2"></i> 송신: ${bytesToGB(server.net.tx_bytes)} GB</p>
-                                    <p><i class="fas fa-exclamation-triangle me-2"></i> 수신 오류: ${server.net.rx_errors}</p>
-                                    <p><i class="fas fa-exclamation-triangle me-2"></i> 송신 오류: ${server.net.tx_errors}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="metric-card mt-3">
-                            <h5 class="mb-3">서비스 상태</h5>
-                            <div class="row">
-                                ${Object.entries(server.services)
-                                    .map(([service, status]) => `
-                                        <div class="col-md-4 mb-2">
-                                            <div class="d-flex align-items-center">
-                                                <span class="me-2">${service}:</span>
-                                                <span class="badge ${status === 'running' ? 'bg-success' : 'bg-danger'}">${status}</span>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            // 서비스 상태 설정
+            const serviceStatusContainer = document.getElementById('modalServiceStatus');
+            serviceStatusContainer.innerHTML = '';
+            
+            Object.entries(server.services).forEach(([service, status]) => {
+                const serviceTag = document.createElement('div');
+                serviceTag.className = `service-status-tag ${status === 'running' ? 'service-running' : 'service-stopped'}`;
+                serviceTag.innerHTML = `${service} <span class="status-indicator">${status}</span>`;
+                serviceStatusContainer.appendChild(serviceTag);
+            });
+            
+            // 오류 메시지 설정
+            const errorsContainer = document.getElementById('modalErrorsContainer');
+            if (server.errors && server.errors.length > 0) {
+                errorsContainer.className = 'alert alert-danger';
+                errorsContainer.innerHTML = `
+                    <ul class="mb-0">
+                        ${server.errors.map(error => `<li>${error}</li>`).join('')}
+                    </ul>
+                `;
+            } else {
+                errorsContainer.className = 'alert alert-info';
+                errorsContainer.innerHTML = '현재 보고된 오류가 없습니다.';
+            }
+            
+            // 리소스 현황 차트 생성
+            createResourceBarChart(server);
+            
+            // 리소스 사용 추이 차트 생성
+            createResourceHistoryChart(server);
+            
+            // 모달 표시
+            const modal = new bootstrap.Modal(document.getElementById('serverDetailModal'));
+            modal.show();
         }
         
-        // 서버 상세 정보 닫기
-        function closeServerDetail() {
-            const detailDiv = document.getElementById('serverDetail');
-            detailDiv.style.display = 'none';
+        // 리소스 현황 차트 생성 함수
+        function createResourceBarChart(server) {
+            const ctx = document.getElementById('resourceBarChart');
+            
+            // 기존 차트가 있으면 제거
+            if (charts.resourceBar) {
+                charts.resourceBar.destroy();
+            }
+            
+            // 리소스 데이터
+            const data = {
+                labels: ['CPU', '메모리', '디스크'],
+                datasets: [{
+                    label: '사용률 (%)',
+                    data: [
+                        server.cpu_usage,
+                        server.memory_usage_percent,
+                        server.disk[0].disk_usage_percent
+                    ],
+                    backgroundColor: [
+                        getResourceBarColor(server.cpu_usage),
+                        getResourceBarColor(server.memory_usage_percent),
+                        getResourceBarColor(server.disk[0].disk_usage_percent)
+                    ],
+                    borderWidth: 0
+                }]
+            };
+            
+            // 차트 옵션
+            const options = {
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            display: true
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            };
+            
+            // 차트 생성
+            charts.resourceBar = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: options
+            });
         }
+        
+        // 리소스 사용 추이 차트 생성 함수
+        function createResourceHistoryChart(server) {
+            const ctx = document.getElementById('resourceHistoryChart');
+            
+            // 기존 차트가 있으면 제거
+            if (charts.resourceHistory) {
+                charts.resourceHistory.destroy();
+            }
+            
+            // 가상의 시계열 데이터 생성 (실제로는 서버에서 가져와야 함)
+            const timePoints = [];
+            const cpuData = [];
+            const memoryData = [];
+            const diskData = [];
+            
+            // 지난 24시간의 데이터 포인트 생성 (1시간 간격)
+            const now = new Date();
+            for (let i = 24; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+                timePoints.push(time.getHours() + ':' + (time.getMinutes() < 10 ? '0' : '') + time.getMinutes());
+                
+                // 가상의 데이터 포인트 (실제 구현에서는 서버에서 가져와야 함)
+                // 약간의 변동을 주기 위해 기본값에 랜덤 값을 더함
+                cpuData.push(Math.max(10, Math.min(100, server.cpu_usage + (Math.random() * 20 - 10))));
+                memoryData.push(Math.max(10, Math.min(100, server.memory_usage_percent + (Math.random() * 20 - 10))));
+                diskData.push(Math.max(10, Math.min(100, server.disk[0].disk_usage_percent + (Math.random() * 10 - 5))));
+            }
+            
+            // 차트 데이터
+            const data = {
+                labels: timePoints,
+                datasets: [
+                    {
+                        label: 'CPU',
+                        data: cpuData,
+                        borderColor: '#FF6384',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4
+                    },
+                    {
+                        label: '메모리',
+                        data: memoryData,
+                        borderColor: '#36A2EB',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4
+                    },
+                    {
+                        label: '디스크',
+                        data: diskData,
+                        borderColor: '#4BC0C0',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4
+                    }
+                ]
+            };
+            
+            // 차트 옵션
+            const options = {
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: '사용률 (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '시간'
+                        }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            };
+            
+            // 차트 생성
+            charts.resourceHistory = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: options
+            });
+        }
+        
+        // 리소스 바 색상 결정 함수
+        function getResourceBarColor(value) {
+            if (value >= 90) return '#dc3545'; // 빨간색 (심각)
+            if (value >= 70) return '#ffc107'; // 노란색 (주의)
+            return '#28a745'; // 녹색 (정상)
+        }
+
+        // 서버 상세 정보 닫기 함수 제거
 
         // 타임스탬프 업데이트 함수
         function updateTimestamp() {
@@ -1901,5 +2142,120 @@
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', init);
     </script>
+
+    <!-- 서버 상세 정보 모달 창 -->
+    <div class="modal fade" id="serverDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalServerName">서버 상세 정보</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <!-- 시스템 정보 -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">시스템 정보</h6>
+                            <table class="table table-sm">
+                                <tbody id="systemInfoTable">
+                                    <tr>
+                                        <th>OS</th>
+                                        <td id="modalOS">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>가동 시간</th>
+                                        <td id="modalUptime">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>프로세스 수</th>
+                                        <td id="modalProcessCount">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>좀비 프로세스</th>
+                                        <td id="modalZombieCount">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>로드 평균 (1분)</th>
+                                        <td id="modalLoadAvg">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>마지막 업데이트</th>
+                                        <td id="modalLastUpdate">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 리소스 현황 -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">리소스 현황</h6>
+                            <div class="chart-container">
+                                <canvas id="resourceBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <!-- 네트워크 정보 -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">네트워크 정보</h6>
+                            <table class="table table-sm">
+                                <tbody id="networkInfoTable">
+                                    <tr>
+                                        <th>인터페이스</th>
+                                        <td id="modalNetInterface">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>수신 바이트</th>
+                                        <td id="modalRxBytes">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>송신 바이트</th>
+                                        <td id="modalTxBytes">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>수신 오류</th>
+                                        <td id="modalRxErrors">-</td>
+                                    </tr>
+                                    <tr>
+                                        <th>송신 오류</th>
+                                        <td id="modalTxErrors">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 서비스 상태 -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">서비스 상태</h6>
+                            <div id="modalServiceStatus" class="service-status-container">
+                                <!-- 서비스 상태 태그들이 여기에 추가됨 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 오류 메시지 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="mb-3">오류 메시지</h6>
+                            <div id="modalErrorsContainer" class="alert alert-info">
+                                현재 보고된 오류가 없습니다.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 24시간 리소스 사용 추이 -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="mb-3">24시간 리소스 사용 추이</h6>
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="resourceHistoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html> 
