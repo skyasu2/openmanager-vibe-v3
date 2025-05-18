@@ -824,6 +824,60 @@
         #aiProblemList {
             /* 스크롤바는 JS에서 maxHeight와 함께 overflowY: auto로 제어 */
         }
+
+        /* 새로고침 버튼 스타일 강화 */
+        .btn-refresh {
+            background-color: var(--primary);
+            color: var(--text-white);
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-refresh:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-refresh:active {
+            transform: translateY(0);
+        }
+        
+        .btn-refresh.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        .btn-refresh.loading .spinner-border {
+            margin-right: 5px;
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        .refresh-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            display: none;
+        }
+        
+        .refresh-container {
+            position: relative;
+        }
+        
+        .refresh-container:hover .refresh-tooltip {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -961,8 +1015,14 @@
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="searchInput" placeholder="호스트명 검색...">
                                     <button class="btn btn-refresh" type="button" id="refreshBtn">
-                                        <i class="fas fa-sync-alt me-1"></i> 새로고침
+                                        <span class="refresh-content">
+                                            <i class="fas fa-sync-alt me-1"></i> 새로고침
+                                        </span>
+                                        <span class="loading-content" style="display:none">
+                                            <span class="spinner-border spinner-border-sm" role="status"></span> 로딩중...
+                                        </span>
                                     </button>
+                                    <div class="refresh-tooltip">데이터 새로고침 (서버 문제 발생 시 유용)</div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3 mb-md-0">
@@ -1135,5 +1195,107 @@
     <script src="dummy_data_generator.js"></script>
     <script src="ai_processor.js"></script>
     <script src="data_processor.js"></script>
+    
+    <!-- 스크립트 로드 오류 처리 -->
+    <script>
+        // 스크립트 로드 검증 및 오류 처리
+        document.addEventListener('DOMContentLoaded', function() {
+            // 필수 스크립트 목록
+            const requiredScripts = [
+                'dummy_data_generator.js',
+                'ai_processor.js',
+                'data_processor.js'
+            ];
+            
+            // 스크립트 로드 상태 확인
+            let missingScripts = [];
+            
+            // 각 스크립트가 로드되었는지 확인
+            requiredScripts.forEach(script => {
+                const scriptElement = Array.from(document.scripts).find(s => 
+                    s.src.includes(script));
+                
+                if (!scriptElement || scriptElement.hasAttribute('error')) {
+                    missingScripts.push(script);
+                }
+            });
+            
+            // 특정 전역 객체가 제대로 초기화되었는지 확인
+            if (typeof window.dataProcessor === 'undefined' && document.getElementById('serverGrid')) {
+                console.error('DataProcessor가 초기화되지 않았습니다. 수동으로 초기화를 시도합니다.');
+                
+                // 백업 초기화 시도
+                try {
+                    if (typeof DataProcessor === 'function') {
+                        window.dataProcessor = new DataProcessor();
+                    }
+                } catch (e) {
+                    console.error('수동 초기화 실패:', e);
+                }
+            }
+            
+            // dummy_data_generator.js가 로드되지 않은 경우 최소한의 더미 데이터 생성
+            if (!window.serverData || window.serverData.length === 0) {
+                console.warn('서버 데이터가 없습니다. 기본 더미 데이터를 생성합니다.');
+                
+                // 최소한의 더미 데이터 생성 함수 정의
+                window.generateDummyData = function(count) {
+                    console.log('기본 더미 데이터 생성 중...', count, '서버');
+                    const servers = [];
+                    
+                    for (let i = 1; i <= count; i++) {
+                        servers.push({
+                            hostname: `server-${i}`,
+                            os: 'Linux',
+                            uptime: '3 days, 12:30:15',
+                            cpu_usage: Math.floor(Math.random() * 100),
+                            memory_usage_percent: Math.floor(Math.random() * 100),
+                            memory_total: '16GB',
+                            memory_used: '8GB',
+                            disk: [{
+                                mount: '/',
+                                disk_total: '500GB',
+                                disk_used: '300GB',
+                                disk_usage_percent: Math.floor(Math.random() * 100)
+                            }],
+                            load_avg_1m: (Math.random() * 5).toFixed(2),
+                            load_avg_5m: (Math.random() * 4).toFixed(2),
+                            load_avg_15m: (Math.random() * 3).toFixed(2),
+                            process_count: Math.floor(Math.random() * 200) + 50,
+                            zombie_count: Math.floor(Math.random() * 3),
+                            timestamp: new Date().toISOString(),
+                            net: {
+                                interface: 'eth0',
+                                rx_bytes: Math.floor(Math.random() * 1000000),
+                                tx_bytes: Math.floor(Math.random() * 1000000),
+                                rx_errors: Math.floor(Math.random() * 10),
+                                tx_errors: Math.floor(Math.random() * 10)
+                            },
+                            services: {
+                                'nginx': Math.random() > 0.9 ? 'stopped' : 'running',
+                                'mysql': Math.random() > 0.9 ? 'stopped' : 'running',
+                                'redis': Math.random() > 0.9 ? 'stopped' : 'running'
+                            },
+                            errors: Math.random() > 0.7 ? ['디스크 공간 부족 경고', '높은 CPU 사용률'] : []
+                        });
+                    }
+                    
+                    // 전역 변수에 저장
+                    window.serverData = servers;
+                    
+                    // 이벤트 발생시키기
+                    const event = new CustomEvent('serverDataUpdated', { 
+                        detail: servers 
+                    });
+                    window.dispatchEvent(event);
+                    
+                    return servers;
+                };
+                
+                // 더미 데이터 즉시 생성 (10개 서버)
+                window.generateDummyData(10);
+            }
+        });
+    </script>
 </body>
 </html>  

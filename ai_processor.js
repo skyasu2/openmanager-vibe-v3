@@ -656,75 +656,173 @@ class AIProcessor {
     }
 
     detectProblems() {
-        // 감지된 문제 목록
-        const problems = [];
-        
         if (!this.serverData || this.serverData.length === 0) {
-            return problems;
+            console.warn('서버 데이터가 없어 문제를 감지할 수 없습니다.');
+            return [];
         }
         
-        // 각 서버별로 문제 패턴 검사
+        const problems = [];
+        
+        // 서버 상태 분석
         this.serverData.forEach(server => {
-            // 서버 상태 확인
-            const serverStatus = this.getEffectiveServerStatus(server);
+            // CPU 과부하 감지
+            if (server.cpu_usage >= 90) {
+                problems.push({
+                    severity: 'Critical',
+                    serverHostname: server.hostname,
+                    description: `CPU 과부하 (${server.cpu_usage}%)`,
+                    solution: '불필요한 프로세스를 종료하거나 자원을 확장하세요.',
+                    timestamp: new Date().toISOString()
+                });
+            } else if (server.cpu_usage >= 80) {
+                problems.push({
+                    severity: 'Warning',
+                    serverHostname: server.hostname,
+                    description: `CPU 사용량 높음 (${server.cpu_usage}%)`,
+                    solution: 'CPU 사용량을 모니터링하고 추세를 확인하세요.',
+                    timestamp: new Date().toISOString()
+                });
+            }
             
-            // 문제 패턴 검사
-            this.problemPatterns.forEach(pattern => {
-                if (pattern.condition(server)) {
-                    // 패턴 조건에 맞는 문제 발견시
+            // 메모리 부족 감지
+            if (server.memory_usage_percent >= 90) {
+                problems.push({
+                    severity: 'Critical',
+                    serverHostname: server.hostname,
+                    description: `메모리 부족 (${server.memory_usage_percent}%)`,
+                    solution: '메모리 누수 확인 또는 자원을 확장하세요.',
+                    timestamp: new Date().toISOString()
+                });
+            } else if (server.memory_usage_percent >= 80) {
+                problems.push({
+                    severity: 'Warning',
+                    serverHostname: server.hostname,
+                    description: `메모리 사용량 높음 (${server.memory_usage_percent}%)`,
+                    solution: '메모리 사용량을 모니터링하고 추세를 확인하세요.',
+                    timestamp: new Date().toISOString()
+                });
+            }
+            
+            // 디스크 공간 부족 감지
+            if (server.disk && server.disk.length > 0) {
+                if (server.disk[0].disk_usage_percent >= 90) {
                     problems.push({
+                        severity: 'Critical',
                         serverHostname: server.hostname,
-                        description: pattern.description,
-                        severity: pattern.severity === 'critical' ? 'Critical' : 'Warning', // UI 표시용 포맷으로 변환
-                        solution: pattern.solutions.join(' '),
-                        causes: pattern.causes.join(', '),
+                        description: `디스크 공간 부족 (${server.disk[0].disk_usage_percent}%)`,
+                        solution: '불필요한 파일을 제거하거나 디스크 공간을 확장하세요.',
+                        timestamp: new Date().toISOString()
+                    });
+                } else if (server.disk[0].disk_usage_percent >= 80) {
+                    problems.push({
+                        severity: 'Warning',
+                        serverHostname: server.hostname,
+                        description: `디스크 공간 부족 임박 (${server.disk[0].disk_usage_percent}%)`,
+                        solution: '디스크 공간을 모니터링하고 정리 계획을 수립하세요.',
                         timestamp: new Date().toISOString()
                     });
                 }
-            });
+            }
+            
+            // 서비스 중단 감지
+            if (server.services) {
+                Object.entries(server.services).forEach(([serviceName, status]) => {
+                    if (status === 'stopped') {
+                        problems.push({
+                            severity: 'Critical',
+                            serverHostname: server.hostname,
+                            description: `${serviceName} 서비스 중단`,
+                            solution: `${serviceName} 서비스를 재시작하고 로그를 확인하세요.`,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                });
+            }
+            
+            // 오류 메시지 감지
+            if (server.errors && server.errors.length > 0) {
+                server.errors.forEach(error => {
+                    problems.push({
+                        severity: 'Warning',
+                        serverHostname: server.hostname,
+                        description: `오류 감지: ${error}`,
+                        solution: '로그 파일을 확인하고 근본 원인을 분석하세요.',
+                        timestamp: new Date().toISOString()
+                    });
+                });
+            }
         });
         
         return problems;
     }
-
+    
     generateErrorReport() {
         const problems = this.detectProblems();
         if (problems.length === 0) {
-            return "=== 서버 오류 보고서 ===\n\n현재 감지된 문제가 없습니다.\n\n생성 시각: " + new Date().toLocaleString();
+            return '# 서버 상태 보고서\n\n현재 감지된 문제가 없습니다. 모든 서버가 정상적으로 작동 중입니다.\n\n생성 시간: ' + new Date().toLocaleString();
         }
-
-        let report = "=== 서버 오류 보고서 ===\n\n";
-        report += `총 ${problems.length}개의 문제가 감지되었습니다.\n`;
-        report += `생성 시각: ${new Date().toLocaleString()}\n\n`;
-
-        // 심각도별 그룹화
+        
+        // 문제를 심각도별로 분류
         const criticalProblems = problems.filter(p => p.severity === 'Critical');
-        const warningProblems = problems.filter(p => p.severity === 'Warning');
-
-        // 심각 문제 목록
+        const warningProblems = problems.filter(p => p.severity === 'Warning' || p.severity === 'Error');
+        
+        // 보고서 생성
+        let report = '# 서버 상태 보고서\n\n';
+        report += `생성 시간: ${new Date().toLocaleString()}\n\n`;
+        report += `총 문제 수: ${problems.length}\n`;
+        report += `- 심각: ${criticalProblems.length}\n`;
+        report += `- 경고: ${warningProblems.length}\n\n`;
+        
         if (criticalProblems.length > 0) {
-            report += `=== 심각 (${criticalProblems.length}개) ===\n\n`;
-            criticalProblems.forEach((problem, index) => {
-                report += this.formatProblemForReport(problem, index + 1);
+            report += '## 심각한 문제\n\n';
+            criticalProblems.forEach(problem => {
+                report += `### ${problem.serverHostname}: ${problem.description}\n`;
+                report += `- 해결 방안: ${problem.solution}\n`;
+                report += `- 감지 시간: ${new Date(problem.timestamp).toLocaleString()}\n\n`;
             });
         }
-
-        // 경고 문제 목록
+        
         if (warningProblems.length > 0) {
-            report += `=== 경고 (${warningProblems.length}개) ===\n\n`;
-            warningProblems.forEach((problem, index) => {
-                report += this.formatProblemForReport(problem, index + 1);
+            report += '## 경고\n\n';
+            warningProblems.forEach(problem => {
+                report += `### ${problem.serverHostname}: ${problem.description}\n`;
+                report += `- 해결 방안: ${problem.solution}\n`;
+                report += `- 감지 시간: ${new Date(problem.timestamp).toLocaleString()}\n\n`;
             });
         }
-
+        
+        report += '## 서버 성능 요약\n\n';
+        
+        // 서버 성능 요약
+        if (this.serverData && this.serverData.length > 0) {
+            const avgCpu = (this.serverData.reduce((sum, server) => sum + server.cpu_usage, 0) / this.serverData.length).toFixed(1);
+            const avgMem = (this.serverData.reduce((sum, server) => sum + server.memory_usage_percent, 0) / this.serverData.length).toFixed(1);
+            
+            report += `- 평균 CPU 사용률: ${avgCpu}%\n`;
+            report += `- 평균 메모리 사용률: ${avgMem}%\n`;
+            report += `- 총 서버 수: ${this.serverData.length}\n\n`;
+            
+            // 상위 리소스 사용 서버 목록
+            report += '### 상위 CPU 사용 서버\n\n';
+            const topCpuServers = [...this.serverData]
+                .sort((a, b) => b.cpu_usage - a.cpu_usage)
+                .slice(0, 5);
+            
+            topCpuServers.forEach(server => {
+                report += `- ${server.hostname}: ${server.cpu_usage}%\n`;
+            });
+            
+            report += '\n### 상위 메모리 사용 서버\n\n';
+            const topMemServers = [...this.serverData]
+                .sort((a, b) => b.memory_usage_percent - a.memory_usage_percent)
+                .slice(0, 5);
+            
+            topMemServers.forEach(server => {
+                report += `- ${server.hostname}: ${server.memory_usage_percent}%\n`;
+            });
+        }
+        
         return report;
-    }
-
-    formatProblemForReport(problem, index) {
-        return `${index}. ${problem.serverHostname}\n` +
-               `   문제: ${problem.description}\n` +
-               `   원인: ${problem.causes}\n` +
-               `   해결책: ${problem.solution}\n\n`;
     }
 
     calculateAverage(numbers) {

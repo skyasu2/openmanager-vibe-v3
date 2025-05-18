@@ -229,6 +229,20 @@ class DataProcessor {
                 `;
             }
         }, 500);
+        
+        // 백업 조치: 더미 데이터 생성기 직접 호출
+        if (typeof generateDummyData === 'function' && (!window.serverData || window.serverData.length === 0)) {
+            try {
+                console.log('더미 데이터 생성 시도...');
+                window.serverData = generateDummyData(30); // 30개 서버 데이터 생성
+                if (window.serverData && window.serverData.length > 0) {
+                    clearInterval(checkInterval);
+                    this.handleDataUpdate(window.serverData);
+                }
+            } catch (error) {
+                console.error('더미 데이터 생성 중 오류:', error);
+            }
+        }
     }
     
     handleDataUpdate(data) {
@@ -249,12 +263,66 @@ class DataProcessor {
     refreshData() {
         this.showLoading();
         
+        // 새로고침 버튼 상태 업데이트
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.classList.add('loading');
+            const refreshContent = refreshBtn.querySelector('.refresh-content');
+            const loadingContent = refreshBtn.querySelector('.loading-content');
+            
+            if (refreshContent) refreshContent.style.display = 'none';
+            if (loadingContent) loadingContent.style.display = 'inline-block';
+        }
+        
+        // 페이지 재로드가 아닌 데이터만 새로 생성
+        if (typeof generateDummyData === 'function') {
+            try {
+                console.log('더미 데이터 다시 생성...');
+                window.serverData = generateDummyData(30); // 30개 서버 데이터 생성
+                
+                // 데이터 업데이트 이벤트 발생시키기
+                const event = new CustomEvent('serverDataUpdated', { 
+                    detail: window.serverData 
+                });
+                window.dispatchEvent(event);
+                
+                // 3초 후 로딩 숨기기 (새로고침 효과)
+                setTimeout(() => {
+                    this.hideLoading();
+                    
+                    // 새로고침 버튼 상태 복원
+                    if (refreshBtn) {
+                        refreshBtn.classList.remove('loading');
+                        const refreshContent = refreshBtn.querySelector('.refresh-content');
+                        const loadingContent = refreshBtn.querySelector('.loading-content');
+                        
+                        if (refreshContent) refreshContent.style.display = 'inline-block';
+                        if (loadingContent) loadingContent.style.display = 'none';
+                    }
+                }, 3000);
+                
+                return;
+            } catch (e) {
+                console.error('데이터 새로고침 중 오류:', e);
+            }
+        }
+        
         // 데이터가 업데이트되면 serverDataUpdated 이벤트로 처리됨
         // 하지만 10초 내에 업데이트가 없으면 현재 데이터로 UI 다시 로드
         setTimeout(() => {
             if (this.loadingIndicator.style.display !== 'none') {
                 this.hideLoading();
                 this.applyFiltersAndSort();
+                
+                // 새로고침 버튼 상태 복원
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('loading');
+                    const refreshContent = refreshBtn.querySelector('.refresh-content');
+                    const loadingContent = refreshBtn.querySelector('.loading-content');
+                    
+                    if (refreshContent) refreshContent.style.display = 'inline-block';
+                    if (loadingContent) loadingContent.style.display = 'none';
+                }
             }
         }, 10000);
     }
@@ -491,137 +559,125 @@ class DataProcessor {
     }
     
     showServerDetail(server) {
-        const modalBody = document.getElementById('modal-body');
-        const modalTitle = document.getElementById('modal-server-name');
+        // 부트스트랩 모달 요소 및 내용을 찾기
+        const modalElement = document.getElementById('serverDetailModal');
+        if (!modalElement) {
+            console.error("모달 요소(serverDetailModal)를 찾을 수 없습니다.");
+            return;
+        }
+        
+        // 모달 헤더 내에서 제목 요소 찾기
+        const modalTitle = modalElement.querySelector('.modal-title');
+        if (!modalTitle) {
+            console.error("모달 제목 요소를 찾을 수 없습니다.");
+            return;
+        }
+        
+        // 모달 내용을 표시할 요소 찾기
+        const modalBody = modalElement.querySelector('.modal-body');
+        if (!modalBody) {
+            console.error("모달 내용 요소를 찾을 수 없습니다.");
+            return;
+        }
+        
+        // 서버 상태 정보
         const status = this.getServerStatus(server);
         
-        // null 체크 추가 - modalTitle
-        if (!modalTitle) {
-            console.error("모달 제목 요소(modal-server-name)를 찾을 수 없습니다.");
-            return;
-        }
-        
-        // null 체크 추가 - modalBody
-        if (!modalBody) {
-            console.error("모달 본문 요소(modal-body)를 찾을 수 없습니다.");
-            return;
-        }
-        
-        // 서버 이름과 상태
+        // 서버 이름과 상태 설정
         modalTitle.innerHTML = `
             ${server.hostname} 
             <span class="server-status status-${status}">${this.getStatusLabel(status)}</span>
         `;
         
-        // 모달 내용 구성
-        modalBody.innerHTML = `
-            <div class="detail-section">
-                <div class="detail-title">시스템 정보</div>
-                <table class="table table-sm">
-                    <tr>
-                        <td>OS</td>
-                        <td>${server.os}</td>
-                    </tr>
-                    <tr>
-                        <td>가동 시간</td>
-                        <td>${server.uptime}</td>
-                    </tr>
-                    <tr>
-                        <td>프로세스 수</td>
-                        <td>${server.process_count}</td>
-                    </tr>
-                    <tr>
-                        <td>좀비 프로세스</td>
-                        <td>${server.zombie_count}</td>
-                    </tr>
-                    <tr>
-                        <td>로드 평균 (1분)</td>
-                        <td>${server.load_avg_1m}</td>
-                    </tr>
-                    <tr>
-                        <td>마지막 업데이트</td>
-                        <td>${new Date(server.timestamp).toLocaleString()}</td>
-                    </tr>
-                </table>
-            </div>
-            
-            <div class="detail-section">
-                <div class="detail-title">리소스 현황</div>
-                <div class="chart-container resource-chart">
-                    <canvas id="resource-chart"></canvas>
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <div class="detail-title">네트워크 정보</div>
-                <table class="table table-sm">
-                    <tr>
-                        <td>인터페이스</td>
-                        <td>${server.net.interface}</td>
-                    </tr>
-                    <tr>
-                        <td>수신 바이트</td>
-                        <td>${this.formatBytes(server.net.rx_bytes)}</td>
-                    </tr>
-                    <tr>
-                        <td>송신 바이트</td>
-                        <td>${this.formatBytes(server.net.tx_bytes)}</td>
-                    </tr>
-                    <tr>
-                        <td>수신 오류</td>
-                        <td>${server.net.rx_errors}</td>
-                    </tr>
-                    <tr>
-                        <td>송신 오류</td>
-                        <td>${server.net.tx_errors}</td>
-                    </tr>
-                </table>
-            </div>
-            
-            <div class="detail-section">
-                <div class="detail-title">서비스 상태</div>
-                <div class="services-list">
-                    ${Object.entries(server.services).map(([name, status]) => `
-                        <div class="service-badge service-${status}">${name} (${status})</div>
-                    `).join('')}
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <div class="detail-title">에러 메시지</div>
-                ${server.errors.length > 0 ? `
-                    <ul class="list-group">
-                        ${server.errors.map(error => `
-                            <li class="list-group-item text-danger">${error}</li>
-                        `).join('')}
-                    </ul>
-                ` : `<p>현재 보고된 오류가 없습니다.</p>`}
-            </div>
-            
-            <div class="detail-section">
-                <div class="detail-title">24시간 리소스 사용 추이</div>
-                <div class="history-chart-container">
-                    <canvas id="history-chart"></canvas>
-                </div>
-            </div>
-        `;
+        // 모달 내용 업데이트 - 개별 필드 업데이트 방식으로 변경
+        // OS 정보
+        const modalOS = document.getElementById('modalOS');
+        if (modalOS) modalOS.textContent = server.os || '-';
         
-        // null 체크 추가 - modalElement
-        if (!this.modalElement) {
-            console.error("모달 요소를 찾을 수 없습니다.");
-            return;
+        // 가동 시간
+        const modalUptime = document.getElementById('modalUptime');
+        if (modalUptime) modalUptime.textContent = server.uptime || '-';
+        
+        // 프로세스 수
+        const modalProcessCount = document.getElementById('modalProcessCount');
+        if (modalProcessCount) modalProcessCount.textContent = server.process_count || '-';
+        
+        // 좀비 프로세스
+        const modalZombieCount = document.getElementById('modalZombieCount');
+        if (modalZombieCount) modalZombieCount.textContent = server.zombie_count || '-';
+        
+        // 로드 평균
+        const modalLoadAvg = document.getElementById('modalLoadAvg');
+        if (modalLoadAvg) modalLoadAvg.textContent = server.load_avg_1m || '-';
+        
+        // 마지막 업데이트
+        const modalLastUpdate = document.getElementById('modalLastUpdate');
+        if (modalLastUpdate) modalLastUpdate.textContent = new Date(server.timestamp).toLocaleString() || '-';
+        
+        // 네트워크 정보
+        const modalNetInterface = document.getElementById('modalNetInterface');
+        if (modalNetInterface) modalNetInterface.textContent = server.net?.interface || '-';
+        
+        const modalRxBytes = document.getElementById('modalRxBytes');
+        if (modalRxBytes) modalRxBytes.textContent = this.formatBytes(server.net?.rx_bytes) || '-';
+        
+        const modalTxBytes = document.getElementById('modalTxBytes');
+        if (modalTxBytes) modalTxBytes.textContent = this.formatBytes(server.net?.tx_bytes) || '-';
+        
+        const modalRxErrors = document.getElementById('modalRxErrors');
+        if (modalRxErrors) modalRxErrors.textContent = server.net?.rx_errors || '-';
+        
+        const modalTxErrors = document.getElementById('modalTxErrors');
+        if (modalTxErrors) modalTxErrors.textContent = server.net?.tx_errors || '-';
+        
+        // 서비스 상태
+        const modalServiceStatus = document.getElementById('modalServiceStatus');
+        if (modalServiceStatus) {
+            modalServiceStatus.innerHTML = '';
+            
+            if (server.services && Object.keys(server.services).length > 0) {
+                Object.entries(server.services).forEach(([name, status]) => {
+                    const serviceTag = document.createElement('div');
+                    serviceTag.className = `service-status-tag service-${status}`;
+                    serviceTag.innerHTML = `
+                        ${name} 
+                        <span class="status-indicator">
+                            <i class="fas fa-${status === 'running' ? 'check-circle' : 'times-circle'}"></i>
+                        </span>
+                    `;
+                    modalServiceStatus.appendChild(serviceTag);
+                });
+            } else {
+                modalServiceStatus.innerHTML = '<div class="alert alert-info">서비스 정보가 없습니다.</div>';
+            }
         }
         
-        // 모달 표시
-        this.modalElement.style.display = 'block';
+        // 오류 메시지
+        const modalErrorsContainer = document.getElementById('modalErrorsContainer');
+        if (modalErrorsContainer) {
+            if (server.errors && server.errors.length > 0) {
+                modalErrorsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            ${server.errors.map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                modalErrorsContainer.innerHTML = '<div class="alert alert-info">현재 보고된 오류가 없습니다.</div>';
+            }
+        }
         
-        // 서버 리소스 차트 생성
+        // 모달 표시 (부트스트랩 5 방식)
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        
+        // 리소스 차트 생성
         this.createResourceChart(server);
         
-        // 이력 데이터 차트 생성 (있는 경우)
-        if (window.serverHistoricalData && window.serverHistoricalData[server.hostname]) {
-            this.createHistoryChart(server.hostname);
-        }
+        // 서버 이름을 서버 이름 요소에 설정
+        const modalServerName = document.getElementById('modalServerName');
+        if (modalServerName) modalServerName.textContent = `${server.hostname} 상세 정보`;
     }
     
     closeModal() {
@@ -629,9 +685,9 @@ class DataProcessor {
     }
     
     createResourceChart(server) {
-        const chartElement = document.getElementById('resource-chart');
+        const chartElement = document.getElementById('resourceBarChart');
         if (!chartElement) {
-            console.error("리소스 차트 요소(resource-chart)를 찾을 수 없습니다.");
+            console.error("리소스 차트 요소(resourceBarChart)를 찾을 수 없습니다.");
             return;
         }
         
@@ -641,21 +697,26 @@ class DataProcessor {
             return;
         }
         
-        new Chart(ctx, {
+        // 기존 차트가 있다면 파괴
+        if (this.resourceChartInstance) {
+            this.resourceChartInstance.destroy();
+        }
+        
+        this.resourceChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: ['CPU', '메모리', '디스크'],
                 datasets: [{
                     label: '사용량 (%)',
                     data: [
-                        server.cpu_usage, 
-                        server.memory_usage_percent, 
-                        server.disk[0].disk_usage_percent
+                        server.cpu_usage || 0, 
+                        server.memory_usage_percent || 0, 
+                        (server.disk && server.disk.length > 0) ? server.disk[0].disk_usage_percent || 0 : 0
                     ],
                     backgroundColor: [
-                        this.getChartColor(server.cpu_usage),
-                        this.getChartColor(server.memory_usage_percent),
-                        this.getChartColor(server.disk[0].disk_usage_percent)
+                        this.getChartColor(server.cpu_usage || 0),
+                        this.getChartColor(server.memory_usage_percent || 0),
+                        this.getChartColor((server.disk && server.disk.length > 0) ? server.disk[0].disk_usage_percent || 0 : 0)
                     ],
                     borderWidth: 1
                 }]
@@ -887,10 +948,25 @@ class DataProcessor {
             else if (status === 'critical') criticalCount++;
         });
 
+        // 타임스탬프 업데이트
+        const timestampElement = document.getElementById('timestamp');
+        if (timestampElement) {
+            const latestTimestamp = this.serverData.reduce((latest, server) => {
+                const serverTime = new Date(server.timestamp).getTime();
+                return serverTime > latest ? serverTime : latest;
+            }, 0);
+            
+            if (latestTimestamp > 0) {
+                timestampElement.textContent = `데이터 기준 시각: ${new Date(latestTimestamp).toLocaleString()}`;
+            } else {
+                timestampElement.textContent = `데이터 기준 시각: ${new Date().toLocaleString()}`;
+            }
+        }
+
         summaryContainer.innerHTML = `
             <div class="row mb-3">
                 <div class="col-4 text-center">
-                    <h3 class="mb-0 display-6">${normalCount}</h3>
+                    <h3 class="mb-0 display-6 text-success">${normalCount}</h3>
                     <p class="text-success mb-0">정상</p>
                 </div>
                 <div class="col-4 text-center">
@@ -923,6 +999,18 @@ class DataProcessor {
         if (this.globalStatusChartInstance) {
             this.globalStatusChartInstance.destroy();
         }
+        
+        if (normalCount === 0 && warningCount === 0 && criticalCount === 0) {
+            // 데이터가 없는 경우 빈 차트가 아닌 메시지 표시
+            chartElement.parentElement.innerHTML = `
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    표시할 서버 상태 데이터가 없습니다.
+                </div>
+            `;
+            return;
+        }
+        
         this.globalStatusChartInstance = new Chart(chartCtx, {
             type: 'doughnut',
             data: {
@@ -966,6 +1054,26 @@ class DataProcessor {
                 }
             }
         });
+        
+        // 서버 수 표시 업데이트
+        const serverCountElement = document.getElementById('serverCount');
+        if (serverCountElement) {
+            const endIndex = Math.min(this.currentPage * this.itemsPerPage, this.filteredData.length);
+            const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
+            
+            if (this.filteredData.length > 0) {
+                serverCountElement.textContent = `전체 ${this.serverData.length} 서버 중 ${startIndex}-${endIndex} 표시 중`;
+            } else {
+                serverCountElement.textContent = `전체 ${this.serverData.length} 서버 중 0 표시 중`;
+            }
+        }
+        
+        // 페이지 정보 업데이트
+        const currentPageElement = document.getElementById('currentPage');
+        if (currentPageElement) {
+            const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage) || 1;
+            currentPageElement.textContent = `${this.currentPage} / ${totalPages}`;
+        }
     }
     
     processAIQuery() {
