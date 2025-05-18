@@ -1133,13 +1133,21 @@
             const body = header.nextElementSibling;
             const icon = header.querySelector('.collapse-toggle i');
             
-            body.classList.toggle('expanded');
-            icon.classList.toggle('fa-chevron-down');
-            icon.classList.toggle('fa-chevron-up');
+            const isExpanded = body.classList.contains('expanded');
             
-            // 각 패널의 확장 상태를 로컬 스토리지에 저장
+            body.classList.toggle('expanded');
+            
+            if (isExpanded) {
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            }
+
+            // 상태 저장
             if (body && body.parentElement && body.parentElement.id) {
-                const panelId = body.parentElement.id; // 부모 .collapsible-panel의 ID를 사용
+                const panelId = body.parentElement.id;
                 localStorage.setItem(`panel_${panelId}_state`, body.classList.contains('expanded') ? 'expanded' : 'collapsed');
             }
         }

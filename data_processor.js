@@ -151,7 +151,8 @@ class DataProcessor {
             downloadReportButton.addEventListener('click', () => this.downloadErrorReport());
         }
         
-        // AI 자동 장애 보고서 '더 보기' 버튼 이벤트
+        // AI 자동 장애 보고서 '더 보기' 버튼 이벤트 - 페이지 로드 시 전역 리스너로 대체
+        /*
         const toggleProblemListBtn = document.getElementById('toggleAiProblemListBtn');
         if (toggleProblemListBtn) {
             toggleProblemListBtn.addEventListener('click', function() {
@@ -164,9 +165,9 @@ class DataProcessor {
                 if (expanded) {
                     // 목록 줄이기
                     [...list.children].forEach((item, index) => {
-                        if (index >= 5) item.style.display = 'none';
+                        if (index >= 3) item.style.display = 'none';
                     });
-                    btn.innerText = `더 보기 (${list.children.length - 5}개 더 있음)`;
+                    btn.innerText = `더 보기 (${list.children.length - 3}개 더 있음)`;
                     btn.setAttribute('data-expanded', 'false');
                 } else {
                     // 전체 펼치기
@@ -176,6 +177,7 @@ class DataProcessor {
                 }
             });
         }
+        */
         
         // 프리셋 태그 버튼 이벤트
         document.querySelectorAll('.preset-tag').forEach(tag => {
@@ -1153,4 +1155,36 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         // 저장된 상태가 없으면 기본 상태 유지
     });
+    
+    // '더 보기' 버튼 이벤트 리스너 직접 등록
+    const toggleBtn = document.getElementById('toggleAiProblemListBtn');
+    if (toggleBtn) {
+        // 기존 이벤트 리스너 제거 (중복 방지)
+        toggleBtn.removeEventListener('click', toggleAiProblemList);
+        // 새 이벤트 리스너 등록
+        toggleBtn.addEventListener('click', toggleAiProblemList);
+    }
+    
+    // 토글 기능을 수행하는 함수 정의
+    function toggleAiProblemList() {
+        const list = document.getElementById('aiProblemList');
+        if (!list) return;
+        
+        const btn = this;
+        const isExpanded = btn.getAttribute('data-expanded') === 'true';
+
+        if (isExpanded) {
+            // 목록 줄이기
+            [...list.children].forEach((item, index) => {
+                if (index >= 3) item.style.display = 'none';
+            });
+            btn.textContent = `더 보기 (${list.children.length - 3}개 더 있음)`;
+            btn.setAttribute('data-expanded', 'false');
+        } else {
+            // 전체 펼치기
+            [...list.children].forEach(item => item.style.display = 'block');
+            btn.textContent = '접기';
+            btn.setAttribute('data-expanded', 'true');
+        }
+    }
 });
