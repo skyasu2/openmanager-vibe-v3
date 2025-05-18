@@ -92,6 +92,13 @@
             transform: translateY(-5px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             border-color: rgba(0, 0, 0, 0.1);
+            background-image: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(245, 247, 250, 0.9) 100%);
+        }
+        
+        /* 클릭 효과 추가 */
+        .server-card:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
         .server-card::before {
@@ -104,12 +111,26 @@
             background: linear-gradient(90deg, #4a69bd, #2c3e50);
         }
         
+        /* 상태에 따른 카드 스타일 */
         .server-card.status-warning::before {
             background: linear-gradient(90deg, #ff8f00, #ffa000);
         }
         
         .server-card.status-critical::before {
             background: linear-gradient(90deg, #d32f2f, #b71c1c);
+        }
+        
+        /* 상태에 따른 추가 스타일 */
+        .server-card.status-critical {
+            border-left: 2px solid #d32f2f;
+        }
+        
+        .server-card.status-warning {
+            border-left: 2px solid #ff8f00;
+        }
+        
+        .server-card.status-normal {
+            border-left: 2px solid #4caf50;
         }
         
         /* 컴팩트 서버 카드 레이아웃 */
@@ -756,7 +777,7 @@
         .modal-content {
             border: none;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             overflow: hidden;
         }
         
@@ -770,10 +791,10 @@
             font-weight: 600;
             display: flex;
             align-items: center;
+            gap: 10px;
         }
         
         .modal-title i {
-            margin-right: 10px;
             color: var(--primary);
         }
         
@@ -781,17 +802,48 @@
             padding: 20px;
         }
         
-        .detail-section {
-            margin-bottom: 20px;
+        .modal-backdrop.show {
+            opacity: 0.7;
         }
         
-        .detail-section-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #2c3e50;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 8px;
+        /* 모달 진입/퇴장 애니메이션 */
+        .modal.fade .modal-dialog {
+            transition: transform 0.3s ease-out;
+        }
+        
+        .modal.fade.show .modal-dialog {
+            transform: translate(0, 0);
+        }
+        
+        .modal.fade:not(.show) .modal-dialog {
+            transform: translate(0, -50px);
+        }
+        
+        /* 차트 컨테이너에 Border와 배경 추가 */
+        .chart-container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        /* 모달 내 테이블 스타일 개선 */
+        .modal-body .table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .modal-body .table th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+        
+        .modal-body .table td {
+            vertical-align: middle;
+            padding: 10px;
         }
 
         /* AI 자동 장애 보고서 리스트 아이템 스타일 */
@@ -909,9 +961,10 @@
             </div>
         </div>
 
-        <!-- AI 질의 영역을 최상단으로 이동 -->
+        <!-- AI 질의 영역과 AI 장애 보고서를 나란히 배치 -->
         <div class="row mb-4">
-            <div class="col">
+            <!-- 왼쪽: AI 서버 분석 (50%) -->
+            <div class="col-md-6">
                 <div class="ai-query-container">
                     <h5 class="mb-3"><i class="fas fa-robot me-2"></i>AI 서버 분석</h5>
                     <p class="text-muted mb-3">서버 상태나 성능에 대해 자연어로 질문해보세요. (예: "CPU 사용률이 높은 서버는?", "메모리 상태 알려줘")</p>
@@ -950,64 +1003,50 @@
                     <div class="query-result" id="queryResult"></div>
                 </div>
             </div>
-        </div>
-
-        <!-- 자동 장애 보고서 섹션 및 서버 현황 요약을 포함하는 incident-panel을 AI 질의 영역 아래로 이동 -->
-        <div class="incident-panel mt-4"> <!-- mt-4 클래스 추가하여 위쪽과 간격 조정 -->
-            <!-- AI 자동 장애 보고서 패널 -->
-            <div class="panel card mb-4" id="aiReportPanel">
-                <div class="card-header bg-light">
-                    <div><i class="fas fa-exclamation-triangle me-2 text-danger"></i> AI 자동 장애 보고서</div>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">감지된 문제</h6>
-                        <button class="btn btn-sm btn-outline-primary" id="downloadAllReportsBtn">
-                            <i class="bi bi-download"></i> 전체 보고서 다운로드
-                        </button>
+            
+            <!-- 오른쪽: AI 자동 장애 보고서 (50%) -->
+            <div class="col-md-6">
+                <div class="panel card h-100" id="aiReportPanel">
+                    <div class="card-header bg-light">
+                        <div><i class="fas fa-exclamation-triangle me-2 text-danger"></i> AI 자동 장애 보고서</div>
                     </div>
-                    
-                    <div class="alert alert-info" id="aiProblemsLoading" style="display: none;">
-                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                            <span class="visually-hidden">로딩 중...</span>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">감지된 문제</h6>
+                            <button class="btn btn-sm btn-outline-primary" id="downloadAllReportsBtn">
+                                <i class="bi bi-download"></i> 전체 보고서 다운로드
+                            </button>
                         </div>
-                        AI가 문제를 분석 중입니다...
-                    </div>
-                    
-                    <div id="aiProblemsEmpty" style="display: none;" class="text-center py-4">
-                        <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
-                        <p class="mt-3 mb-0\">현재 감지된 문제가 없습니다.</p>
-                    </div>
+                        
+                        <div class="alert alert-info" id="aiProblemsLoading" style="display: none;">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                <span class="visually-hidden">로딩 중...</span>
+                            </div>
+                            AI가 문제를 분석 중입니다...
+                        </div>
 
-                    <ul class="list-group" id="aiProblemList">
-                        <!-- AI 문제 항목들이 여기에 추가됩니다 -->
-                    </ul>
-                    <div class="mt-3 text-center" id="aiProblemListToggle" style="display: none;">
-                        <button class="btn btn-sm btn-outline-secondary" id="toggleAiProblemListBtn" data-expanded="false">
-                            더 보기 (0개 더 있음)
-                        </button>
-                    </div>
-                </div>
-            </div>
+                        <div id="aiProblemsEmpty" style="display: none;" class="text-center py-4">
+                            <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+                            <p class="mt-3 mb-0\">현재 감지된 문제가 없습니다.</p>
+                        </div>
 
-            <!-- 서버 현황 요약 패널 -->
-            <div class="panel card mb-4" id="serverStatusSummaryPanel">
-                <div class="card-header bg-light">
-                    <div><i class="fas fa-tasks me-2 text-primary"></i> 서버 현황 요약</div>
-                </div>
-                <div class="card-body">
-                    <div id="statusSummaryContainer">
-                        <!-- 요약 정보가 여기에 동적으로 채워집니다 (data_processor.js) -->
-                        <p>요약 정보를 불러오는 중...</p>
+                        <ul class="list-group" id="aiProblemList">
+                            <!-- AI 문제 항목들이 여기에 추가됩니다 -->
+                        </ul>
+                        <div class="mt-3 text-center" id="aiProblemListToggle" style="display: none;">
+                            <button class="btn btn-sm btn-outline-secondary" id="toggleAiProblemListBtn" data-expanded="false">
+                                더 보기 (0개 더 있음)
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- 메인 컨텐츠 그리드에서 incident-panel 제거하고, 서버 그리드 및 필터만 남김 -->
-        <div class="main-content-grid mt-4" id="mainContentGrid">
-            <!-- 좌측: 서버 그리드 및 검색 필터 -->
-            <div>
+        
+        <!-- 서버 그리드와 서버 현황 요약 섹션 -->
+        <div class="row">
+            <!-- 왼쪽: 서버 그리드 (2/3) -->
+            <div class="col-md-8">
                 <div class="card search-container mb-4">
                     <div class="card-body">
                         <div class="row">
@@ -1043,7 +1082,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- 서버 카드 그리드 -->
                 <div class="server-grid" id="serverGrid"></div>
                 
@@ -1062,10 +1101,20 @@
                 </div>
             </div>
             
-            <!-- 우측: 자동 장애 보고서 (접이식 패널) -->
-            <!-- <div class="incident-panel"> 이 부분은 위로 이동되었음 -->
-            <!-- 이전에 여기에 있던 다른 패널들이 있다면, 위로 옮겨진 incident-panel 내부로 통합하거나, 별도 처리 필요 -->
-            <!-- </div> -->
+            <!-- 오른쪽: 서버 현황 요약 (1/3) -->
+            <div class="col-md-4">
+                <div class="panel card mb-4" id="serverStatusSummaryPanel">
+                    <div class="card-header bg-light">
+                        <div><i class="fas fa-tasks me-2 text-primary"></i> 서버 현황 요약</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="statusSummaryContainer">
+                            <!-- 요약 정보가 여기에 동적으로 채워집니다 (data_processor.js) -->
+                            <p>요약 정보를 불러오는 중...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 서버 상세 정보 모달 -->

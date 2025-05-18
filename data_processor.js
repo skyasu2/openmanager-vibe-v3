@@ -735,11 +735,12 @@ class DataProcessor {
         
         // 서버 카드 생성
         const serverCard = document.createElement('div');
-        serverCard.className = 'server-card';
+        serverCard.className = 'server-card status-' + status;
         serverCard.dataset.serverId = server.hostname || 'unknown';
         
-        // 기존 클릭 이벤트 제거 (모달 대신 새 페이지로 이동)
-        // serverCard.addEventListener('click', () => this.showServerDetail(server));
+        // 카드 클릭 시 상세 정보 모달 표시
+        serverCard.addEventListener('click', () => this.showServerDetail(server));
+        serverCard.style.cursor = 'pointer'; // 클릭 가능함을 시각적으로 표시
         
         // CPU, 메모리, 디스크 사용률을 안전하게 가져오기
         const cpuUsage = server.cpu_usage || 0;
@@ -793,9 +794,6 @@ class DataProcessor {
                     <i class="bi bi-exclamation-triangle-fill"></i> ${server.errors.length}개의 오류
                 </div>
             ` : ''}
-            <div class="text-center mt-3">
-                <a href="server_detail.html?host=${server.hostname || 'unknown'}" class="btn btn-sm btn-primary">자세히 보기</a>
-            </div>
         `;
         
         return serverCard;
