@@ -13,7 +13,11 @@ class DataProcessor {
             this.currentSort = 'name';
             this.searchQuery = '';
             this.currentPage = 1;
-            this.itemsPerPage = 10; // 페이지당 서버 수
+            this.itemsPerPage = 6; // 페이지당 서버 수
+            
+            // AI 문제 페이지네이션
+            this.currentProblemPage = 1;
+            this.problemsPerPage = 5; // 페이지당, 처음에 표시될 문제 수
             
             // 초기화 로깅
             console.log('DataProcessor 초기화 시작...');
@@ -547,7 +551,7 @@ class DataProcessor {
         
         try {
             // 페이지네이션 업데이트
-            this.updatePagination();
+            this.updateNumericPagination();
         } catch (e) {
             console.error('페이지네이션 업데이트 중 오류:', e);
         }
@@ -658,75 +662,105 @@ class DataProcessor {
         }
     }
     
-    updatePagination() {
-        // this.pagination 요소가 존재하지 않으면 함수 종료
-        if (!this.pagination) {
-            console.warn("Pagination element not found in the DOM");
-            return;
-        }
+    updateNumericPagination() {
+        const paginationContainer = document.querySelector('.pagination-container');
+        if (!paginationContainer) return;
         
-        this.pagination.innerHTML = '';
+        paginationContainer.innerHTML = '';
         
         const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
         
-        // 페이지네이션이 필요 없는 경우
-        if (totalPages <= 1) {
-            this.pagination.style.display = 'none';
-            return;
-        }
-        
-        this.pagination.style.display = 'flex';
-        
         // 이전 페이지 버튼
-        if (this.currentPage > 1) {
-            const prevBtn = document.createElement('div');
-            prevBtn.className = 'page-btn';
-            prevBtn.innerHTML = '&laquo;';
-            prevBtn.addEventListener('click', () => {
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'btn btn-sm btn-outline-secondary';
+        prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        prevBtn.disabled = this.currentPage === 1;
+        prevBtn.addEventListener('click', () => {
+            if (this.currentPage > 1) {
                 this.currentPage--;
                 this.updateServerGrid();
-                this.updatePagination();
+            }
+        });
+        paginationContainer.appendChild(prevBtn);
+        
+        // 페이지 번호 버튼
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        // 표시할 페이지 버튼이 최대 개수보다 적을 경우 startPage 조정
+        if (endPage - startPage + 1 < maxVisiblePages && startPage > 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // 첫 페이지로 이동 버튼 (필요 시)
+        if (startPage > 1) {
+            const firstPageBtn = document.createElement('button');
+            firstPageBtn.className = 'btn btn-sm btn-outline-secondary mx-1';
+            firstPageBtn.textContent = '1';
+            firstPageBtn.addEventListener('click', () => {
+                this.currentPage = 1;
+                this.updateServerGrid();
             });
-            this.pagination.appendChild(prevBtn);
+            paginationContainer.appendChild(firstPageBtn);
+            
+            // 생략 표시 (첫 페이지 버튼과 현재 범위 사이)
+            if (startPage > 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'mx-1';
+                ellipsis.textContent = '...';
+                paginationContainer.appendChild(ellipsis);
+            }
         }
         
         // 페이지 버튼 생성
-        const maxButtons = 5; // 최대 표시할 페이지 버튼 수
-        let startPage = Math.max(1, this.currentPage - Math.floor(maxButtons / 2));
-        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-        
-        if (endPage - startPage + 1 < maxButtons && startPage > 1) {
-            startPage = Math.max(1, endPage - maxButtons + 1);
-        }
-        
         for (let i = startPage; i <= endPage; i++) {
-            const pageBtn = document.createElement('div');
-            pageBtn.className = 'page-btn' + (i === this.currentPage ? ' active' : '');
-            pageBtn.textContent = i;
+            const pageBtn = document.createElement('button');
+            pageBtn.className = `btn btn-sm mx-1 ${i === this.currentPage ? 'btn-primary' : 'btn-outline-secondary'}`;
+            pageBtn.textContent = i.toString();
             pageBtn.addEventListener('click', () => {
                 this.currentPage = i;
                 this.updateServerGrid();
-                this.updatePagination();
             });
-            this.pagination.appendChild(pageBtn);
+            paginationContainer.appendChild(pageBtn);
+        }
+        
+        // 마지막 페이지로 이동 버튼 (필요 시)
+        if (endPage < totalPages) {
+            // 생략 표시 (현재 범위와 마지막 페이지 버튼 사이)
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'mx-1';
+                ellipsis.textContent = '...';
+                paginationContainer.appendChild(ellipsis);
+            }
+            
+            const lastPageBtn = document.createElement('button');
+            lastPageBtn.className = 'btn btn-sm btn-outline-secondary mx-1';
+            lastPageBtn.textContent = totalPages.toString();
+            lastPageBtn.addEventListener('click', () => {
+                this.currentPage = totalPages;
+                this.updateServerGrid();
+            });
+            paginationContainer.appendChild(lastPageBtn);
         }
         
         // 다음 페이지 버튼
-        if (this.currentPage < totalPages) {
-            const nextBtn = document.createElement('div');
-            nextBtn.className = 'page-btn';
-            nextBtn.innerHTML = '&raquo;';
-            nextBtn.addEventListener('click', () => {
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn btn-sm btn-outline-secondary';
+        nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        nextBtn.disabled = this.currentPage === totalPages;
+        nextBtn.addEventListener('click', () => {
+            if (this.currentPage < totalPages) {
                 this.currentPage++;
                 this.updateServerGrid();
-                this.updatePagination();
-            });
-            this.pagination.appendChild(nextBtn);
-        }
+            }
+        });
+        paginationContainer.appendChild(nextBtn);
         
-        // 페이지 정보 업데이트
+        // 현재 페이지 정보 업데이트
         if (this.currentPageElement) {
-            this.currentPageElement.textContent = `${this.currentPage} / ${totalPages}`;
+            this.currentPageElement.style.display = 'none'; // 기존 페이지 표시 숨김
         }
     }
     
@@ -1076,6 +1110,7 @@ class DataProcessor {
         const problemListContainer = document.getElementById('aiProblemList');
         const loadingIndicator = document.getElementById('aiProblemsLoading');
         const emptyIndicator = document.getElementById('aiProblemsEmpty');
+        const paginationContainer = document.querySelector('.problem-pagination');
 
         if (!problemListContainer || !loadingIndicator || !emptyIndicator) {
             console.error("AI Problem list UI elements not found.");
@@ -1085,6 +1120,7 @@ class DataProcessor {
         loadingIndicator.style.display = 'block';
         emptyIndicator.style.display = 'none';
         problemListContainer.innerHTML = '';
+        if (paginationContainer) paginationContainer.innerHTML = '';
 
         try {
             // detectProblems 메소드가 존재하고 호출 가능한지 확인
@@ -1140,14 +1176,26 @@ class DataProcessor {
                 emptyIndicator.style.display = 'block';
                 return;
             }
+
+            // 전체 문제 데이터 저장
+            this.problemsData = problems;
             
-            // 최대 5개의 문제만 표시
-            const maxProblems = 5;
+            // 페이지네이션 계산
             const totalProblems = problems.length;
-            const displayProblems = problems.slice(0, maxProblems);
+            const totalPages = Math.ceil(totalProblems / this.problemsPerPage);
             
-            // 목록 렌더링
-            displayProblems.forEach(problem => {
+            // 현재 페이지가 범위를 벗어나면 조정
+            if (this.currentProblemPage > totalPages) {
+                this.currentProblemPage = totalPages;
+            }
+            
+            // 현재 페이지에 표시할 문제 계산
+            const startIdx = (this.currentProblemPage - 1) * this.problemsPerPage;
+            const endIdx = Math.min(startIdx + this.problemsPerPage, totalProblems);
+            const currentPageProblems = problems.slice(startIdx, endIdx);
+            
+            // 문제 항목 렌더링
+            currentPageProblems.forEach(problem => {
                 const listItem = document.createElement('li');
                 listItem.className = `list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}`;
                 listItem.innerHTML = `
@@ -1159,7 +1207,7 @@ class DataProcessor {
                     <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
                 `;
                 
-                // 문제 항목 클릭 시 액션 (예: 서버 상세 모달)
+                // 문제 항목 클릭 시 액션 (서버 상세 모달)
                 listItem.addEventListener('click', () => {
                     const server = this.serverData.find(s => s.hostname === problem.serverHostname);
                     if (server) this.showServerDetail(server);
@@ -1168,13 +1216,55 @@ class DataProcessor {
                 problemListContainer.appendChild(listItem);
             });
             
-            // 총 문제 수가 5개를 초과하는 경우 문제가 더 있다는 것을 표시
-            if (totalProblems > maxProblems) {
-                const remainingCount = totalProblems - maxProblems;
-                const moreInfoItem = document.createElement('li');
-                moreInfoItem.className = 'list-group-item text-center text-muted';
-                moreInfoItem.innerHTML = `그 외 ${remainingCount}개의 문제가 더 있습니다.`;
-                problemListContainer.appendChild(moreInfoItem);
+            // 페이지네이션 생성
+            if (paginationContainer && totalPages > 1) {
+                // 이전 페이지 버튼
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'btn btn-sm btn-outline-secondary';
+                prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                prevBtn.disabled = this.currentProblemPage === 1;
+                prevBtn.addEventListener('click', () => {
+                    if (this.currentProblemPage > 1) {
+                        this.currentProblemPage--;
+                        this.updateProblemsList();
+                    }
+                });
+                paginationContainer.appendChild(prevBtn);
+                
+                // 페이지 번호 버튼
+                const maxVisiblePages = 5;
+                let startPage = Math.max(1, this.currentProblemPage - Math.floor(maxVisiblePages / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                
+                // 표시할 페이지 버튼 조정
+                if (endPage - startPage + 1 < maxVisiblePages && startPage > 1) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+                
+                // 페이지 버튼 생성
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `btn btn-sm mx-1 ${i === this.currentProblemPage ? 'btn-primary' : 'btn-outline-secondary'}`;
+                    pageBtn.textContent = i.toString();
+                    pageBtn.addEventListener('click', () => {
+                        this.currentProblemPage = i;
+                        this.updateProblemsList();
+                    });
+                    paginationContainer.appendChild(pageBtn);
+                }
+                
+                // 다음 페이지 버튼
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'btn btn-sm btn-outline-secondary';
+                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                nextBtn.disabled = this.currentProblemPage === totalPages;
+                nextBtn.addEventListener('click', () => {
+                    if (this.currentProblemPage < totalPages) {
+                        this.currentProblemPage++;
+                        this.updateProblemsList();
+                    }
+                });
+                paginationContainer.appendChild(nextBtn);
             }
         } catch (error) {
             console.error("AI 문제 목록 업데이트 중 오류 발생:", error);
