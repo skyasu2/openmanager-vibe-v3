@@ -1148,30 +1148,56 @@
             loadServerData();
             
             // 검색 및 필터링 이벤트 리스너 추가
-            document.getElementById('searchInput').addEventListener('keyup', filterServers);
-            document.getElementById('statusFilter').addEventListener('change', filterServers);
+            document.getElementById('searchInput').addEventListener('keyup', function() { // 익명 함수로 감싸서 호출
+                if (window.dataProcessor) {
+                    window.dataProcessor.searchQuery = this.value.toLowerCase();
+                    window.dataProcessor.currentPage = 1;
+                    window.dataProcessor.applyFiltersAndSort();
+                }
+            });
+            document.getElementById('statusFilter').addEventListener('change', function() { // 익명 함수로 감싸서 호출
+                if (window.dataProcessor) {
+                    // dataProcessor의 필터 상태를 직접 업데이트하는 로직이 필요할 수 있음
+                    // 여기서는 applyFiltersAndSort가 내부적으로 필터 값을 읽는다고 가정
+                    window.dataProcessor.currentFilter = this.value; // 예시: statusFilter의 value를 직접 사용
+                    window.dataProcessor.currentPage = 1;
+                    window.dataProcessor.applyFiltersAndSort();
+                }
+            });
             document.getElementById('pageSize').addEventListener('change', function() {
-                currentPage = 1;
-                filterServers();
+                currentPage = 1; // 이 currentPage는 전역 변수를 의미하는 것으로 보임
+                                 // dataProcessor.itemsPerPage도 업데이트 필요
+                if(window.dataProcessor) {
+                    window.dataProcessor.itemsPerPage = parseInt(this.value);
+                    window.dataProcessor.currentPage = 1;
+                    window.dataProcessor.applyFiltersAndSort();
+                }
             });
             
             // 페이지 이동 버튼
             document.getElementById('prevPageBtn').addEventListener('click', function() {
+                // currentPage는 전역 변수를 사용하고, dataProcessor의 currentPage와 동기화 필요
                 if (currentPage > 1) {
                     currentPage--;
-                    filterServers();
+                    if(window.dataProcessor) {
+                        window.dataProcessor.currentPage = currentPage;
+                        window.dataProcessor.applyFiltersAndSort();
+                    }
                 }
             });
             
             document.getElementById('nextPageBtn').addEventListener('click', function() {
-                if (currentPage < Math.ceil(filteredData.length / pageSize)) { // 직접 계산
-                    currentPage++;
-                    filterServers();
+               // filteredData는 html 로컬 변수, dataProcessor.filteredData와 동기화 또는 직접 사용 필요
+               // 여기서는 dataProcessor의 상태를 기준으로 동작하도록 수정
+               if(window.dataProcessor && window.dataProcessor.currentPage < Math.ceil(window.dataProcessor.filteredData.length / window.dataProcessor.itemsPerPage)) {
+                    currentPage++; // 로컬 currentPage도 업데이트
+                    window.dataProcessor.currentPage = currentPage;
+                    window.dataProcessor.applyFiltersAndSort();
                 }
             });
             
             // 새로고침 버튼
-            document.getElementById('refreshBtn').addEventListener('click', loadServerData);
+            document.getElementById('refreshBtn').addEventListener('click', loadServerData); // loadServerData는 dataProcessor.loadData() 호출로 이어질 것
             
             // AI 질의 처리
             document.getElementById('queryInput').addEventListener('keyup', function(event) {
@@ -1261,9 +1287,9 @@
 
         // 서버 데이터 처리
         function processServerData() {
-            applyFilters();
-            updatePagination();
-            renderServerTable();
+            // applyFilters(); // 이 호출은 data_processor.js의 handleDataUpdate 내부 applyFiltersAndSort로 대체됨
+            updatePagination(); // 이 함수도 data_processor.js의 updatePagination으로 대체되었는지 확인 필요
+            renderServerTable(); // 이 함수도 data_processor.js의 updateServerGrid으로 대체되었는지 확인 필요
             updateCharts();
             updateTimestamp();
             // updateStatusCounts(); // 상태 요약 카운트 업데이트 - 이 줄을 주석 처리 (data_processor.js의 updateGlobalStatusSummary로 대체됨)
