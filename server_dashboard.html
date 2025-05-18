@@ -16,6 +16,27 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
+        /* CSS 변수 정의 */
+        :root {
+            --primary: #4a69bd;
+            --primary-dark: #3a559d;
+            --primary-light: rgba(74, 105, 189, 0.3);
+            --background: #f5f6fa;
+            --surface: #ffffff;
+            --text: #333333;
+            --text-white: #ffffff;
+            --border: #e0e0e0;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --border-radius-sm: 4px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 20px;
+        }
+        
         body {
             font-family: 'Noto Sans KR', sans-serif;
             background-color: #f5f6fa;
@@ -564,6 +585,41 @@
                 max-height: 90vh;
             }
         }
+
+        /* 서비스 태그 스타일 추가 */
+        .services-container {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .service-tag {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .service-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .service-tag.service-running {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .service-tag.service-stopped {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+        }
     </style>
 </head>
 <body>
@@ -881,6 +937,153 @@
             renderServerTable();
             updateCharts();
             updateTimestamp();
+            updateStatusCounts(); // 상태 요약 카운트 업데이트
+            createStatusChart(); // 상태 요약 차트 생성
+            generateIncidentReports(); // 장애 보고서 자동 생성
+        }
+        
+        // 서버 상태 요약 카운트 업데이트 함수
+        function updateStatusCounts() {
+            if (!serverData || serverData.length === 0) return;
+            
+            const criticalCount = serverData.filter(server => 
+                server.cpu_usage >= 90 || 
+                server.memory_usage_percent >= 90 || 
+                server.disk[0].disk_usage_percent >= 90
+            ).length;
+            
+            const warningCount = serverData.filter(server => 
+                (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
+                (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
+                (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90)
+            ).length;
+            
+            const normalCount = serverData.length - criticalCount - warningCount;
+            
+            // 카운트 업데이트
+            document.getElementById('normalCount').textContent = normalCount;
+            document.getElementById('warningCount').textContent = warningCount;
+            document.getElementById('criticalCount').textContent = criticalCount;
+        }
+        
+        // 상태 차트 생성 함수
+        function createStatusChart() {
+            const ctx = document.getElementById('statusChart');
+            if (!ctx) return;
+            
+            // 이미 차트가 존재하면 제거
+            if (charts.statusChart) {
+                charts.statusChart.destroy();
+            }
+            
+            // 상태별 서버 수 계산
+            const criticalCount = serverData.filter(server => 
+                server.cpu_usage >= 90 || 
+                server.memory_usage_percent >= 90 || 
+                server.disk[0].disk_usage_percent >= 90
+            ).length;
+            
+            const warningCount = serverData.filter(server => 
+                (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
+                (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
+                (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90)
+            ).length;
+            
+            const normalCount = serverData.length - criticalCount - warningCount;
+            
+            // 차트 생성
+            charts.statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['정상', '경고', '심각'],
+                    datasets: [{
+                        data: [normalCount, warningCount, criticalCount],
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 리소스 개요 차트 생성 함수 (CPU, 메모리)
+        function updateCharts() {
+            if (!serverData || serverData.length === 0) return;
+            
+            // CPU 사용량 차트
+            createResourceChart('cpuUsageChart', 'CPU 사용량', serverData.map(s => s.cpu_usage));
+            
+            // 메모리 사용량 차트
+            createResourceChart('memoryUsageChart', '메모리 사용량', serverData.map(s => s.memory_usage_percent));
+        }
+        
+        // 리소스 차트 생성 함수
+        function createResourceChart(canvasId, label, dataValues) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            // 기존 차트 제거
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            
+            // 서버 이름과 값 페어로 정렬
+            const serverValuePairs = serverData.map((server, index) => ({
+                name: server.hostname,
+                value: dataValues[index]
+            })).sort((a, b) => b.value - a.value).slice(0, 10);
+            
+            // 차트 생성
+            charts[canvasId] = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: serverValuePairs.map(pair => pair.name),
+                    datasets: [{
+                        label: label,
+                        data: serverValuePairs.map(pair => pair.value),
+                        backgroundColor: serverValuePairs.map(pair => {
+                            if (pair.value >= 90) return '#dc3545';
+                            if (pair.value >= 70) return '#ffc107';
+                            return '#28a745';
+                        }),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: '사용률 (%)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
         }
 
         // 필터 적용
@@ -1342,176 +1545,6 @@
             }
         }
 
-        // 차트 업데이트 함수
-        function updateCharts() {
-            if (!serverData || serverData.length === 0) {
-                return;
-            }
-            
-            // 차트 객체가 이미 존재하는 경우 파괴
-            Object.values(charts).forEach(chart => {
-                if (chart) chart.destroy();
-            });
-            
-            try {
-                // 모든 서버 데이터 중에서 상위 5개만 차트로 표시 (필터링된 데이터가 아님)
-                // CPU 차트
-                const cpuData = [...serverData]
-                    .sort((a, b) => b.cpu_usage - a.cpu_usage)
-                    .slice(0, 5);
-                    
-                const cpuCtx = document.getElementById('cpuChart');
-                if (!cpuCtx) {
-                    console.error('CPU 차트 캔버스 요소를 찾을 수 없습니다.');
-                    return;
-                }
-                
-                charts.cpu = new Chart(cpuCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: cpuData.map(server => server.hostname),
-                        datasets: [{
-                            label: 'CPU 사용률 (%)',
-                            data: cpuData.map(server => server.cpu_usage),
-                            backgroundColor: cpuData.map(server => {
-                                if (server.cpu_usage >= 80) return '#ea4335';
-                                if (server.cpu_usage >= 60) return '#fbbc04';
-                                return '#34a853';
-                            }),
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        }
-                    }
-                });
-                
-                // 메모리 차트
-                const memoryData = [...serverData]
-                    .sort((a, b) => b.memory_usage_percent - a.memory_usage_percent)
-                    .slice(0, 5);
-                    
-                const memoryCtx = document.getElementById('memoryChart');
-                if (memoryCtx) {
-                    charts.memory = new Chart(memoryCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: memoryData.map(server => server.hostname),
-                            datasets: [{
-                                label: '메모리 사용률 (%)',
-                                data: memoryData.map(server => server.memory_usage_percent),
-                                backgroundColor: memoryData.map(server => {
-                                    if (server.memory_usage_percent >= 80) return '#ea4335';
-                                    if (server.memory_usage_percent >= 60) return '#fbbc04';
-                                    return '#34a853';
-                                }),
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    max: 100
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
-                                }
-                            }
-                        }
-                    });
-                }
-                
-                // 디스크 차트
-                const diskData = [...serverData]
-                    .sort((a, b) => b.disk[0].disk_usage_percent - a.disk[0].disk_usage_percent)
-                    .slice(0, 5);
-                    
-                const diskCtx = document.getElementById('diskChart');
-                if (diskCtx) {
-                    charts.disk = new Chart(diskCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: diskData.map(server => server.hostname),
-                            datasets: [{
-                                label: '디스크 사용률 (%)',
-                                data: diskData.map(server => server.disk[0].disk_usage_percent),
-                                backgroundColor: diskData.map(server => {
-                                    if (server.disk[0].disk_usage_percent >= 80) return '#ea4335';
-                                    if (server.disk[0].disk_usage_percent >= 60) return '#fbbc04';
-                                    return '#34a853';
-                                }),
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    max: 100
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
-                                }
-                            }
-                        }
-                    });
-                }
-                
-                // 네트워크 차트
-                const networkData = [...serverData]
-                    .sort((a, b) => (b.net.rx_bytes + b.net.tx_bytes) - (a.net.rx_bytes + a.net.tx_bytes))
-                    .slice(0, 5);
-                    
-                const networkCtx = document.getElementById('networkChart');
-                if (networkCtx) {
-                    charts.network = new Chart(networkCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: networkData.map(server => server.hostname),
-                            datasets: [{
-                                label: '네트워크 트래픽 (MiB)',
-                                data: networkData.map(server => ((server.net.rx_bytes + server.net.tx_bytes) / (1024 * 1024)).toFixed(2)),
-                                backgroundColor: '#4285F4',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    display: false
-                                }
-                            }
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('차트 생성 중 오류 발생:', error);
-            }
-        }
-
         // AI 질의 처리
         async function handleQuery(queryText) {
             if (!queryText.trim()) return;
@@ -1624,65 +1657,37 @@
         
         // 장애 보고서 생성 함수
         function generateIncidentReports() {
-            // 로딩 표시
-            document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-hourglass"></i> 생성 중...';
+            // 문제가 있는 서버 찾기
+            const criticalServers = serverData.filter(server => 
+                server.cpu_usage >= 90 || 
+                server.memory_usage_percent >= 90 || 
+                server.disk[0].disk_usage_percent >= 90 ||
+                server.errors.length > 0
+            );
             
-            setTimeout(() => {
-                // 문제가 있는 서버 찾기
-                const criticalServers = serverData.filter(server => 
-                    server.cpu_usage >= 90 || 
-                    server.memory_usage_percent >= 90 || 
-                    server.disk[0].disk_usage_percent >= 90 ||
-                    server.errors.length > 0
-                );
-                
-                const warningServers = serverData.filter(server => 
-                    (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
-                    (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
-                    (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90) ||
-                    Object.values(server.services).includes('stopped')
-                );
-                
-                // UI 업데이트
-                const noIncidentsAlert = document.getElementById('no-incidents-alert');
-                const incidentsSummary = document.getElementById('incidents-summary');
-                
-                if (criticalServers.length === 0 && warningServers.length === 0) {
-                    noIncidentsAlert.style.display = 'block';
-                    incidentsSummary.style.display = 'none';
-                    document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-lightning"></i> 보고서 생성';
-                    return;
-                }
-                
-                // 장애가 있으면 요약 표시
-                noIncidentsAlert.style.display = 'none';
-                incidentsSummary.style.display = 'block';
-                
-                // 상태 카운트 업데이트
-                const totalServers = serverData.length;
-                const normalCount = totalServers - criticalServers.length - warningServers.length;
-                
-                document.querySelector('.incident-count').textContent = criticalServers.length + warningServers.length;
-                
-                // 프로그레스바 업데이트
-                const criticalPercent = (criticalServers.length / totalServers * 100).toFixed(1);
-                const warningPercent = (warningServers.length / totalServers * 100).toFixed(1);
-                const normalPercent = (normalCount / totalServers * 100).toFixed(1);
-                
-                document.getElementById('critical-progress').style.width = criticalPercent + '%';
-                document.getElementById('critical-progress').textContent = criticalServers.length + ' 심각';
-                
-                document.getElementById('warning-progress').style.width = warningPercent + '%';
-                document.getElementById('warning-progress').textContent = warningServers.length + ' 경고';
-                
-                document.getElementById('normal-progress').style.width = normalPercent + '%';
-                document.getElementById('normal-progress').textContent = normalCount + ' 정상';
-                
-                // 아코디언 항목 생성
-                generateIncidentAccordionItems(criticalServers, warningServers);
-                
-                document.getElementById('generate-report-btn').innerHTML = '<i class="bi bi-lightning"></i> 보고서 갱신';
-            }, 1000); // 1초 지연 (보고서 생성 효과)
+            const warningServers = serverData.filter(server => 
+                (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
+                (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
+                (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90) ||
+                Object.values(server.services).includes('stopped')
+            );
+            
+            // UI 업데이트
+            const incidentsLoading = document.getElementById('incidentsLoading');
+            const incidentsEmpty = document.getElementById('incidentsEmpty');
+            
+            if (incidentsLoading) incidentsLoading.style.display = 'none';
+            
+            if (criticalServers.length === 0 && warningServers.length === 0) {
+                if (incidentsEmpty) incidentsEmpty.style.display = 'block';
+                return;
+            }
+            
+            // 장애가 있으면 요약 표시
+            if (incidentsEmpty) incidentsEmpty.style.display = 'none';
+            
+            // 아코디언 항목 생성
+            generateIncidentAccordionItems(criticalServers, warningServers);
         }
         
         // 장애 아코디언 항목 생성
