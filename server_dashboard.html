@@ -1192,64 +1192,207 @@
     <!-- 자바스크립트 라이브러리 및 소스 파일 -->
     <!-- 스크립트는 순서가 중요: 부트스트랩, dummy_data_generator.js, ai_processor.js, data_processor.js 순서로 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="dummy_data_generator.js"></script>
-    <script src="ai_processor.js"></script>
-    <script src="data_processor.js"></script>
+    <script>
+        // 초기 글로벌 변수 설정
+        window.serverData = window.serverData || [];
+        window.loadStatus = {
+            dummyGenerator: false,
+            aiProcessor: false,
+            dataProcessor: false
+        };
+    </script>
+    <script src="dummy_data_generator.js" onerror="window.loadStatus.dummyGenerator = false" onload="window.loadStatus.dummyGenerator = true"></script>
+    <script src="ai_processor.js" onerror="window.loadStatus.aiProcessor = false" onload="window.loadStatus.aiProcessor = true"></script>
+    <script src="data_processor.js" onerror="window.loadStatus.dataProcessor = false" onload="window.loadStatus.dataProcessor = true"></script>
     
     <!-- 스크립트 로드 오류 처리 -->
     <script>
         // 스크립트 로드 검증 및 오류 처리
         document.addEventListener('DOMContentLoaded', function() {
-            // 필수 스크립트 목록
-            const requiredScripts = [
-                'dummy_data_generator.js',
-                'ai_processor.js',
-                'data_processor.js'
-            ];
+            console.log('DOM이 로드되었습니다. 스크립트 상태 확인을 시작합니다.');
             
             // 스크립트 로드 상태 확인
-            let missingScripts = [];
+            checkScriptStatus(0); // 첫 번째 시도
             
-            // 각 스크립트가 로드되었는지 확인
-            requiredScripts.forEach(script => {
-                const scriptElement = Array.from(document.scripts).find(s => 
-                    s.src.includes(script));
+            // 스크립트 상태 확인 및 필요한 초기화 수행 (최대 3번 시도)
+            function checkScriptStatus(attempt) {
+                const maxAttempts = 3;
                 
-                if (!scriptElement || scriptElement.hasAttribute('error')) {
-                    missingScripts.push(script);
+                if (attempt >= maxAttempts) {
+                    console.error(`스크립트 로드 최대 시도 횟수(${maxAttempts}회)를 초과했습니다.`);
+                    createFallbackInitialization();
+                    return;
                 }
-            });
-            
-            // 특정 전역 객체가 제대로 초기화되었는지 확인
-            if (typeof window.dataProcessor === 'undefined' && document.getElementById('serverGrid')) {
-                console.error('DataProcessor가 초기화되지 않았습니다. 수동으로 초기화를 시도합니다.');
                 
-                // 백업 초기화 시도
-                try {
-                    if (typeof DataProcessor === 'function') {
-                        window.dataProcessor = new DataProcessor();
-                    }
-                } catch (e) {
-                    console.error('수동 초기화 실패:', e);
+                console.log(`스크립트 로드 상태 확인 중... (시도 ${attempt + 1}/${maxAttempts})`);
+                console.log('로드 상태:', window.loadStatus);
+                
+                // 모든 스크립트가 로드되었는지 확인
+                if (window.loadStatus.dummyGenerator && 
+                    window.loadStatus.aiProcessor && 
+                    window.loadStatus.dataProcessor) {
+                    console.log('모든 스크립트가 정상적으로 로드되었습니다.');
+                    initializeDashboard();
+                    return;
+                }
+                
+                // 어떤 스크립트가 누락되었는지 확인
+                const missingScripts = [];
+                if (!window.loadStatus.dummyGenerator) missingScripts.push('dummy_data_generator.js');
+                if (!window.loadStatus.aiProcessor) missingScripts.push('ai_processor.js');
+                if (!window.loadStatus.dataProcessor) missingScripts.push('data_processor.js');
+                
+                if (missingScripts.length > 0) {
+                    console.warn(`다음 스크립트가 로드되지 않았습니다: ${missingScripts.join(', ')}`);
+                }
+                
+                // 500ms 후 다시 시도
+                setTimeout(() => checkScriptStatus(attempt + 1), 500);
+            }
+            
+            // 대시보드 초기화 함수
+            function initializeDashboard() {
+                console.log('대시보드 초기화를 시작합니다.');
+                
+                // 데이터 프로세서 확인 및 초기화
+                if (typeof DataProcessor === 'function' && !window.dataProcessor) {
+                    console.log('DataProcessor 인스턴스를 생성합니다.');
+                    window.dataProcessor = new DataProcessor();
+                } else if (window.dataProcessor) {
+                    console.log('기존 DataProcessor 인스턴스가 사용됩니다.');
+                } else {
+                    console.error('DataProcessor 클래스를 찾을 수 없습니다.');
+                    createFallbackInitialization();
+                }
+                
+                // AI 프로세서 확인 및 초기화
+                if (typeof AIProcessor === 'function' && !window.aiProcessor) {
+                    console.log('AIProcessor 인스턴스를 생성합니다.');
+                    window.aiProcessor = new AIProcessor();
+                }
+                
+                // 서버 데이터가 없으면 더미 데이터 생성기 실행
+                if (!window.serverData || window.serverData.length === 0) {
+                    createDummyData();
                 }
             }
             
-            // dummy_data_generator.js가 로드되지 않은 경우 최소한의 더미 데이터 생성
-            if (!window.serverData || window.serverData.length === 0) {
-                console.warn('서버 데이터가 없습니다. 기본 더미 데이터를 생성합니다.');
+            // 최후의 백업 초기화
+            function createFallbackInitialization() {
+                console.warn('백업 초기화 프로세스를 시작합니다.');
                 
-                // 최소한의 더미 데이터 생성 함수 정의
+                // 1. 더미 데이터 생성 
+                createDummyData();
+                
+                // 2. DataProcessor 최소 구현
+                if (!window.dataProcessor && document.getElementById('serverGrid')) {
+                    console.warn('DataProcessor 최소 구현을 시도합니다.');
+                    
+                    // 서버 그리드와 로딩 인디케이터 참조
+                    const serverGrid = document.getElementById('serverGrid');
+                    const loadingIndicator = document.getElementById('loadingIndicator');
+                    
+                    // 최소한의 DataProcessor 구현
+                    window.dataProcessor = {
+                        serverData: window.serverData || [],
+                        filteredData: window.serverData || [],
+                        showLoading: function() {
+                            if (loadingIndicator) loadingIndicator.style.display = 'block';
+                            if (serverGrid) serverGrid.style.opacity = '0.3';
+                        },
+                        hideLoading: function() {
+                            if (loadingIndicator) loadingIndicator.style.display = 'none';
+                            if (serverGrid) serverGrid.style.opacity = '1';
+                        },
+                        handleDataUpdate: function(data) {
+                            this.serverData = [...data];
+                            this.filteredData = [...data];
+                            this.renderServerGrid();
+                            this.hideLoading();
+                        },
+                        renderServerGrid: function() {
+                            if (!serverGrid) return;
+                            
+                            serverGrid.innerHTML = '';
+                            if (this.serverData.length === 0) {
+                                serverGrid.innerHTML = '<div class="alert alert-info">서버 데이터가 없습니다.</div>';
+                                return;
+                            }
+                            
+                            // 간단한 서버 카드 생성 및 추가
+                            this.serverData.forEach(server => {
+                                const card = document.createElement('div');
+                                card.className = 'server-card';
+                                
+                                const status = server.cpu_usage >= 90 || server.memory_usage_percent >= 90 ? 'critical' :
+                                        server.cpu_usage >= 70 || server.memory_usage_percent >= 70 ? 'warning' : 'normal';
+                                
+                                card.innerHTML = `
+                                    <div class="server-header">
+                                        <div class="server-name">${server.hostname || 'Unknown Server'}</div>
+                                        <div class="server-status status-${status}">${status === 'critical' ? '심각' : status === 'warning' ? '경고' : '정상'}</div>
+                                    </div>
+                                    <div class="server-details">
+                                        <div class="detail-item">
+                                            <div class="detail-label">CPU 사용량</div>
+                                            <div class="detail-value">${server.cpu_usage || 0}%</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">메모리</div>
+                                            <div class="detail-value">${server.memory_usage_percent || 0}%</div>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                serverGrid.appendChild(card);
+                            });
+                        }
+                    };
+                    
+                    // 로딩 상태 업데이트 및 데이터 렌더링
+                    window.dataProcessor.showLoading();
+                    window.dataProcessor.handleDataUpdate(window.serverData || []);
+                }
+            }
+            
+            // 더미 데이터 생성 함수
+            function createDummyData() {
+                console.log('백업 더미 데이터 생성을 시도합니다.');
+                
+                if (typeof generateDummyData === 'function') {
+                    console.log('기존 generateDummyData 함수를 사용하여 더미 데이터를 생성합니다.');
+                    window.serverData = generateDummyData(10);
+                    return;
+                }
+                
+                console.warn('generateDummyData 함수가 없습니다. 기본 더미 데이터를 생성합니다.');
                 window.generateDummyData = function(count) {
                     console.log('기본 더미 데이터 생성 중...', count, '서버');
                     const servers = [];
                     
                     for (let i = 1; i <= count; i++) {
+                        // 약 30%의 확률로 문제 있는 서버 생성
+                        const hasProblem = Math.random() < 0.3;
+                        const problemLevel = hasProblem ? (Math.random() < 0.3 ? 'critical' : 'warning') : 'normal';
+                        
+                        const cpuUsage = problemLevel === 'critical' ? 
+                            Math.floor(Math.random() * 10) + 90 : // 90-99%
+                            problemLevel === 'warning' ? 
+                                Math.floor(Math.random() * 20) + 70 : // 70-89%
+                                Math.floor(Math.random() * 50) + 10; // 10-59%
+                        
+                        const memoryUsage = problemLevel === 'critical' ? 
+                            Math.floor(Math.random() * 10) + 90 : // 90-99%
+                            problemLevel === 'warning' ? 
+                                Math.floor(Math.random() * 20) + 70 : // 70-89%
+                                Math.floor(Math.random() * 50) + 10; // 10-59%
+                        
                         servers.push({
                             hostname: `server-${i}`,
                             os: 'Linux',
                             uptime: '3 days, 12:30:15',
-                            cpu_usage: Math.floor(Math.random() * 100),
-                            memory_usage_percent: Math.floor(Math.random() * 100),
+                            cpu_usage: cpuUsage,
+                            memory_usage_percent: memoryUsage,
                             memory_total: '16GB',
                             memory_used: '8GB',
                             disk: [{
@@ -1272,11 +1415,12 @@
                                 tx_errors: Math.floor(Math.random() * 10)
                             },
                             services: {
-                                'nginx': Math.random() > 0.9 ? 'stopped' : 'running',
+                                'nginx': problemLevel === 'critical' ? 'stopped' : 'running',
                                 'mysql': Math.random() > 0.9 ? 'stopped' : 'running',
                                 'redis': Math.random() > 0.9 ? 'stopped' : 'running'
                             },
-                            errors: Math.random() > 0.7 ? ['디스크 공간 부족 경고', '높은 CPU 사용률'] : []
+                            errors: problemLevel !== 'normal' ? 
+                                [problemLevel === 'critical' ? 'Critical: 서버 응답 없음' : '경고: 높은 부하 감지'] : []
                         });
                     }
                     
@@ -1284,16 +1428,21 @@
                     window.serverData = servers;
                     
                     // 이벤트 발생시키기
-                    const event = new CustomEvent('serverDataUpdated', { 
-                        detail: servers 
-                    });
-                    window.dispatchEvent(event);
+                    try {
+                        const event = new CustomEvent('serverDataUpdated', { 
+                            detail: servers 
+                        });
+                        window.dispatchEvent(event);
+                        console.log('서버 데이터 업데이트 이벤트가 발생되었습니다.');
+                    } catch (e) {
+                        console.error('이벤트 발생 중 오류:', e);
+                    }
                     
                     return servers;
                 };
                 
-                // 더미 데이터 즉시 생성 (10개 서버)
-                window.generateDummyData(10);
+                // 즉시 더미 데이터 생성
+                window.serverData = window.generateDummyData(10);
             }
         });
     </script>

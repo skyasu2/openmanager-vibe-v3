@@ -5,74 +5,149 @@
 
 class DataProcessor {
     constructor() {
-        this.serverData = [];
-        this.filteredData = [];
-        this.currentFilter = 'all';
-        this.currentSort = 'name';
-        this.searchQuery = '';
-        this.currentPage = 1;
-        this.itemsPerPage = 10; // 페이지당 서버 수
-        
-        // AIProcessor 인스턴스 초기화 개선
-        if (window.aiProcessor) {
-            this.aiProcessor = window.aiProcessor;
-        } else if (typeof AIProcessor === 'function') {
-            // AIProcessor 클래스가 존재하면 인스턴스 생성
-            try {
-                window.aiProcessor = new AIProcessor();
+        try {
+            // 기본 데이터 초기화
+            this.serverData = window.serverData || [];
+            this.filteredData = [];
+            this.currentFilter = 'all';
+            this.currentSort = 'name';
+            this.searchQuery = '';
+            this.currentPage = 1;
+            this.itemsPerPage = 10; // 페이지당 서버 수
+            
+            // 초기화 로깅
+            console.log('DataProcessor 초기화 시작...');
+            
+            // AIProcessor 인스턴스 초기화 개선
+            if (window.aiProcessor) {
                 this.aiProcessor = window.aiProcessor;
-                console.log("AIProcessor 인스턴스를 새로 생성했습니다.");
-            } catch (e) {
-                console.error("AIProcessor 인스턴스 생성 중 오류 발생:", e);
+                console.log('기존 AIProcessor 인스턴스를 사용합니다.');
+            } else if (typeof AIProcessor === 'function') {
+                // AIProcessor 클래스가 존재하면 인스턴스 생성
+                try {
+                    window.aiProcessor = new AIProcessor();
+                    this.aiProcessor = window.aiProcessor;
+                    console.log("AIProcessor 인스턴스를 새로 생성했습니다.");
+                } catch (e) {
+                    console.error("AIProcessor 인스턴스 생성 중 오류 발생:", e);
+                    this.aiProcessor = null;
+                }
+            } else {
+                console.warn("AIProcessor 클래스를 찾을 수 없습니다. 기본 상태 판단 로직을 사용합니다.");
                 this.aiProcessor = null;
             }
-        } else {
-            console.warn("AIProcessor 클래스를 찾을 수 없습니다. 기본 상태 판단 로직을 사용합니다.");
-            this.aiProcessor = null;
-        }
-        
-        // 서버 상태 평가 임계값 - 통합 관리
-        this.thresholds = {
-            critical: {
-                cpu: 90,
-                memory: 90,
-                disk: 90
-            },
-            warning: {
-                cpu: 70,
-                memory: 70,
-                disk: 70
+            
+            // 서버 상태 평가 임계값 - 통합 관리
+            this.thresholds = {
+                critical: {
+                    cpu: 90,
+                    memory: 90,
+                    disk: 90
+                },
+                warning: {
+                    cpu: 70,
+                    memory: 70,
+                    disk: 70
+                }
+            };
+            
+            // UI 요소 참조 - 안전하게 참조를 시도합니다
+            this.findUIElements();
+            
+            // 이벤트 리스너 등록
+            if (this.hasRequiredElements()) {
+                this.registerEventListeners();
+                console.log('이벤트 리스너가 등록되었습니다.');
+            } else {
+                console.warn('일부 UI 요소를 찾을 수 없어 이벤트 리스너 등록이 제한됩니다.');
             }
-        };
-        
-        // UI 요소 참조
-        this.serverGrid = document.getElementById('serverGrid');
-        this.loadingIndicator = document.getElementById('loadingIndicator');
-        this.searchInput = document.getElementById('searchInput');
-        this.statusFilter = document.getElementById('statusFilter');
-        this.pageSize = document.getElementById('pageSize');
-        this.prevPageBtn = document.getElementById('prevPageBtn');
-        this.nextPageBtn = document.getElementById('nextPageBtn');
-        this.serverCount = document.getElementById('serverCount');
-        this.currentPage = document.getElementById('currentPage');
-        this.refreshButton = document.getElementById('refreshBtn');
-        this.modalElement = document.getElementById('serverDetailModal');
-        this.closeModalButton = document.querySelector('.btn-close[data-bs-dismiss="modal"]');
-        
-        // 페이지네이션 컨테이너 요소 (HTML에 pagination 클래스나 ID를 가진 요소가 필요)
-        this.pagination = document.querySelector('.pagination-container');
-        
-        // 이벤트 리스너 등록
-        this.registerEventListeners();
-        
-        // 자동 데이터 업데이트 (1분 간격)
-        setInterval(() => this.refreshData(), 60 * 1000);
-        
-        // 초기 데이터 로드
-        this.loadData();
-        
-        // 서버 상태 판단 통합 로직을 전역 함수로 등록
-        window.getServerStatus = (server) => this.getServerStatus(server);
+            
+            // 자동 데이터 업데이트 (1분 간격)
+            setInterval(() => this.refreshData(), 60 * 1000);
+            
+            // 초기 데이터 로드
+            this.loadData();
+            
+            // 서버 상태 판단 통합 로직을 전역 함수로 등록
+            window.getServerStatus = (server) => this.getServerStatus(server);
+            
+            console.log('DataProcessor 초기화 완료.');
+        } catch (error) {
+            console.error('DataProcessor 초기화 중 심각한 오류 발생:', error);
+            
+            // 최소한의 기능 보장
+            this.serverData = window.serverData || [];
+            this.filteredData = window.serverData || [];
+            
+            // 기본 필수 함수들은 최소한으로라도 구현
+            if (!this.showLoading) {
+                this.showLoading = function() {
+                    const loadingIndicator = document.getElementById('loadingIndicator');
+                    const serverGrid = document.getElementById('serverGrid');
+                    if (loadingIndicator) loadingIndicator.style.display = 'block';
+                    if (serverGrid) serverGrid.style.opacity = '0.3';
+                };
+            }
+            
+            if (!this.hideLoading) {
+                this.hideLoading = function() {
+                    const loadingIndicator = document.getElementById('loadingIndicator');
+                    const serverGrid = document.getElementById('serverGrid');
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    if (serverGrid) serverGrid.style.opacity = '1';
+                };
+            }
+            
+            // 기본 데이터 처리 함수
+            if (!this.handleDataUpdate) {
+                this.handleDataUpdate = function(data) {
+                    this.serverData = data || [];
+                    this.filteredData = data || [];
+                    this.renderServerGrid();
+                    this.hideLoading();
+                };
+            }
+        }
+    }
+    
+    // UI 요소를 찾아 참조를 저장하는 메소드
+    findUIElements() {
+        try {
+            // UI 요소 참조
+            this.serverGrid = document.getElementById('serverGrid');
+            this.loadingIndicator = document.getElementById('loadingIndicator');
+            this.searchInput = document.getElementById('searchInput');
+            this.statusFilter = document.getElementById('statusFilter');
+            this.pageSize = document.getElementById('pageSize');
+            this.prevPageBtn = document.getElementById('prevPageBtn');
+            this.nextPageBtn = document.getElementById('nextPageBtn');
+            this.serverCount = document.getElementById('serverCount');
+            this.currentPageElement = document.getElementById('currentPage');
+            this.refreshButton = document.getElementById('refreshBtn');
+            this.modalElement = document.getElementById('serverDetailModal');
+            this.closeModalButton = document.querySelector('.btn-close[data-bs-dismiss="modal"]');
+            
+            // 페이지네이션 컨테이너 요소
+            this.pagination = document.querySelector('.pagination-container');
+            
+            // 모든 요소 참조가 필요하지 않는지 확인 로깅
+            const missingElements = [];
+            if (!this.serverGrid) missingElements.push('serverGrid');
+            if (!this.loadingIndicator) missingElements.push('loadingIndicator');
+            if (!this.refreshButton) missingElements.push('refreshBtn');
+            
+            if (missingElements.length > 0) {
+                console.warn(`다음 UI 요소를 찾을 수 없습니다: ${missingElements.join(', ')}`);
+            }
+        } catch (error) {
+            console.error('UI 요소 참조 중 오류:', error);
+        }
+    }
+    
+    // 필수 UI 요소가 있는지 확인
+    hasRequiredElements() {
+        // 최소한 서버 그리드와 로딩 인디케이터는 필요
+        return this.serverGrid && this.loadingIndicator;
     }
     
     registerEventListeners() {
@@ -417,28 +492,99 @@ class DataProcessor {
     }
     
     applyFiltersAndSort() {
-        // 필터 적용
-        this.filteredData = this.serverData.filter(server => {
-            // 검색어 필터
-            if (this.searchQuery && !server.hostname.toLowerCase().includes(this.searchQuery)) {
-                return false;
+        try {
+            // 필터 적용
+            this.filteredData = this.serverData.filter(server => {
+                // 검색어 필터
+                if (this.searchQuery && !server.hostname.toLowerCase().includes(this.searchQuery)) {
+                    return false;
+                }
+                
+                // 상태 필터
+                if (this.currentFilter !== 'all') {
+                    const status = this.getServerStatus(server);
+                    return status === this.currentFilter;
+                }
+                
+                return true;
+            });
+            
+            // 정렬 적용
+            this.sortData();
+            
+            // UI 업데이트를 별도 메소드로 분리하여 안전하게 실행
+            this.updateUI();
+        } catch (error) {
+            console.error('필터 및 정렬 적용 중 오류:', error);
+            
+            // 오류 발생 시 기본 처리
+            this.filteredData = [...this.serverData];
+            
+            // 최소한의 UI 업데이트 시도
+            this.hideLoading();
+            this.safeUpdateServerGrid();
+        }
+    }
+    
+    // 안전하게 UI 요소들을 업데이트하는 메소드
+    updateUI() {
+        try {
+            // 서버 그리드 업데이트
+            this.updateServerGrid();
+        } catch (e) {
+            console.error('서버 그리드 업데이트 중 오류:', e);
+            this.safeUpdateServerGrid();
+        }
+        
+        try {
+            // 페이지네이션 업데이트
+            this.updatePagination();
+        } catch (e) {
+            console.error('페이지네이션 업데이트 중 오류:', e);
+        }
+        
+        try {
+            // 서버 카운트 업데이트
+            this.updateServerCount();
+        } catch (e) {
+            console.error('서버 카운트 업데이트 중 오류:', e);
+        }
+    }
+    
+    // 최소한의 안전한 서버 그리드 업데이트
+    safeUpdateServerGrid() {
+        if (!this.serverGrid) return;
+        
+        try {
+            this.serverGrid.innerHTML = '';
+            
+            if (this.filteredData.length === 0) {
+                this.serverGrid.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        검색 조건에 맞는 서버가 없습니다.
+                    </div>
+                `;
+                return;
             }
             
-            // 상태 필터
-            if (this.currentFilter !== 'all') {
-                const status = this.getServerStatus(server);
-                return status === this.currentFilter;
-            }
+            // 가장 기본적인 서버 목록만 표시
+            const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+            const endIndex = Math.min(startIndex + this.itemsPerPage, this.filteredData.length);
             
-            return true;
-        });
-        
-        // 정렬 적용
-        this.sortData();
-        
-        // UI 업데이트
-        this.updateServerGrid();
-        this.updatePagination();
+            for (let i = startIndex; i < endIndex; i++) {
+                const server = this.filteredData[i];
+                if (!server) continue;
+                
+                const div = document.createElement('div');
+                div.className = 'server-card';
+                div.textContent = server.hostname || 'Unknown Server';
+                this.serverGrid.appendChild(div);
+            }
+        } catch (e) {
+            console.error('안전한 서버 그리드 업데이트 중 오류:', e);
+            this.serverGrid.innerHTML = '<div class="alert alert-danger">서버 데이터 표시 중 오류가 발생했습니다.</div>';
+        }
     }
     
     sortData() {
@@ -567,6 +713,11 @@ class DataProcessor {
                 this.updatePagination();
             });
             this.pagination.appendChild(nextBtn);
+        }
+        
+        // 페이지 정보 업데이트
+        if (this.currentPageElement) {
+            this.currentPageElement.textContent = `${this.currentPage} / ${totalPages}`;
         }
     }
     
@@ -1087,6 +1238,24 @@ class DataProcessor {
         }
     }
     
+    // 서버 수 표시 업데이트하는 메소드
+    updateServerCount() {
+        if (!this.serverCount) return;
+        
+        try {
+            const endIndex = Math.min(this.currentPage * this.itemsPerPage, this.filteredData.length);
+            const startIndex = this.filteredData.length > 0 ? (this.currentPage - 1) * this.itemsPerPage + 1 : 0;
+            
+            if (this.filteredData.length > 0) {
+                this.serverCount.textContent = `전체 ${this.serverData.length} 서버 중 ${startIndex}-${endIndex} 표시 중`;
+            } else {
+                this.serverCount.textContent = `전체 ${this.serverData.length} 서버 중 0 표시 중`;
+            }
+        } catch (e) {
+            console.error("서버 카운트 업데이트 중 오류:", e);
+        }
+    }
+    
     updateGlobalStatusSummary() {
         if (!this.serverData || this.serverData.length === 0) return;
 
@@ -1215,24 +1384,7 @@ class DataProcessor {
         });
         
         // 서버 수 표시 업데이트
-        const serverCountElement = document.getElementById('serverCount');
-        if (serverCountElement) {
-            const endIndex = Math.min(this.currentPage * this.itemsPerPage, this.filteredData.length);
-            const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
-            
-            if (this.filteredData.length > 0) {
-                serverCountElement.textContent = `전체 ${this.serverData.length} 서버 중 ${startIndex}-${endIndex} 표시 중`;
-            } else {
-                serverCountElement.textContent = `전체 ${this.serverData.length} 서버 중 0 표시 중`;
-            }
-        }
-        
-        // 페이지 정보 업데이트
-        const currentPageElement = document.getElementById('currentPage');
-        if (currentPageElement) {
-            const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage) || 1;
-            currentPageElement.textContent = `${this.currentPage} / ${totalPages}`;
-        }
+        this.updateServerCount();
     }
     
     processAIQuery() {
