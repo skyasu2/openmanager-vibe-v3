@@ -176,6 +176,23 @@ class DataProcessor {
                 }
             });
         }
+        
+        // 프리셋 태그 버튼 이벤트
+        document.querySelectorAll('.preset-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                const presetText = tag.dataset.preset;
+                const input = document.getElementById('queryInput');
+                if (input) {
+                    input.value = presetText;
+                    input.focus();
+                    // 자동 실행
+                    const submitButton = document.getElementById('ai-query-submit');
+                    if (submitButton) {
+                        submitButton.click();
+                    }
+                }
+            });
+        });
     }
     
     loadData() {
