@@ -73,9 +73,10 @@ class AIProcessor {
         // CPU, 메모리, 디스크 사용률에 따른 서버 상태 결정
         // 이 함수는 이제 getEffectiveServerStatus로 대체될 수 있으나, 
         // 기존 historicalData 추가 로직 등에서 사용될 수 있으므로 유지하거나 점검 필요.
-        // 지금은 getEffectiveServerStatus를 우선적으로 사용하도록 변경.
-        if (this.getEffectiveServerStatus) {
-             return this.getEffectiveServerStatus(server);
+        
+        // getEffectiveServerStatus 메서드가 존재하는지 확인하고 호출
+        if (typeof this.getEffectiveServerStatus === 'function') {
+            return this.getEffectiveServerStatus(server);
         }
 
         // Fallback or original simple logic if getEffectiveServerStatus is not yet defined or during setup
@@ -735,9 +736,19 @@ class AIProcessor {
 // 전역 함수로 항상 노출
 window.processQuery = async function(query) {
     if (!window.aiProcessor) {
+        // AIProcessor 인스턴스 없으면 생성
+        console.log("Creating global AIProcessor instance");
         window.aiProcessor = new AIProcessor();
         // 데이터 초기화 대기
         await new Promise(resolve => setTimeout(resolve, 200));
     }
     return await window.aiProcessor.processQuery(query);
-}; 
+};
+
+// 페이지 로드 시 즉시 AIProcessor 인스턴스 생성
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.aiProcessor) {
+        console.log("Initializing AIProcessor on page load");
+        window.aiProcessor = new AIProcessor();
+    }
+}); 

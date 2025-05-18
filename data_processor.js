@@ -12,7 +12,24 @@ class DataProcessor {
         this.searchQuery = '';
         this.currentPage = 1;
         this.itemsPerPage = 10; // 페이지당 서버 수
-        this.aiProcessor = window.aiProcessor || null;
+        
+        // AIProcessor 인스턴스 초기화 개선
+        if (window.aiProcessor) {
+            this.aiProcessor = window.aiProcessor;
+        } else if (typeof AIProcessor === 'function') {
+            // AIProcessor 클래스가 존재하면 인스턴스 생성
+            try {
+                window.aiProcessor = new AIProcessor();
+                this.aiProcessor = window.aiProcessor;
+                console.log("AIProcessor 인스턴스를 새로 생성했습니다.");
+            } catch (e) {
+                console.error("AIProcessor 인스턴스 생성 중 오류 발생:", e);
+                this.aiProcessor = null;
+            }
+        } else {
+            console.warn("AIProcessor 클래스를 찾을 수 없습니다. 기본 상태 판단 로직을 사용합니다.");
+            this.aiProcessor = null;
+        }
         
         // 서버 상태 평가 임계값 - 통합 관리
         this.thresholds = {
@@ -916,32 +933,56 @@ class DataProcessor {
             try {
                 return this.aiProcessor.getEffectiveServerStatus(server);
             } catch (e) {
-                console.error("Error calling aiProcessor.getEffectiveServerStatus: ", e);
-                // 에러 발생 시 폴백 로직 수행
+                // 에러 발생 시 한 번만 경고 출력 (fallback 로직 수행)
+                if (!this._hasLoggedAIProcessorError) {
+                    console.error("Error calling aiProcessor.getEffectiveServerStatus:", e);
+                    this._hasLoggedAIProcessorError = true;
+                }
             }
+        } else if (!this._hasLoggedNoAIProcessor) {
+            // 경고 메시지를 한 번만 출력
+            console.warn("AIProcessor 또는 getEffectiveServerStatus가 없어 기본 상태 판단 로직을 사용합니다.");
+            this._hasLoggedNoAIProcessor = true;
         }
         
         // 폴백 로직 (AI Processor 사용 불가 또는 에러 시)
-        console.warn("AIProcessor or getEffectiveServerStatus not available/failed, using fallback status logic in DataProcessor.");
-        const hasCriticalError = server.errors && server.errors.some(err => typeof err === 'string' && err.toLowerCase().includes('critical'));
-        const hasWarningError = server.errors && server.errors.some(err => typeof err === 'string' && (err.toLowerCase().includes('error') || err.toLowerCase().includes('warning')));
-        const hasStoppedService = server.services && Object.values(server.services).includes('stopped');
-
+        // 리소스 사용률 기반 명확한 기준으로 상태 판단
+        
+        // 1. Critical 조건 판단
         if (server.cpu_usage >= this.thresholds.critical.cpu ||
             server.memory_usage_percent >= this.thresholds.critical.memory ||
-            (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= this.thresholds.critical.disk) ||
-            hasCriticalError ||
-            hasStoppedService) {
+            (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= this.thresholds.critical.disk)) {
             return 'critical';
         }
         
+        // 2. 오류 메시지 기반 Critical 판단
+        const hasCriticalError = server.errors && server.errors.some(err => 
+            typeof err === 'string' && err.toLowerCase().includes('critical'));
+        if (hasCriticalError) {
+            return 'critical';
+        }
+        
+        // 3. 서비스 중단 기반 Critical 판단
+        const hasStoppedService = server.services && Object.values(server.services).includes('stopped');
+        if (hasStoppedService) {
+            return 'critical';
+        }
+        
+        // 4. Warning 조건 판단
         if (server.cpu_usage >= this.thresholds.warning.cpu ||
             server.memory_usage_percent >= this.thresholds.warning.memory ||
-            (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= this.thresholds.warning.disk) ||
-            hasWarningError) { 
+            (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= this.thresholds.warning.disk)) {
             return 'warning';
         }
         
+        // 5. 오류 메시지 기반 Warning 판단
+        const hasWarningError = server.errors && server.errors.some(err => 
+            typeof err === 'string' && (err.toLowerCase().includes('warning') || err.toLowerCase().includes('error')));
+        if (hasWarningError) {
+            return 'warning';
+        }
+        
+        // 6. 위 조건에 해당하지 않으면 normal 상태
         return 'normal';
     }
     
