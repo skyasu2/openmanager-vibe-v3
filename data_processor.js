@@ -1172,8 +1172,33 @@ class DataProcessor {
         }
         
         // 모달 표시 (부트스트랩 5 방식)
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
+        try {
+            // bootstrap 객체가 있는지 확인
+            if (typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalElement, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
+                modal.show();
+            } else {
+                // bootstrap이 없는 경우 fallback
+                console.warn('bootstrap 객체를 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                document.body.classList.add('modal-open');
+                
+                // 배경 요소 추가
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+            }
+        } catch (error) {
+            console.error('모달 표시 중 오류 발생:', error);
+            // 오류 발생 시 fallback
+            modalElement.style.display = 'block';
+            modalElement.classList.add('show');
+        }
         
         // 리소스 차트 생성
         this.createResourceChart(server);
@@ -2532,28 +2557,79 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
         
         // Bootstrap 모달 인스턴스 생성 및 표시
         const modalElement = document.getElementById('allProblemsModal');
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-        
-        // 문제 항목 클릭 이벤트 추가
-        modalElement.querySelectorAll('.problem-item').forEach((item, index) => {
-            // 애니메이션 딜레이 설정
-            item.style.setProperty('--item-index', index);
-            
-            item.addEventListener('click', () => {
-                // 해당 서버 모달 표시
-                const serverHostname = problems[index].serverHostname;
-                if (!serverHostname) return;
+        try {
+            // bootstrap 객체가 있는지 확인
+            if (typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalElement, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
+                modal.show();
                 
-                const server = this.serverData.find(s => s.hostname === serverHostname);
-                if (server) {
-                    modal.hide(); // 현재 모달 닫기
-                    setTimeout(() => {
-                        this.showServerDetail(server); // 서버 상세 모달 표시
-                    }, 500);
-                }
-            });
-        });
+                // 문제 항목 클릭 이벤트 추가
+                modalElement.querySelectorAll('.problem-item').forEach((item, index) => {
+                    // 애니메이션 딜레이 설정
+                    item.style.setProperty('--item-index', index);
+                    
+                    item.addEventListener('click', () => {
+                        // 해당 서버 모달 표시
+                        const serverHostname = problems[index].serverHostname;
+                        if (!serverHostname) return;
+                        
+                        const server = this.serverData.find(s => s.hostname === serverHostname);
+                        if (server) {
+                            modal.hide(); // 현재 모달 닫기
+                            setTimeout(() => {
+                                this.showServerDetail(server); // 서버 상세 모달 표시
+                            }, 500);
+                        }
+                    });
+                });
+            } else {
+                // bootstrap이 없는 경우 fallback
+                console.warn('bootstrap 객체를 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                document.body.classList.add('modal-open');
+                
+                // 배경 요소 추가
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+                
+                // 문제 항목 클릭 이벤트 추가
+                modalElement.querySelectorAll('.problem-item').forEach((item, index) => {
+                    // 애니메이션 딜레이 설정
+                    item.style.setProperty('--item-index', index);
+                    
+                    item.addEventListener('click', () => {
+                        // 해당 서버 모달 표시
+                        const serverHostname = problems[index].serverHostname;
+                        if (!serverHostname) return;
+                        
+                        const server = this.serverData.find(s => s.hostname === serverHostname);
+                        if (server) {
+                            // 모달 수동 닫기
+                            modalElement.style.display = 'none';
+                            modalElement.classList.remove('show');
+                            document.body.classList.remove('modal-open');
+                            const backdropElement = document.querySelector('.modal-backdrop');
+                            if (backdropElement) backdropElement.remove();
+                            
+                            setTimeout(() => {
+                                this.showServerDetail(server); // 서버 상세 모달 표시
+                            }, 500);
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('모달 표시 중 오류 발생:', error);
+            // 오류 발생 시 fallback
+            modalElement.style.display = 'block';
+            modalElement.classList.add('show');
+        }
         
         // 보고서 다운로드 버튼 이벤트
         const downloadBtn = document.getElementById('downloadModalReport');
@@ -2769,8 +2845,33 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
         }
         
         // 부트스트랩 모달 인스턴스 생성 및 표시
-        const modal = new bootstrap.Modal(problemModal);
-        modal.show();
+        try {
+            // bootstrap 객체가 있는지 확인
+            if (typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(problemModal, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
+                modal.show();
+            } else {
+                // bootstrap이 없는 경우 fallback
+                console.warn('bootstrap 객체를 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
+                problemModal.style.display = 'block';
+                problemModal.classList.add('show');
+                document.body.classList.add('modal-open');
+                
+                // 배경 요소 추가
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+            }
+        } catch (error) {
+            console.error('모달 표시 중 오류 발생:', error);
+            // 오류 발생 시 fallback
+            problemModal.style.display = 'block';
+            problemModal.classList.add('show');
+        }
     }
     
     // 문제 보고서 다운로드 (새로 추가)
