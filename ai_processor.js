@@ -9,9 +9,9 @@ class AIProcessor {
         this.serverData = null;
         this.historicalData = {};  // 10분 단위 데이터 저장
         this.maxHistoryPoints = 144;  // 24시간 (10분 단위)
+        this.problemPatterns = this.initProblemPatterns();
         this.initializeData();
         this.setupDataListener();
-        this.problemPatterns = this.initProblemPatterns();
         this.statusEmoji = {
             normal: '✅',
             warning: '⚠️',
