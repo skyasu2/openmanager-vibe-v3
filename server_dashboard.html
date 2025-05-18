@@ -1164,7 +1164,7 @@
             });
             
             document.getElementById('nextPageBtn').addEventListener('click', function() {
-                if (currentPage < totalPages) {
+                if (currentPage < Math.ceil(filteredData.length / pageSize)) { // 직접 계산
                     currentPage++;
                     filterServers();
                 }
@@ -1176,11 +1176,13 @@
             // AI 질의 처리
             document.getElementById('queryInput').addEventListener('keyup', function(event) {
                 if (event.key === 'Enter') {
-                    processAIQuery();
+                    handleQuery(this.value); // processAIQuery -> handleQuery
                 }
             });
             
-            document.getElementById('ai-query-submit').addEventListener('click', processAIQuery);
+            document.getElementById('ai-query-submit').addEventListener('click', function() { // 익명 함수로 감싸서 호출
+                handleQuery(document.getElementById('queryInput').value); // processAIQuery -> handleQuery
+            });
             
             // 전체 보고서 다운로드 버튼
             document.getElementById('downloadAllReportsBtn').addEventListener('click', downloadAllReports);
@@ -1190,26 +1192,34 @@
                 tag.addEventListener('click', function() {
                     const preset = this.dataset.preset;
                     document.getElementById('queryInput').value = preset;
-                    processAIQuery();
+                    handleQuery(preset); // processAIQuery -> handleQuery
                 });
             });
             
             // 사이드바 토글 버튼 이벤트 리스너
-            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            // document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar); // sidebarToggle ID가 현재 HTML에 없음
             
             // 저장된 사이드바 상태 복원
-            const savedSidebarState = localStorage.getItem('sidebar_state');
-            if (savedSidebarState === 'hidden') {
-                toggleSidebar();
-            }
+            // const savedSidebarState = localStorage.getItem('sidebar_state');
+            // if (savedSidebarState === 'hidden') {
+            //     toggleSidebar();
+            // }
             
-            // 저장된 패널 상태 복원
+            // 저장된 패널 상태 복원 (페이지 로드 시 각 패널 헤더에 대해 실행)
             document.querySelectorAll('.collapsible-header').forEach(header => {
-                const panelId = header.textContent.trim();
-                const savedState = localStorage.getItem(`panel_${panelId}`);
+                // const panelId = header.textContent.trim(); // 불안정한 방식
+                const panelBody = header.nextElementSibling;
+                if (panelBody && panelBody.parentElement && panelBody.parentElement.id) {
+                    const panelId = panelBody.parentElement.id; // 부모 .collapsible-panel의 ID를 사용
+                    const savedState = localStorage.getItem(`panel_${panelId}_state`); // 키 이름 일관성 유지
                 
-                if (savedState === 'collapsed') {
-                    toggleCollapsible(header);
+                    if (savedState === 'collapsed' && panelBody.classList.contains('expanded')) {
+                        // 현재 펼쳐져 있는데 저장된 상태가 'collapsed'이면 토글
+                        toggleCollapsible(header); 
+                    } else if (savedState === 'expanded' && !panelBody.classList.contains('expanded')) {
+                        // 현재 접혀 있는데 저장된 상태가 'expanded'이면 토글
+                        toggleCollapsible(header);
+                    }
                 }
             });
         }
@@ -1257,8 +1267,8 @@
             updateCharts();
             updateTimestamp();
             // updateStatusCounts(); // 상태 요약 카운트 업데이트 - 이 줄을 주석 처리 (data_processor.js의 updateGlobalStatusSummary로 대체됨)
-            createStatusChart(); // 상태 요약 차트 생성
-            generateIncidentReports(); // 장애 보고서 자동 생성
+            createStatusChart(); // 상태 요약 차트 생성 - 이 함수도 data_processor.js로 옮겨졌거나 대체되었는지 확인 필요
+            // generateIncidentReports(); // 장애 보고서 자동 생성 - 이 함수 내 generateIncidentAccordionItems 호출로 인해 오류 발생. data_processor.js의 updateProblemsList로 대체됨.
         }
         
         // 서버 상태 요약 카운트 업데이트 함수
@@ -1587,8 +1597,12 @@
             icon.classList.toggle('fa-chevron-up');
             
             // 각 패널의 확장 상태를 로컬 스토리지에 저장
-            const panelId = header.textContent.trim();
-            localStorage.setItem(`panel_${panelId}`, body.classList.contains('expanded') ? 'expanded' : 'collapsed');
+            // const panelId = header.textContent.trim(); // 불안정한 방식
+            let panelId = null;
+            if (body && body.parentElement && body.parentElement.id) {
+                panelId = body.parentElement.id; // 부모 .collapsible-panel의 ID를 사용
+                localStorage.setItem(`panel_${panelId}_state`, body.classList.contains('expanded') ? 'expanded' : 'collapsed');
+            }
         }
         
         // 사이드바 토글 함수
@@ -1979,29 +1993,32 @@
             if (queryInput) {
                 queryInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
-                        handleQuery(this.value);
+                        handleQuery(this.value); // init 함수와 동일하게 수정
                     }
                 });
                 // 버튼 클릭도 지원
                 const queryBtn = document.getElementById('ai-query-submit');
                 if (queryBtn) {
                     queryBtn.addEventListener('click', function() {
-                        handleQuery(queryInput.value);
+                        handleQuery(queryInput.value); // init 함수와 동일하게 수정
                     });
                 }
             }
             
-            // 보고서 생성 버튼
-            document.getElementById('generate-report-btn').addEventListener('click', generateIncidentReports);
+            // 보고서 생성 버튼 - generate-report-btn ID가 현재 HTML에 없음.
+            // document.getElementById('generate-report-btn').addEventListener('click', generateIncidentReports);
             
             // 전체 보고서 다운로드 버튼
-            document.getElementById('download-all-reports-btn').addEventListener('click', downloadAllReports);
+            const downloadAllBtn = document.getElementById('downloadAllReportsBtn'); // download-all-reports-btn -> downloadAllReportsBtn
+            if (downloadAllBtn) {
+                downloadAllBtn.addEventListener('click', downloadAllReports);
+            }
             
             // 페이지 로드 시 보고서 자동 생성 (3초 후)
-            setTimeout(generateIncidentReports, 3000);
-            
+            // setTimeout(generateIncidentReports, 3000); // generateIncidentReports는 이제 직접 사용하지 않음
+
             // 10분마다 자동 갱신
-            setInterval(loadServerData, 10 * 60 * 1000);
+            // setInterval(loadServerData, 10 * 60 * 1000); // 데이터는 dummy_data_generator에서 업데이트 후 이벤트 발생시킴
         }
 
         // 장애 보고서 관련 함수들
@@ -2012,20 +2029,20 @@
             const criticalServers = serverData.filter(server => 
                 server.cpu_usage >= 90 || 
                 server.memory_usage_percent >= 90 || 
-                server.disk[0].disk_usage_percent >= 90 ||
-                server.errors.length > 0
+                (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= 90) ||
+                (server.errors && server.errors.length > 0)
             );
             
             const warningServers = serverData.filter(server => 
-                (server.cpu_usage >= 70 && server.cpu_usage < 90) || 
+                ((server.cpu_usage >= 70 && server.cpu_usage < 90) || 
                 (server.memory_usage_percent >= 70 && server.memory_usage_percent < 90) || 
-                (server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90) ||
-                Object.values(server.services).includes('stopped')
+                (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= 70 && server.disk[0].disk_usage_percent < 90)) ||
+                (server.services && Object.values(server.services).includes('stopped'))
             );
             
             // UI 업데이트
-            const incidentsLoading = document.getElementById('incidentsLoading');
-            const incidentsEmpty = document.getElementById('incidentsEmpty');
+            const incidentsLoading = document.getElementById('incidentsLoading'); // 이 ID도 현재 HTML에 없음
+            const incidentsEmpty = document.getElementById('incidentsEmpty'); // 이 ID도 현재 HTML에 없음
             
             if (incidentsLoading) incidentsLoading.style.display = 'none';
             
@@ -2037,107 +2054,21 @@
             // 장애가 있으면 요약 표시
             if (incidentsEmpty) incidentsEmpty.style.display = 'none';
             
-            // 아코디언 항목 생성
-            generateIncidentAccordionItems(criticalServers, warningServers);
+            // 아코디언 항목 생성 - 이 함수 호출로 인해 오류 발생. data_processor.js의 updateProblemsList로 대체됨.
+            // generateIncidentAccordionItems(criticalServers, warningServers); 
         }
         
-        // 장애 아코디언 항목 생성
-        function generateIncidentAccordionItems(criticalServers, warningServers) {
-            const accordion = document.getElementById('incidents-accordion');
-            accordion.innerHTML = '';
+        // 장애 아코디언 항목 생성 - 이 함수는 이제 사용되지 않음 (오류 원인)
+        // function generateIncidentAccordionItems(criticalServers, warningServers) {
+        //     const accordion = document.getElementById('incidents-accordion'); // 존재하지 않는 ID
+        //     if (!accordion) {
+        //       console.error("'incidents-accordion' element not found. Cannot generate accordion items.");
+        //       return;
+        //     }
+        //     accordion.innerHTML = ''; 
             
-            // 심각 서버 먼저 처리
-            criticalServers.forEach((server, index) => {
-                const serverId = server.hostname.replace(/[^a-zA-Z0-9]/g, '-');
-                const problems = detectServerProblems(server);
-                
-                const accordionItem = document.createElement('div');
-                accordionItem.className = 'accordion-item';
-                accordionItem.innerHTML = `
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${serverId}">
-                            <span class="badge bg-danger me-2">심각</span>
-                            <strong>${server.hostname}</strong> - ${problems.map(p => p.type).join(', ')}
-                        </button>
-                    </h2>
-                    <div id="collapse-${serverId}" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="incident-details">
-                                <div class="mb-3">
-                                    <h6>감지된 문제:</h6>
-                                    <ul class="problem-list">
-                                        ${problems.map(p => `<li>${p.description}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="mb-3">
-                                    <h6>권장 조치:</h6>
-                                    <ul class="solution-list">
-                                        ${problems.map(p => `<li>${p.solution}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="text-end">
-                                    <button class="btn btn-sm btn-primary download-report-btn" data-server="${server.hostname}">
-                                        <i class="bi bi-download"></i> 보고서 다운로드
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                accordion.appendChild(accordionItem);
-            });
-            
-            // 경고 서버 처리
-            warningServers.forEach((server, index) => {
-                const serverId = server.hostname.replace(/[^a-zA-Z0-9]/g, '-');
-                const problems = detectServerProblems(server);
-                
-                const accordionItem = document.createElement('div');
-                accordionItem.className = 'accordion-item';
-                accordionItem.innerHTML = `
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${serverId}">
-                            <span class="badge bg-warning me-2">경고</span>
-                            <strong>${server.hostname}</strong> - ${problems.map(p => p.type).join(', ')}
-                        </button>
-                    </h2>
-                    <div id="collapse-${serverId}" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="incident-details">
-                                <div class="mb-3">
-                                    <h6>감지된 문제:</h6>
-                                    <ul class="problem-list">
-                                        ${problems.map(p => `<li>${p.description}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="mb-3">
-                                    <h6>권장 조치:</h6>
-                                    <ul class="solution-list">
-                                        ${problems.map(p => `<li>${p.solution}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="text-end">
-                                    <button class="btn btn-sm btn-primary download-report-btn" data-server="${server.hostname}">
-                                        <i class="bi bi-download"></i> 보고서 다운로드
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                accordion.appendChild(accordionItem);
-            });
-            
-            // 다운로드 버튼 이벤트 추가
-            document.querySelectorAll('.download-report-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const serverName = this.dataset.server;
-                    downloadIncidentReport(serverName);
-                });
-            });
-        }
+        //     // ... (이하 로직도 data_processor.js의 updateProblemsList로 대체됨)
+        // }
         
         // 서버 문제 감지 함수
         function detectServerProblems(server) {
