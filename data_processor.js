@@ -284,6 +284,11 @@ class DataProcessor {
     }
     
     updateServerGrid() {
+        if (!this.serverGrid) {
+            console.error("서버 그리드 요소를 찾을 수 없습니다.");
+            return;
+        }
+        
         this.serverGrid.innerHTML = '';
         
         const startIndex = (this.currentPage - 1) * this.itemsPerPage;
@@ -442,6 +447,18 @@ class DataProcessor {
         const modalTitle = document.getElementById('modal-server-name');
         const status = this.getServerStatus(server);
         
+        // null 체크 추가 - modalTitle
+        if (!modalTitle) {
+            console.error("모달 제목 요소(modal-server-name)를 찾을 수 없습니다.");
+            return;
+        }
+        
+        // null 체크 추가 - modalBody
+        if (!modalBody) {
+            console.error("모달 본문 요소(modal-body)를 찾을 수 없습니다.");
+            return;
+        }
+        
         // 서버 이름과 상태
         modalTitle.innerHTML = `
             ${server.hostname} 
@@ -541,6 +558,12 @@ class DataProcessor {
             </div>
         `;
         
+        // null 체크 추가 - modalElement
+        if (!this.modalElement) {
+            console.error("모달 요소를 찾을 수 없습니다.");
+            return;
+        }
+        
         // 모달 표시
         this.modalElement.style.display = 'block';
         
@@ -558,7 +581,17 @@ class DataProcessor {
     }
     
     createResourceChart(server) {
-        const ctx = document.getElementById('resource-chart').getContext('2d');
+        const chartElement = document.getElementById('resource-chart');
+        if (!chartElement) {
+            console.error("리소스 차트 요소(resource-chart)를 찾을 수 없습니다.");
+            return;
+        }
+        
+        const ctx = chartElement.getContext('2d');
+        if (!ctx) {
+            console.error("리소스 차트 컨텍스트를 가져올 수 없습니다.");
+            return;
+        }
         
         new Chart(ctx, {
             type: 'bar',
@@ -603,6 +636,10 @@ class DataProcessor {
             return;
         }
         const ctx = canvasElement.getContext('2d');
+        if (!ctx) {
+            console.error("히스토리 차트 컨텍스트를 가져올 수 없습니다.");
+            return;
+        }
         
         // 기존 차트가 있다면 파괴
         if (this.historyChartInstance) {
@@ -824,62 +861,75 @@ class DataProcessor {
 
         // 차트 업데이트
         const chartElement = document.getElementById('globalStatusChart');
-        if (chartElement) {
-            if (this.globalStatusChartInstance) {
-                this.globalStatusChartInstance.destroy();
-            }
-            this.globalStatusChartInstance = new Chart(chartElement.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['정상', '경고', '심각'],
-                    datasets: [{
-                        data: [normalCount, warningCount, criticalCount],
-                        backgroundColor: [
-                            'rgba(40, 167, 69, 0.7)', // 정상 (초록 계열)
-                            'rgba(253, 154, 20, 0.7)', // 경고 (주황 계열)
-                            'rgba(220, 53, 69, 0.7)'  // 심각 (빨강 계열)
-                        ],
-                        borderColor: [
-                            'rgba(40, 167, 69, 1)',
-                            'rgba(253, 154, 20, 1)',
-                            'rgba(220, 53, 69, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed !== null) {
-                                        label += context.parsed + ' 대';
-                                    }
-                                    return label;
+        if (!chartElement) {
+            console.error("Global status chart element not found.");
+            return;
+        }
+        
+        const chartCtx = chartElement.getContext('2d');
+        if (!chartCtx) {
+            console.error("Global status chart context could not be obtained.");
+            return;
+        }
+        
+        if (this.globalStatusChartInstance) {
+            this.globalStatusChartInstance.destroy();
+        }
+        this.globalStatusChartInstance = new Chart(chartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['정상', '경고', '심각'],
+                datasets: [{
+                    data: [normalCount, warningCount, criticalCount],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)', // 정상 (초록 계열)
+                        'rgba(253, 154, 20, 0.7)', // 경고 (주황 계열)
+                        'rgba(220, 53, 69, 0.7)'  // 심각 (빨강 계열)
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(253, 154, 20, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
                                 }
+                                if (context.parsed !== null) {
+                                    label += context.parsed + ' 대';
+                                }
+                                return label;
                             }
                         }
                     }
                 }
-            });
-        }
+            }
+        });
     }
     
     processAIQuery() {
         if (!this.aiProcessor) return;
         
         const queryInput = document.getElementById('queryInput');
-        const query = queryInput ? queryInput.value.trim() : '';
+        if (!queryInput) {
+            console.error("쿼리 입력 요소(queryInput)를 찾을 수 없습니다.");
+            return;
+        }
         
+        const query = queryInput.value.trim();
         if (!query) return;
         
         const queryLoadingElement = document.getElementById('queryLoading');
