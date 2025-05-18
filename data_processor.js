@@ -242,6 +242,14 @@ class DataProcessor {
         // 프리셋 태그 버튼 이벤트
         document.querySelectorAll('.preset-tag').forEach(tag => {
             tag.addEventListener('click', () => {
+                // 이전에 선택된 태그의 active 클래스 제거
+                document.querySelectorAll('.preset-tag.active').forEach(el => {
+                    el.classList.remove('active');
+                });
+                
+                // 클릭한 태그에 active 클래스 추가
+                tag.classList.add('active');
+                
                 const presetText = tag.dataset.preset;
                 const input = document.getElementById('queryInput');
                 if (input) {
@@ -253,6 +261,11 @@ class DataProcessor {
                         submitButton.click();
                     }
                 }
+                
+                // 0.5초 후 active 클래스 제거하여 클릭 효과 리셋
+                setTimeout(() => {
+                    tag.classList.remove('active');
+                }, 500);
             });
         });
     }
@@ -1497,6 +1510,38 @@ class DataProcessor {
         }, 100);
     }
     
+    // 프리셋 쿼리 처리 개선
+    processPresetQuery(query) {
+        if (!this.aiProcessor) return;
+        
+        // 정상 상태 서버 목록 표시 처리
+        if (query.includes("정상 작동 중인 서버 목록")) {
+            const normalServers = this.serverData.filter(server => this.getServerStatus(server) === 'normal');
+            
+            if (normalServers.length === 0) {
+                return "현재 정상 작동 중인 서버가 없습니다. 모든 서버에 문제가 있습니다.";
+            }
+            
+            // 정상 서버 목록 생성
+            let response = `## 정상 작동 중인 서버 목록 (총 ${normalServers.length}대)\n\n`;
+            
+            normalServers.forEach(server => {
+                response += `### ${server.hostname}\n`;
+                response += `- CPU: ${server.cpu_usage}% (정상)\n`;
+                response += `- 메모리: ${server.memory_usage_percent}% (정상)\n`;
+                response += `- 디스크: ${server.disk[0].disk_usage_percent}% (정상)\n`;
+                response += `- 업타임: ${server.uptime}\n\n`;
+            });
+            
+            response += "모든 서버가 정상적으로 작동 중입니다. 현재 별도의 조치가 필요하지 않습니다.";
+            
+            return response;
+        }
+        
+        // 기존 AI 프로세서 호출
+        return this.aiProcessor.processQuery(query);
+    }
+
     processAIQuery() {
         if (!this.aiProcessor) return;
         
@@ -1515,6 +1560,20 @@ class DataProcessor {
         // 응답 영역 보이기
         if (queryLoadingElement) queryLoadingElement.classList.add('active');
         if (queryResultElement) queryResultElement.style.display = 'none';
+        
+        // 먼저 프리셋 쿼리 처리 시도
+        if (query.includes("정상 작동 중인 서버 목록")) {
+            const result = this.processPresetQuery(query);
+            if (result) {
+                if (queryResultElement) {
+                    queryResultElement.innerHTML = result;
+                    queryResultElement.classList.add('active');
+                    queryResultElement.style.display = 'block';
+                }
+                if (queryLoadingElement) queryLoadingElement.classList.remove('active');
+                return;
+            }
+        }
         
         // AI 질의 처리
         this.aiProcessor.processQuery(query)

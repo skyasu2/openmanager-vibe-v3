@@ -454,18 +454,21 @@
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 15px;
+            margin-bottom: 15px;
         }
         
         .preset-tag {
-            padding: 8px 15px;
-            border-radius: 25px;
-            font-size: 0.8rem;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
             background: white;
-            border: 1px solid #e3e6f0;
             box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            border: 1px solid #e3e6f0;
         }
         
         .preset-tag:hover {
@@ -473,12 +476,51 @@
             transform: translateY(-3px);
         }
         
+        .preset-tag .badge {
+            margin-left: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .preset-tag:hover .badge {
+            transform: scale(1.1);
+        }
+        
         .preset-tag.tag-critical {
-            border-left: 3px solid var(--danger);
+            border-left: 4px solid var(--danger);
+            background-color: rgba(231, 74, 59, 0.05);
         }
         
         .preset-tag.tag-warning {
-            border-left: 3px solid var(--warning);
+            border-left: 4px solid var(--warning);
+            background-color: rgba(246, 194, 62, 0.05);
+        }
+        
+        .preset-tag.tag-normal {
+            border-left: 4px solid var(--success);
+            background-color: rgba(28, 200, 138, 0.05);
+        }
+        
+        .preset-tag.active {
+            transform: scale(0.98) translateY(2px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            opacity: 0.9;
+        }
+        
+        .badge.bg-danger {
+            background-color: var(--danger) !important;
+        }
+        
+        .badge.bg-warning {
+            background-color: var(--warning) !important;
+            color: #212529;
+        }
+        
+        .badge.bg-success {
+            background-color: var(--success) !important;
         }
         
         /* 자동 장애 보고서 스타일 개선 */
@@ -1050,19 +1092,22 @@
                     <!-- 장애 프리셋 추가 -->
                     <div class="preset-container">
                         <div class="preset-tag tag-critical" data-preset="CPU 사용률이 높은 서버 목록과 원인 분석">
-                            <i class="fas fa-microchip me-1"></i> CPU 과부하 분석
+                            <i class="fas fa-microchip me-2"></i> CPU 과부하 <span class="badge bg-danger">심각</span>
                         </div>
                         <div class="preset-tag tag-warning" data-preset="메모리 사용량이 많은 서버 목록 및 조치방안">
-                            <i class="fas fa-memory me-1"></i> 메모리 부족 분석
+                            <i class="fas fa-memory me-2"></i> 메모리 부족 <span class="badge bg-warning">경고</span>
                         </div>
                         <div class="preset-tag tag-critical" data-preset="서비스가 중단된 서버 목록과 재시작 방법">
-                            <i class="fas fa-exclamation-triangle me-1"></i> 서비스 중단 분석
+                            <i class="fas fa-exclamation-triangle me-2"></i> 서비스 중단 <span class="badge bg-danger">심각</span>
                         </div>
                         <div class="preset-tag tag-warning" data-preset="디스크 공간이 부족한 서버 분석 및 해결방안">
-                            <i class="fas fa-hdd me-1"></i> 디스크 공간 분석
+                            <i class="fas fa-hdd me-2"></i> 디스크 부족 <span class="badge bg-warning">경고</span>
+                        </div>
+                        <div class="preset-tag tag-normal" data-preset="정상 작동 중인 서버 목록 표시">
+                            <i class="fas fa-check-circle me-2"></i> 정상 서버 <span class="badge bg-success">정상</span>
                         </div>
                         <div class="preset-tag" data-preset="전체 서버 상태 요약 보고서 생성">
-                            <i class="fas fa-file-alt me-1"></i> 전체 상태 요약
+                            <i class="fas fa-file-alt me-2"></i> 전체 상태 요약
                         </div>
                     </div>
                     
