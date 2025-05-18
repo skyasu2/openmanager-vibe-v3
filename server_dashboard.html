@@ -52,38 +52,64 @@
         
         .server-card {
             background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 15px;
-            margin-bottom: 20px;
-            transition: transform 0.2s ease;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 100%);
+            backdrop-filter: blur(10px);
         }
         
         .server-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .server-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            width: 100%;
+            background: linear-gradient(90deg, #4a69bd, #2c3e50);
+        }
+        
+        .server-card.status-warning::before {
+            background: linear-gradient(90deg, #ff8f00, #ffa000);
+        }
+        
+        .server-card.status-critical::before {
+            background: linear-gradient(90deg, #d32f2f, #b71c1c);
         }
         
         .server-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
         }
         
         .server-name {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #333;
+            color: #2c3e50;
         }
         
         .server-status {
-            font-size: 0.8rem;
-            padding: 3px 8px;
+            font-size: 0.7rem;
+            padding: 3px 10px;
             border-radius: 20px;
-            font-weight: 500;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .status-normal {
@@ -104,60 +130,136 @@
         .server-metrics {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 16px;
+            margin-bottom: 15px;
         }
         
         .metric-item {
-            margin-bottom: 10px;
+            position: relative;
+            margin-bottom: 12px;
         }
         
         .metric-label {
             font-size: 0.75rem;
-            color: #666;
-            margin-bottom: 3px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .metric-label::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background-color: #4a69bd;
+        }
+        
+        .metric-item:nth-child(2) .metric-label::before {
+            background-color: #3498db;
+        }
+        
+        .metric-item:nth-child(3) .metric-label::before {
+            background-color: #2ecc71;
+        }
+        
+        .metric-item:nth-child(4) .metric-label::before {
+            background-color: #9b59b6;
         }
         
         .metric-value {
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
         }
         
         .progress-bar-container {
             height: 6px;
-            background-color: #f0f0f0;
-            border-radius: 3px;
+            background-color: #ecf0f1;
+            border-radius: 6px;
             overflow: hidden;
-            margin-top: 3px;
         }
         
         .progress-bar {
             height: 100%;
-            border-radius: 3px;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-normal {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+        
+        .progress-warning {
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+        }
+        
+        .progress-critical {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
         }
         
         .services-container {
             margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         
         .service-tag {
             display: inline-block;
             font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 3px;
+            padding: 4px 10px;
+            border-radius: 15px;
             margin-right: 5px;
             margin-bottom: 5px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .service-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         
         .service-running {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            border: 1px solid rgba(46, 204, 113, 0.2);
         }
         
         .service-stopped {
-            background-color: #ffebee;
-            color: #d32f2f;
-            border: 1px solid #ffcdd2;
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+        }
+        
+        .error-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 5px 12px;
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 6px rgba(231, 76, 60, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+            }
         }
         
         .filter-options {
@@ -1133,42 +1235,42 @@
                 serverCard.className = 'col-lg-3 col-md-4 col-sm-6 mb-4';
                 
                 serverCard.innerHTML = `
-                    <div class="server-card" onclick="showServerDetail(${JSON.stringify(server).replace(/"/g, '&quot;')})">
+                    <div class="server-card ${statusClass}" onclick="showServerDetail(${JSON.stringify(server).replace(/"/g, '&quot;')})">
                         <div class="server-header">
-                            <div class="server-name">${server.hostname}</div>
+                            <div class="server-name"><i class="fas fa-server me-2"></i>${server.hostname}</div>
                             <div class="server-status ${statusClass}">${statusText}</div>
                         </div>
                         <div class="server-metrics">
                             <div class="metric-item">
-                                <div class="metric-label">CPU 사용량</div>
+                                <div class="metric-label"><i class="fas fa-microchip me-1"></i> CPU 사용량</div>
                                 <div class="metric-value">${server.cpu_usage.toFixed(1)}%</div>
                                 <div class="progress-bar-container">
                                     <div class="progress-bar ${getProgressClass(server.cpu_usage)}" style="width: ${server.cpu_usage}%"></div>
                                 </div>
                             </div>
                             <div class="metric-item">
-                                <div class="metric-label">메모리</div>
+                                <div class="metric-label"><i class="fas fa-memory me-1"></i> 메모리</div>
                                 <div class="metric-value">${server.memory_usage_percent.toFixed(1)}%</div>
                                 <div class="progress-bar-container">
                                     <div class="progress-bar ${getProgressClass(server.memory_usage_percent)}" style="width: ${server.memory_usage_percent}%"></div>
                                 </div>
                             </div>
                             <div class="metric-item">
-                                <div class="metric-label">디스크 (${server.disk[0].mount_point})</div>
+                                <div class="metric-label"><i class="fas fa-hdd me-1"></i> 디스크 (${server.disk[0].mount_point || '/'})</div>
                                 <div class="metric-value">${server.disk[0].disk_usage_percent.toFixed(1)}%</div>
                                 <div class="progress-bar-container">
                                     <div class="progress-bar ${getProgressClass(server.disk[0].disk_usage_percent)}" style="width: ${server.disk[0].disk_usage_percent}%"></div>
                                 </div>
                             </div>
                             <div class="metric-item">
-                                <div class="metric-label">로드 평균</div>
+                                <div class="metric-label"><i class="fas fa-tachometer-alt me-1"></i> 로드 평균</div>
                                 <div class="metric-value">${server.load_avg_1m}</div>
                             </div>
                         </div>
                         <div class="services-container">
                             ${renderServiceTags(server.services)}
                         </div>
-                        ${server.errors.length > 0 ? `<div class="error-badge"><i class="fas fa-exclamation-triangle"></i> ${server.errors.length}개의 오류</div>` : ''}
+                        ${server.errors.length > 0 ? `<div class="error-badge"><i class="fas fa-exclamation-triangle me-1"></i> ${server.errors.length}개의 오류</div>` : ''}
                     </div>
                 `;
                 

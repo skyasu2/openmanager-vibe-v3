@@ -6,7 +6,7 @@
  * - 50대 서버에 대한 현실적인 모니터링 데이터 생성
  * - 10분마다 데이터 갱신 및 누적 저장 (24시간 이력 보관)
  * - 서버 유형별 특성에 따른 데이터 생성 (웹서버, DB서버, API서버 등)
- * - 약 30%의 확률로 에러 상태 생성
+ * - 약 14%의 서버가 경고 또는 심각 상태로 생성 (심각: 4%, 경고: 10%)
  */
 
 class DummyDataGenerator {
@@ -14,7 +14,11 @@ class DummyDataGenerator {
         this.serverCount = 50; // 50대 서버
         this.initialBatchSize = 10; // 첫 로딩시 10대만 우선 생성
         this.updateInterval = 10 * 60 * 1000; // 10분 (밀리초 단위)
-        this.errorProbability = 0.3; // 30% 확률로 에러 발생
+        
+        // 장애 확률 설정 (심각: 4%, 경고: 10%, 정상: 86%)
+        this.criticalProbability = 0.04; // 심각 상태 확률 (약 2대)
+        this.warningProbability = 0.10; // 경고 상태 확률 (약 5대)
+        this.errorProbability = 0.15; // 서비스 장애 및 오류 메시지 발생 확률
         
         // 서버 구성 정보
         this.serverConfigurations = [
@@ -178,20 +182,75 @@ class DummyDataGenerator {
         const region = this.getRandomItem(this.regions);
         const hostname = `${selectedConfig.prefix}-${region}-${serverNumber}`;
         
+        // 서버 상태 결정 (심각, 경고, 정상)
+        const rand = Math.random();
+        const isCritical = rand < this.criticalProbability;
+        const isWarning = !isCritical && rand < (this.criticalProbability + this.warningProbability);
+        
         // 시간대별 부하 가중치 적용 (현재 시간 기준)
         const timeWeightMultiplier = this.timePatterns.dailyPattern[this.currentHour] / 100;
         
         // 서버 유형에 맞는 리소스 사용량 계산
-        const cpuBase = selectedConfig.cpu.base + this.getRandomInt(-selectedConfig.cpu.variation, selectedConfig.cpu.variation);
+        let cpuBase = selectedConfig.cpu.base + this.getRandomInt(-selectedConfig.cpu.variation, selectedConfig.cpu.variation);
         const cpuVariation = this.getRandomInt(-10, 10); // 기본 변동폭
+        
+        // 심각 상태 서버는 CPU, 메모리, 디스크 중 하나 이상이 90% 이상
+        if (isCritical) {
+            // 어떤 리소스가 심각 상태가 될지 랜덤하게 결정 (1: CPU, 2: 메모리, 3: 디스크, 4: 여러개)
+            const criticalType = this.getRandomInt(1, 4);
+            if (criticalType === 1 || criticalType === 4) {
+                cpuBase = 90 + this.getRandomInt(0, 8); // CPU 90-98%
+            }
+        }
+        // 경고 상태 서버는 CPU, 메모리, 디스크 중 하나 이상이 70-89%
+        else if (isWarning) {
+            // 어떤 리소스가 경고 상태가 될지 랜덤하게 결정 (1: CPU, 2: 메모리, 3: 디스크, 4: 여러개)
+            const warningType = this.getRandomInt(1, 4);
+            if (warningType === 1 || warningType === 4) {
+                cpuBase = 70 + this.getRandomInt(0, 19); // CPU 70-89%
+            }
+        }
+        
         const cpu_usage = parseFloat(Math.min(Math.max(Math.floor(cpuBase * timeWeightMultiplier) + cpuVariation, 5), 98).toFixed(2));
         
-        const memoryBase = selectedConfig.memory.base + this.getRandomInt(-selectedConfig.memory.variation, selectedConfig.memory.variation);
+        let memoryBase = selectedConfig.memory.base + this.getRandomInt(-selectedConfig.memory.variation, selectedConfig.memory.variation);
         const memoryVariation = this.getRandomInt(-10, 10);
+        
+        // 심각 상태의 메모리 설정
+        if (isCritical) {
+            const criticalType = this.getRandomInt(1, 4);
+            if (criticalType === 2 || criticalType === 4) {
+                memoryBase = 90 + this.getRandomInt(0, 8); // 메모리 90-98%
+            }
+        }
+        // 경고 상태의 메모리 설정
+        else if (isWarning) {
+            const warningType = this.getRandomInt(1, 4);
+            if (warningType === 2 || warningType === 4) {
+                memoryBase = 70 + this.getRandomInt(0, 19); // 메모리 70-89%
+            }
+        }
+        
         const memory_usage_percent = parseFloat(Math.min(Math.max(Math.floor(memoryBase * timeWeightMultiplier) + memoryVariation, 5), 98).toFixed(2));
         
-        const diskBase = selectedConfig.disk.base + this.getRandomInt(-selectedConfig.disk.variation, selectedConfig.disk.variation);
+        let diskBase = selectedConfig.disk.base + this.getRandomInt(-selectedConfig.disk.variation, selectedConfig.disk.variation);
         const diskVariation = this.getRandomInt(-5, 5);
+        
+        // 심각 상태의 디스크 설정
+        if (isCritical) {
+            const criticalType = this.getRandomInt(1, 4);
+            if (criticalType === 3 || criticalType === 4) {
+                diskBase = 90 + this.getRandomInt(0, 8); // 디스크 90-98%
+            }
+        }
+        // 경고 상태의 디스크 설정
+        else if (isWarning) {
+            const warningType = this.getRandomInt(1, 4);
+            if (warningType === 3 || warningType === 4) {
+                diskBase = 70 + this.getRandomInt(0, 19); // 디스크 70-89%
+            }
+        }
+        
         const disk_usage_percent = parseFloat(Math.min(Math.max(Math.floor(diskBase * timeWeightMultiplier) + diskVariation, 5), 98).toFixed(2));
         
         // 서버 유형에 따른 메모리 크기 차별화
@@ -251,14 +310,24 @@ class DummyDataGenerator {
         
         const selectedServices = this.getRandomItems(selectedConfig.services, serviceCount);
         selectedServices.forEach(service => {
-            // 30% 확률로 서비스 중단 (에러 상태)
-            services[service] = Math.random() < this.errorProbability ? 'stopped' : 'running';
+            // 서비스 중단 확률 (심각/경고 상태와 연계)
+            let stopProbability = this.errorProbability;
+            if (isCritical) stopProbability = 0.4; // 심각 상태는 서비스 중단 확률 높음
+            else if (isWarning) stopProbability = 0.2; // 경고 상태는 서비스 중단 확률 중간
+            
+            services[service] = Math.random() < stopProbability ? 'stopped' : 'running';
         });
         
         // 오류 메시지 (있을 경우)
         const errors = [];
-        if (Math.random() < this.errorProbability) {
-            const errorCount = this.getRandomInt(1, 3);
+        
+        // 오류 메시지 발생 확률 (심각/경고 상태와 연계)
+        let errorMsgProbability = this.errorProbability;
+        if (isCritical) errorMsgProbability = 0.7; // 심각 상태는 오류 메시지 확률 높음
+        else if (isWarning) errorMsgProbability = 0.4; // 경고 상태는 오류 메시지 확률 중간
+        
+        if (Math.random() < errorMsgProbability) {
+            const errorCount = isCritical ? this.getRandomInt(2, 3) : this.getRandomInt(1, 2);
             for (let i = 0; i < errorCount; i++) {
                 errors.push(this.generateErrorMessage(selectedConfig.prefix));
             }
@@ -366,6 +435,10 @@ class DummyDataGenerator {
         const now = new Date();
         now.setHours(this.currentHour, 0, 0, 0);
         
+        // 전체 서버에서 심각 상태와 경고 상태의 개수를 추적
+        let criticalCount = 0;
+        let warningCount = 0;
+        
         this.serverData = this.serverData.map((server, index) => {
             const serverType = server.hostname.split('-')[0];
             const config = this.serverConfigurations.find(c => c.prefix === serverType) || this.serverConfigurations[0];
@@ -374,15 +447,81 @@ class DummyDataGenerator {
             const shouldUpdateServices = Math.random() < 0.3;
             const shouldUpdateErrors = Math.random() < 0.3;
             
+            // 서버 상태 결정 (기존 상태를 고려하여 급격한 변화 방지)
+            const isCritical = server.cpu_usage >= 90 || server.memory_usage_percent >= 90 || server.disk[0].disk_usage_percent >= 90;
+            const isWarning = !isCritical && (server.cpu_usage >= 70 || server.memory_usage_percent >= 70 || server.disk[0].disk_usage_percent >= 70);
+            
+            // 심각/경고 상태 서버 수 추적
+            if (isCritical) criticalCount++;
+            else if (isWarning) warningCount++;
+            
+            // 상태 변화 확률 계산 (현재 상태에 따라 다르게 설정)
+            let changeToCritical = false;
+            let changeToWarning = false;
+            let changeToNormal = false;
+            
+            // 상태 전이 확률 계산
+            if (isCritical) {
+                // 심각 → 정상 또는 경고 (20% 확률로 상태 변경)
+                if (Math.random() < 0.2) {
+                    changeToNormal = Math.random() < 0.5;
+                    changeToWarning = !changeToNormal;
+                }
+            } 
+            else if (isWarning) {
+                // 경고 → 정상 또는 심각 (30% 확률로 상태 변경)
+                if (Math.random() < 0.3) {
+                    changeToNormal = Math.random() < 0.7; // 70% 확률로 정상으로 복구
+                    changeToCritical = !changeToNormal; // 30% 확률로 심각으로 악화
+                }
+            }
+            else {
+                // 정상 → 경고 또는 심각 
+                // 전체 심각/경고 상태 서버 수에 따라 확률 조정
+                const targetCritical = Math.floor(this.serverData.length * this.criticalProbability);
+                const targetWarning = Math.floor(this.serverData.length * this.warningProbability);
+                
+                // 심각 상태가 목표보다 적으면 심각 상태로 변경 확률 증가
+                if (criticalCount < targetCritical && Math.random() < 0.05) {
+                    changeToCritical = true;
+                }
+                // 경고 상태가 목표보다 적으면 경고 상태로 변경 확률 증가
+                else if (warningCount < targetWarning && Math.random() < 0.1) {
+                    changeToWarning = true;
+                }
+            }
+            
             // 현재 상태를 가져오고 실제 업데이트 수행
             const cpu_base = config.cpu.base;
             const cpu_variation = config.cpu.variation;
             
             // 기본 변동값 계산
-            const baseChange = this.getRandomInt(-15, 15);
+            let baseChange = this.getRandomInt(-15, 15);
             
             // 시간 패턴을 고려한 변동
             const timeInfluence = cpu_base * (timeWeightMultiplier - 0.5) * 0.8; // -40% ~ +40% 변동 가능
+            
+            // 상태 변화에 따른 리소스 사용량 조정
+            if (changeToCritical) {
+                // 리소스 중 랜덤하게 하나를 심각 상태로 설정
+                const resourceType = this.getRandomInt(1, 3);
+                if (resourceType === 1) {
+                    baseChange = Math.max(90 - server.cpu_usage, baseChange); // CPU를 90% 이상으로
+                }
+            }
+            else if (changeToWarning) {
+                // 리소스 중 랜덤하게 하나를 경고 상태로 설정
+                const resourceType = this.getRandomInt(1, 3);
+                if (resourceType === 1) {
+                    baseChange = Math.max(70 - server.cpu_usage, baseChange); // CPU를 70% 이상으로
+                }
+            }
+            else if (changeToNormal) {
+                // 모든 리소스를 정상 범위로 조정
+                if (server.cpu_usage >= 70) {
+                    baseChange = -this.getRandomInt(10, 30); // CPU 사용량 크게 감소
+                }
+            }
             
             // 최종 CPU 변동값 계산
             let cpu_delta = parseFloat((baseChange + timeInfluence).toFixed(2));
@@ -393,12 +532,52 @@ class DummyDataGenerator {
             cpu_usage = Math.max(5, Math.min(98, cpu_usage)); // 5% ~ 98% 사이로 제한
             
             // 다른 리소스도 비슷한 패턴으로 업데이트
-            const memory_delta = parseFloat((this.getRandomInt(-10, 10) + timeInfluence * 0.8).toFixed(2));
+            let memory_delta = parseFloat((this.getRandomInt(-10, 10) + timeInfluence * 0.8).toFixed(2));
+            
+            // 상태 변화에 따른 메모리 사용량 조정
+            if (changeToCritical) {
+                const resourceType = this.getRandomInt(1, 3);
+                if (resourceType === 2) {
+                    memory_delta = Math.max(90 - server.memory_usage_percent, memory_delta); // 메모리를 90% 이상으로
+                }
+            }
+            else if (changeToWarning) {
+                const resourceType = this.getRandomInt(1, 3);
+                if (resourceType === 2) {
+                    memory_delta = Math.max(70 - server.memory_usage_percent, memory_delta); // 메모리를 70% 이상으로
+                }
+            }
+            else if (changeToNormal) {
+                if (server.memory_usage_percent >= 70) {
+                    memory_delta = -this.getRandomInt(10, 30); // 메모리 사용량 크게 감소
+                }
+            }
+            
             let memory_usage_percent = parseFloat((server.memory_usage_percent + memory_delta).toFixed(2));
             memory_usage_percent = Math.max(5, Math.min(98, memory_usage_percent));
             const memory_usage = Math.floor(server.memory_total * (memory_usage_percent / 100));
             
-            const disk_delta = parseFloat((this.getRandomInt(-5, 7) + timeInfluence * 0.4).toFixed(2)); // 디스크는 천천히 증가 경향
+            let disk_delta = parseFloat((this.getRandomInt(-5, 7) + timeInfluence * 0.4).toFixed(2)); // 디스크는 천천히 증가 경향
+            
+            // 상태 변화에 따른 디스크 사용량 조정
+            if (changeToCritical) {
+                const resourceType = this.getRandomInt(1, 3);
+                if (resourceType === 3) {
+                    disk_delta = Math.max(90 - server.disk[0].disk_usage_percent, disk_delta); // 디스크를 90% 이상으로
+                }
+            }
+            else if (changeToWarning) {
+                const resourceType = this.getRandomInt(1, 3);
+                if (resourceType === 3) {
+                    disk_delta = Math.max(70 - server.disk[0].disk_usage_percent, disk_delta); // 디스크를 70% 이상으로
+                }
+            }
+            else if (changeToNormal) {
+                if (server.disk[0].disk_usage_percent >= 70) {
+                    disk_delta = -this.getRandomInt(5, 20); // 디스크 사용량 감소
+                }
+            }
+            
             let disk_usage_percent = parseFloat((server.disk[0].disk_usage_percent + disk_delta).toFixed(2));
             disk_usage_percent = Math.max(5, Math.min(98, disk_usage_percent));
             const disk_used = Math.floor(server.disk[0].disk_total * (disk_usage_percent / 100));
