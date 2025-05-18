@@ -210,8 +210,10 @@ function getFixedDummyData() {
                     cpu_usage: cpu,
                     memory_usage_percent: mem,
                     disk: [{ disk_usage_percent: disk }],
-                    errors: [], // 오류는 더 이상 상태 판단에 영향을 주지 않음
-                    services: {} // 서비스 상태도 더 이상 영향을 주지 않음
+                    errors: finalAlerts.filter(al => 
+                        al.severity === 'Critical' || al.severity === 'Error'
+                    ), // 오류 정보를 다시 상태 판단에 반영
+                    services: {} // 서비스 상태는 여전히 반영하지 않음
                 };
                 // 모든 서버에 대해 getServerStatus 적용 (기존 상태 무시)
                 serverData.status = window.getServerStatus(processorReadyData);
