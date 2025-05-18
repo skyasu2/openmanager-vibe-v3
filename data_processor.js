@@ -42,6 +42,9 @@ class DataProcessor {
         this.modalElement = document.getElementById('serverDetailModal');
         this.closeModalButton = document.querySelector('.btn-close[data-bs-dismiss="modal"]');
         
+        // 페이지네이션 컨테이너 요소 (HTML에 pagination 클래스나 ID를 가진 요소가 필요)
+        this.pagination = document.querySelector('.pagination-container');
+        
         // 이벤트 리스너 등록
         this.registerEventListeners();
         
@@ -287,6 +290,12 @@ class DataProcessor {
     }
     
     updatePagination() {
+        // this.pagination 요소가 존재하지 않으면 함수 종료
+        if (!this.pagination) {
+            console.warn("Pagination element not found in the DOM");
+            return;
+        }
+        
         this.pagination.innerHTML = '';
         
         const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
