@@ -654,6 +654,78 @@ class AIProcessor {
         return `📊 ${reportTypeName}가 생성되었습니다.\n\n다운로드를 시작하려면 <a href="#" onclick="alert('실제 환경에서는 이 링크를 통해 보고서가 다운로드됩니다.'); return false;">${filename}</a>를 클릭하세요.`;
     }
 
+    detectProblems() {
+        // 감지된 문제 목록
+        const problems = [];
+        
+        if (!this.serverData || this.serverData.length === 0) {
+            return problems;
+        }
+        
+        // 각 서버별로 문제 패턴 검사
+        this.serverData.forEach(server => {
+            // 서버 상태 확인
+            const serverStatus = this.getEffectiveServerStatus(server);
+            
+            // 문제 패턴 검사
+            this.problemPatterns.forEach(pattern => {
+                if (pattern.condition(server)) {
+                    // 패턴 조건에 맞는 문제 발견시
+                    problems.push({
+                        serverHostname: server.hostname,
+                        description: pattern.description,
+                        severity: pattern.severity === 'critical' ? 'Critical' : 'Warning', // UI 표시용 포맷으로 변환
+                        solution: pattern.solutions.join(' '),
+                        causes: pattern.causes.join(', '),
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            });
+        });
+        
+        return problems;
+    }
+
+    generateErrorReport() {
+        const problems = this.detectProblems();
+        if (problems.length === 0) {
+            return "=== 서버 오류 보고서 ===\n\n현재 감지된 문제가 없습니다.\n\n생성 시각: " + new Date().toLocaleString();
+        }
+
+        let report = "=== 서버 오류 보고서 ===\n\n";
+        report += `총 ${problems.length}개의 문제가 감지되었습니다.\n`;
+        report += `생성 시각: ${new Date().toLocaleString()}\n\n`;
+
+        // 심각도별 그룹화
+        const criticalProblems = problems.filter(p => p.severity === 'Critical');
+        const warningProblems = problems.filter(p => p.severity === 'Warning');
+
+        // 심각 문제 목록
+        if (criticalProblems.length > 0) {
+            report += `=== 심각 (${criticalProblems.length}개) ===\n\n`;
+            criticalProblems.forEach((problem, index) => {
+                report += this.formatProblemForReport(problem, index + 1);
+            });
+        }
+
+        // 경고 문제 목록
+        if (warningProblems.length > 0) {
+            report += `=== 경고 (${warningProblems.length}개) ===\n\n`;
+            warningProblems.forEach((problem, index) => {
+                report += this.formatProblemForReport(problem, index + 1);
+            });
+        }
+
+        return report;
+    }
+
+    formatProblemForReport(problem, index) {
+        return `${index}. ${problem.serverHostname}\n` +
+               `   문제: ${problem.description}\n` +
+               `   원인: ${problem.causes}\n` +
+               `   해결책: ${problem.solution}\n\n`;
+    }
+
     calculateAverage(numbers) {
         if (numbers.length === 0) return 0;
         return numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
