@@ -401,11 +401,23 @@
             margin-top: var(--spacing-md);
             white-space: pre-line;
             border: 1px solid var(--border);
+            position: relative;
+            padding-top: 30px;
         }
-
+        
         .query-result.active {
             display: block;
             animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* 닫기 버튼 스타일 */
+        #closeQueryResult {
+            transition: all 0.2s;
+            opacity: 0.6;
+        }
+        
+        #closeQueryResult:hover {
+            opacity: 1;
         }
         
         /* 반응형 */
@@ -550,9 +562,13 @@
         }
         
         .preset-tag.active {
-            transform: scale(0.98) translateY(2px);
+            transform: translateY(2px);
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-            opacity: 0.9;
+        }
+        
+        .preset-tag:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
         
         .badge.bg-danger {
@@ -1187,7 +1203,10 @@
                         </div>
                         <p class="mt-2">AI가 서버 데이터를 분석 중입니다...</p>
                     </div>
-                    <div class="query-result shadow-sm" id="queryResult"></div>
+                    <div class="query-result shadow-sm position-relative" id="queryResult">
+                        <button type="button" id="closeQueryResult" class="btn-close position-absolute" style="top: 10px; right: 10px; display: none;"
+                           aria-label="Close"></button>
+                    </div>
                 </div>
             </div>
         </div>

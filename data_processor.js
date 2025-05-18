@@ -276,6 +276,25 @@ class DataProcessor {
                 this.downloadAllProblemsReport();
             });
         }
+        
+        // 쿼리 결과 닫기 버튼 이벤트 리스너
+        const closeQueryResultBtn = document.getElementById('closeQueryResult');
+        if (closeQueryResultBtn) {
+            closeQueryResultBtn.addEventListener('click', () => {
+                const queryResultElement = document.getElementById('queryResult');
+                if (queryResultElement) {
+                    queryResultElement.innerHTML = '';
+                    queryResultElement.style.display = 'none';
+                    closeQueryResultBtn.style.display = 'none';
+                }
+                
+                // 입력창도 비우기
+                const queryInput = document.getElementById('queryInput');
+                if (queryInput) {
+                    queryInput.value = '';
+                }
+            });
+        }
     }
     
     loadData() {
@@ -2206,10 +2225,12 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
         
         const queryLoadingElement = document.getElementById('queryLoading');
         const queryResultElement = document.getElementById('queryResult');
+        const closeQueryResultBtn = document.getElementById('closeQueryResult');
         
         // 응답 영역 보이기
         if (queryLoadingElement) queryLoadingElement.classList.add('active');
         if (queryResultElement) queryResultElement.style.display = 'none';
+        if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'none';
         
         // 프리셋 기반 응답 처리 (자체 처리)
         const isPresetQuery = 
@@ -2229,6 +2250,7 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                     queryResultElement.innerHTML = result;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
+                    if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'block';
                 }
                 if (queryLoadingElement) queryLoadingElement.classList.remove('active');
                 return;
@@ -2265,6 +2287,7 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                     queryResultElement.innerHTML = response;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
+                    if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'block';
                 }
             })
             .catch(error => {
@@ -2272,6 +2295,7 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                     queryResultElement.innerHTML = `오류가 발생했습니다: ${error.message}`;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
+                    if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'block';
                 }
             })
             .finally(() => {
