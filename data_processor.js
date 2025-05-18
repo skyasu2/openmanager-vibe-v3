@@ -23,8 +23,8 @@ class DataProcessor {
             },
             warning: {
                 cpu: 70,
-                memory: 80,
-                disk: 80
+                memory: 70,
+                disk: 70
             }
         };
         
@@ -675,25 +675,24 @@ class DataProcessor {
     
     // 유틸리티 함수
     getServerStatus(server) {
-        // 통합된 서버 상태 판단 로직
+        // 요구사항에 맞게 수정된 상태 판단 로직
+        // 실제 자원 사용률(CPU, 메모리, 디스크)만으로 판단
         
-        // 심각 상태 조건
+        // 심각 상태 조건 (하나 이상의 항목이 90% 이상)
         if (server.cpu_usage >= this.thresholds.critical.cpu ||
             server.memory_usage_percent >= this.thresholds.critical.memory ||
-            server.disk[0].disk_usage_percent >= this.thresholds.critical.disk ||
-            server.errors.length > 0) {
+            server.disk[0].disk_usage_percent >= this.thresholds.critical.disk) {
             return 'critical';
         }
         
-        // 경고 상태 조건
+        // 경고 상태 조건 (하나 이상의 항목이 70% 이상 90% 미만)
         if (server.cpu_usage >= this.thresholds.warning.cpu ||
             server.memory_usage_percent >= this.thresholds.warning.memory ||
-            server.disk[0].disk_usage_percent >= this.thresholds.warning.disk ||
-            Object.values(server.services).includes('stopped')) {
+            server.disk[0].disk_usage_percent >= this.thresholds.warning.disk) {
             return 'warning';
         }
         
-        // 그 외는 정상
+        // 그 외는 정상 (모든 항목이 70% 미만)
         return 'normal';
     }
     

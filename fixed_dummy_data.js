@@ -202,36 +202,27 @@ function getFixedDummyData() {
                 alerts: finalAlerts
             };
             
-            // 통합된 상태 판단 함수가 있으면 사용
-            // 단, 시나리오에서 강제로 설정한 상태가 있으면 그것을 우선함
-            if (window.getServerStatus && serverStatus === 'Normal') {
+            // 모든 서버 상태를 자원 사용률에 따라 재계산
+            // window.getServerStatus 함수가 있으면 이를 이용하고, 없으면 자체 로직으로 계산
+            if (window.getServerStatus) {
                 // dataProcessor의 상태 판단 함수 호출을 위해 필드 매핑
                 const processorReadyData = {
                     cpu_usage: cpu,
                     memory_usage_percent: mem,
                     disk: [{ disk_usage_percent: disk }],
-                    errors: finalAlerts.filter(al => 
-                        al.severity === 'Critical' || al.severity === 'Error'
-                    ),
-                    services: {} // 서비스 상태 정보는 여기서는 사용하지 않음
+                    errors: [], // 오류는 더 이상 상태 판단에 영향을 주지 않음
+                    services: {} // 서비스 상태도 더 이상 영향을 주지 않음
                 };
+                // 모든 서버에 대해 getServerStatus 적용 (기존 상태 무시)
                 serverData.status = window.getServerStatus(processorReadyData);
             } else {
-                // 기존 로직으로 최종 상태 결정 (시나리오에서 지정된 경우)
-                serverHighestSeverityScore = 0; 
-                if (serverStatus === 'Normal') { 
-                    finalAlerts.forEach(al => {
-                        if (al.severity === 'Critical') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 4);
-                        else if (al.severity === 'Error') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 3);
-                        else if (al.severity === 'Warning') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 2);
-                        else if (al.severity === 'Info') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 1);
-                    });
-                    if (serverHighestSeverityScore === 4) serverStatus = 'Critical';
-                    else if (serverHighestSeverityScore === 3) serverStatus = 'Error';
-                    else if (serverHighestSeverityScore === 2) serverStatus = 'Warning';
-                    else if (serverHighestSeverityScore === 1) serverStatus = 'Info';
-                    
-                    serverData.status = serverStatus;
+                // 자체 로직으로 상태 결정 (기준: 90% 이상 심각, 70% 이상 경고)
+                if (cpu >= 90 || mem >= 90 || disk >= 90) {
+                    serverData.status = 'Critical';
+                } else if (cpu >= 70 || mem >= 70 || disk >= 70) {
+                    serverData.status = 'Warning';
+                } else {
+                    serverData.status = 'Normal';
                 }
             }
             
