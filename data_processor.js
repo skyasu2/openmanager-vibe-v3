@@ -282,10 +282,13 @@ class DataProcessor {
         if (closeQueryResultBtn) {
             closeQueryResultBtn.addEventListener('click', () => {
                 const queryResultElement = document.getElementById('queryResult');
+                const queryResultContent = document.getElementById('queryResultContent');
                 if (queryResultElement) {
-                    queryResultElement.innerHTML = '';
                     queryResultElement.style.display = 'none';
-                    closeQueryResultBtn.style.display = 'none';
+                    queryResultElement.classList.remove('active');
+                }
+                if (queryResultContent) {
+                    queryResultContent.innerHTML = '';
                 }
                 
                 // 입력창도 비우기
@@ -293,6 +296,8 @@ class DataProcessor {
                 if (queryInput) {
                     queryInput.value = '';
                 }
+                
+                console.log('AI 분석 결과가 닫혔습니다.');
             });
         }
     }
@@ -2225,12 +2230,11 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
         
         const queryLoadingElement = document.getElementById('queryLoading');
         const queryResultElement = document.getElementById('queryResult');
-        const closeQueryResultBtn = document.getElementById('closeQueryResult');
+        const queryResultContent = document.getElementById('queryResultContent');
         
         // 응답 영역 보이기
         if (queryLoadingElement) queryLoadingElement.classList.add('active');
         if (queryResultElement) queryResultElement.style.display = 'none';
-        if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'none';
         
         // 프리셋 기반 응답 처리 (자체 처리)
         const isPresetQuery = 
@@ -2246,16 +2250,10 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
         if (isPresetQuery) {
             const result = this.processPresetQuery(query);
             if (result) {
-                if (queryResultElement) {
-                    queryResultElement.innerHTML = result;
+                if (queryResultContent && queryResultElement) {
+                    queryResultContent.innerHTML = result;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
-                    
-                    // 닫기 버튼 확실히 표시
-                    if (closeQueryResultBtn) {
-                        closeQueryResultBtn.style.display = 'block';
-                        console.log('닫기 버튼 표시됨');
-                    }
                 }
                 if (queryLoadingElement) queryLoadingElement.classList.remove('active');
                 return;
@@ -2288,29 +2286,17 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
         
         this.aiProcessor.processQuery(enhancedQuery)
             .then(response => {
-                if (queryResultElement) {
-                    queryResultElement.innerHTML = response;
+                if (queryResultContent && queryResultElement) {
+                    queryResultContent.innerHTML = response;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
-                    
-                    // 닫기 버튼 확실히 표시
-                    if (closeQueryResultBtn) {
-                        closeQueryResultBtn.style.display = 'block';
-                        console.log('닫기 버튼 표시됨');
-                    }
                 }
             })
             .catch(error => {
-                if (queryResultElement) {
-                    queryResultElement.innerHTML = `오류가 발생했습니다: ${error.message}`;
+                if (queryResultContent && queryResultElement) {
+                    queryResultContent.innerHTML = `오류가 발생했습니다: ${error.message}`;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
-                    
-                    // 닫기 버튼 확실히 표시
-                    if (closeQueryResultBtn) {
-                        closeQueryResultBtn.style.display = 'block';
-                        console.log('닫기 버튼 표시됨');
-                    }
                 }
             })
             .finally(() => {
