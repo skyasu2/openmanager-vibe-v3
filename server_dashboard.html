@@ -64,10 +64,11 @@
             color: #4a69bd;
         }
         
+        /* 서버 카드 스타일 개선 */
         .server-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
             margin-bottom: 20px;
         }
         
@@ -75,14 +76,16 @@
             background-color: #fff;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            padding: 20px;
-            margin-bottom: 24px;
+            padding: 15px;
             transition: all 0.3s ease;
             border: 1px solid rgba(0, 0, 0, 0.05);
             position: relative;
             overflow: hidden;
             background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 100%);
             backdrop-filter: blur(10px);
+            cursor: pointer;
+            height: auto;
+            min-height: 140px;
         }
         
         .server-card:hover {
@@ -109,24 +112,29 @@
             background: linear-gradient(90deg, #d32f2f, #b71c1c);
         }
         
+        /* 컴팩트 서버 카드 레이아웃 */
         .server-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
             border-bottom: 1px solid #f0f0f0;
         }
         
         .server-name {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
         }
         
         .server-status {
-            font-size: 0.7rem;
-            padding: 3px 10px;
+            font-size: 0.65rem;
+            padding: 2px 8px;
             border-radius: 20px;
             font-weight: 700;
             text-transform: uppercase;
@@ -148,22 +156,24 @@
             color: #d32f2f;
         }
         
+        /* 컴팩트 메트릭 스타일 */
         .server-metrics {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         
         .metric-item {
-            position: relative;
-            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
         }
         
         .metric-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #7f8c8d;
-            margin-bottom: 5px;
+            margin-right: 10px;
+            min-width: 80px;
             display: flex;
             align-items: center;
         }
@@ -191,16 +201,18 @@
         }
         
         .metric-value {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: #2c3e50;
-            margin-bottom: 5px;
+            margin-right: 10px;
+            min-width: 45px;
         }
         
         .progress-bar-container {
-            height: 6px;
+            flex-grow: 1;
+            height: 5px;
             background-color: #ecf0f1;
-            border-radius: 6px;
+            border-radius: 5px;
             overflow: hidden;
         }
         
@@ -620,6 +632,167 @@
             color: #d32f2f;
             border: 1px solid #ffcdd2;
         }
+        
+        /* 반응형 그리드 개선 */
+        @media (min-width: 1400px) {
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            }
+        }
+        
+        @media (min-width: 1700px) {
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+        }
+        
+        @media (min-width: 2000px) {
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+        }
+        
+        /* 오른쪽 장애 패널 개선 */
+        .incident-panel {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .collapsible-panel {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .collapsible-header {
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .collapsible-header:hover {
+            background-color: #f0f2f5;
+        }
+        
+        .collapsible-body {
+            padding: 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsible-body.expanded {
+            max-height: 500px;
+        }
+        
+        .collapse-toggle {
+            color: #6c757d;
+            transition: transform 0.3s ease;
+        }
+        
+        .collapse-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        
+        /* 사이드바 토글 버튼 */
+        .sidebar-toggle {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px 0 0 4px;
+            width: 30px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        
+        .main-content-grid {
+            position: relative;
+            transition: grid-template-columns 0.3s ease;
+        }
+        
+        .main-content-grid.sidebar-hidden {
+            grid-template-columns: 1fr 0fr;
+        }
+        
+        .main-content-grid.sidebar-hidden .incident-panel {
+            display: none;
+        }
+        
+        /* 서비스 태그 간소화 */
+        .services-container {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .service-tag {
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* 모달 스타일 개선 */
+        .modal-content {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .modal-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .modal-title i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .detail-section {
+            margin-bottom: 20px;
+        }
+        
+        .detail-section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -695,7 +868,7 @@
         </div>
 
         <!-- 자동 장애 보고서 섹션을 메인 컨텐츠 그리드로 변경 -->
-        <div class="main-content-grid">
+        <div class="main-content-grid" id="mainContentGrid">
             <!-- 좌측: 서버 그리드 및 검색 필터 -->
             <div>
                 <div class="card search-container mb-4">
@@ -746,61 +919,74 @@
                 </div>
             </div>
             
-            <!-- 우측: 자동 장애 보고서 -->
-            <div>
-                <div class="dashboard-section">
-                    <div class="section-header">
-                        <i class="fas fa-exclamation-circle me-2 text-danger"></i>
-                        자동 장애 보고서
-                        <button class="btn btn-sm btn-outline-primary ms-auto" id="downloadAllReportsBtn">
-                            <i class="bi bi-download"></i> 전체 보고서
-                        </button>
+            <!-- 우측: 자동 장애 보고서 (접이식 패널) -->
+            <div class="incident-panel">
+                <!-- 접이식 패널: 장애 보고서 -->
+                <div class="collapsible-panel">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <div><i class="fas fa-exclamation-circle me-2 text-danger"></i> 자동 장애 보고서</div>
+                        <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
                     </div>
-                    
-                    <div class="alert alert-info" id="incidentsLoading">
-                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                            <span class="visually-hidden">로딩 중...</span>
+                    <div class="collapsible-body expanded">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h6 class="mb-0">감지된 문제</h6>
+                            <button class="btn btn-sm btn-outline-primary" id="downloadAllReportsBtn">
+                                <i class="bi bi-download"></i> 전체 보고서
+                            </button>
                         </div>
-                        장애 데이터를 분석하는 중입니다...
-                    </div>
-                    
-                    <div id="incidentsEmpty" style="display: none;">
-                        <div class="text-center py-4">
-                            <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                            <p class="mt-3 mb-0">현재 감지된 장애가 없습니다.</p>
+                        
+                        <div class="alert alert-info" id="incidentsLoading">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                <span class="visually-hidden">로딩 중...</span>
+                            </div>
+                            장애 데이터를 분석하는 중입니다...
                         </div>
+                        
+                        <div id="incidentsEmpty" style="display: none;">
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+                                <p class="mt-3 mb-0">현재 감지된 장애가 없습니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion" id="incidents-accordion"></div>
                     </div>
-                    
-                    <div class="accordion" id="incidents-accordion"></div>
                 </div>
                 
-                <!-- 요약 정보 추가 -->
-                <div class="dashboard-section">
-                    <div class="section-header">
-                        <i class="fas fa-chart-pie me-2 text-primary"></i>
-                        서버 현황 요약
+                <!-- 접이식 패널: 서버 요약 정보 -->
+                <div class="collapsible-panel">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <div><i class="fas fa-chart-pie me-2 text-primary"></i> 서버 현황 요약</div>
+                        <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-4 text-center">
-                            <h3 class="mb-0" id="normalCount">-</h3>
-                            <p class="text-success mb-0">정상</p>
+                    <div class="collapsible-body expanded">
+                        <div class="row mb-3">
+                            <div class="col-4 text-center">
+                                <h3 class="mb-0" id="normalCount">-</h3>
+                                <p class="text-success mb-0">정상</p>
+                            </div>
+                            <div class="col-4 text-center">
+                                <h3 class="mb-0" id="warningCount">-</h3>
+                                <p class="text-warning mb-0">경고</p>
+                            </div>
+                            <div class="col-4 text-center">
+                                <h3 class="mb-0" id="criticalCount">-</h3>
+                                <p class="text-danger mb-0">심각</p>
+                            </div>
                         </div>
-                        <div class="col-4 text-center">
-                            <h3 class="mb-0" id="warningCount">-</h3>
-                            <p class="text-warning mb-0">경고</p>
+                        <div>
+                            <canvas id="statusChart" height="150"></canvas>
                         </div>
-                        <div class="col-4 text-center">
-                            <h3 class="mb-0" id="criticalCount">-</h3>
-                            <p class="text-danger mb-0">심각</p>
-                        </div>
-                    </div>
-                    <div>
-                        <canvas id="statusChart" height="150"></canvas>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- 사이드바 토글 버튼 -->
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
         <!-- 서버 개요 차트 섹션 -->
         <div class="row">
             <div class="col-12">
@@ -892,6 +1078,25 @@
                     document.getElementById('queryInput').value = preset;
                     processAIQuery();
                 });
+            });
+            
+            // 사이드바 토글 버튼 이벤트 리스너
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            
+            // 저장된 사이드바 상태 복원
+            const savedSidebarState = localStorage.getItem('sidebar_state');
+            if (savedSidebarState === 'hidden') {
+                toggleSidebar();
+            }
+            
+            // 저장된 패널 상태 복원
+            document.querySelectorAll('.collapsible-header').forEach(header => {
+                const panelId = header.textContent.trim();
+                const savedState = localStorage.getItem(`panel_${panelId}`);
+                
+                if (savedState === 'collapsed') {
+                    toggleCollapsible(header);
+                }
             });
         }
 
@@ -1205,7 +1410,7 @@
             serverGrid.innerHTML = '';
 
             if (!filteredData || filteredData.length === 0) {
-                serverGrid.innerHTML = `<div class="col-12 text-center py-4">표시할 서버 데이터가 없습니다.</div>`;
+                serverGrid.innerHTML = `<div class="text-center py-4">표시할 서버 데이터가 없습니다.</div>`;
                 return;
             }
 
@@ -1214,56 +1419,82 @@
             const endIndex = Math.min(startIndex + pageSize, filteredData.length);
             const currentPageData = filteredData.slice(startIndex, endIndex);
 
-            // 서버 카드 생성
+            // 서버 카드 생성 (컴팩트 형태)
             currentPageData.forEach(server => {
                 const statusClass = getServerStatusClass(server);
                 const statusText = getServerStatusText(server);
                 
                 const serverCard = document.createElement('div');
-                serverCard.className = 'col-lg-3 col-md-4 col-sm-6 mb-4';
+                serverCard.className = `server-card ${statusClass}`;
+                serverCard.onclick = () => showServerDetail(server);
                 
                 serverCard.innerHTML = `
-                    <div class="server-card ${statusClass}" onclick="showServerDetail(${JSON.stringify(server).replace(/"/g, '&quot;')})">
-                        <div class="server-header">
-                            <div class="server-name"><i class="fas fa-server me-2"></i>${server.hostname}</div>
-                            <div class="server-status ${statusClass}">${statusText}</div>
-                        </div>
-                        <div class="server-metrics">
-                            <div class="metric-item">
-                                <div class="metric-label"><i class="fas fa-microchip me-1"></i> CPU 사용량</div>
-                                <div class="metric-value">${server.cpu_usage.toFixed(1)}%</div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar ${getProgressClass(server.cpu_usage)}" style="width: ${server.cpu_usage}%"></div>
-                                </div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="metric-label"><i class="fas fa-memory me-1"></i> 메모리</div>
-                                <div class="metric-value">${server.memory_usage_percent.toFixed(1)}%</div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar ${getProgressClass(server.memory_usage_percent)}" style="width: ${server.memory_usage_percent}%"></div>
-                                </div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="metric-label"><i class="fas fa-hdd me-1"></i> 디스크 (${server.disk[0].mount_point || '/'})</div>
-                                <div class="metric-value">${server.disk[0].disk_usage_percent.toFixed(1)}%</div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar ${getProgressClass(server.disk[0].disk_usage_percent)}" style="width: ${server.disk[0].disk_usage_percent}%"></div>
-                                </div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="metric-label"><i class="fas fa-tachometer-alt me-1"></i> 로드 평균</div>
-                                <div class="metric-value">${server.load_avg_1m}</div>
-                            </div>
-                        </div>
-                        <div class="services-container">
-                            ${renderServiceTags(server.services)}
-                        </div>
-                        ${server.errors.length > 0 ? `<div class="error-badge"><i class="fas fa-exclamation-triangle me-1"></i> ${server.errors.length}개의 오류</div>` : ''}
+                    <div class="server-header">
+                        <div class="server-name"><i class="fas fa-server me-1"></i>${server.hostname}</div>
+                        <div class="server-status ${statusClass}">${statusText}</div>
                     </div>
+                    <div class="server-metrics">
+                        <div class="metric-item">
+                            <div class="metric-label"><i class="fas fa-microchip me-1"></i>CPU</div>
+                            <div class="metric-value">${server.cpu_usage.toFixed(1)}%</div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${getProgressClass(server.cpu_usage)}" style="width: ${server.cpu_usage}%"></div>
+                            </div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label"><i class="fas fa-memory me-1"></i>메모리</div>
+                            <div class="metric-value">${server.memory_usage_percent.toFixed(1)}%</div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${getProgressClass(server.memory_usage_percent)}" style="width: ${server.memory_usage_percent}%"></div>
+                            </div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label"><i class="fas fa-hdd me-1"></i>디스크</div>
+                            <div class="metric-value">${server.disk[0].disk_usage_percent.toFixed(1)}%</div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${getProgressClass(server.disk[0].disk_usage_percent)}" style="width: ${server.disk[0].disk_usage_percent}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    ${server.errors.length > 0 ? `<div class="error-badge"><i class="fas fa-exclamation-triangle me-1"></i>${server.errors.length}개 오류</div>` : ''}
                 `;
                 
                 serverGrid.appendChild(serverCard);
             });
+        }
+        
+        // 접이식 패널 토글 함수
+        function toggleCollapsible(header) {
+            const body = header.nextElementSibling;
+            const icon = header.querySelector('.collapse-toggle i');
+            
+            body.classList.toggle('expanded');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+            
+            // 각 패널의 확장 상태를 로컬 스토리지에 저장
+            const panelId = header.textContent.trim();
+            localStorage.setItem(`panel_${panelId}`, body.classList.contains('expanded') ? 'expanded' : 'collapsed');
+        }
+        
+        // 사이드바 토글 함수
+        function toggleSidebar() {
+            const mainContentGrid = document.getElementById('mainContentGrid');
+            mainContentGrid.classList.toggle('sidebar-hidden');
+            
+            const toggleButton = document.getElementById('sidebarToggle');
+            const icon = toggleButton.querySelector('i');
+            
+            if (mainContentGrid.classList.contains('sidebar-hidden')) {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            }
+            
+            // 사이드바 상태 저장
+            localStorage.setItem('sidebar_state', mainContentGrid.classList.contains('sidebar-hidden') ? 'hidden' : 'visible');
         }
 
         // 서비스 태그 렌더링 함수
@@ -1311,7 +1542,13 @@
         // 서버 상세 정보 표시 함수
         function showServerDetail(server) {
             // 모달 제목 설정
-            document.getElementById('modalServerName').textContent = `${server.hostname} ${getServerStatusText(server)}`;
+            const statusClass = getServerStatusClass(server);
+            const statusText = getServerStatusText(server);
+            
+            document.getElementById('modalServerName').innerHTML = `
+                <i class="fas fa-server"></i>
+                ${server.hostname} <span class="badge ${statusClass === 'status-normal' ? 'bg-success' : (statusClass === 'status-warning' ? 'bg-warning' : 'bg-danger')}">${statusText}</span>
+            `;
             
             // 시스템 정보 설정
             document.getElementById('modalOS').textContent = server.os || '-';
