@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenManager AI - 서버 상세 정보</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- 부트스트랩 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 부트스트랩 아이콘 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Font Awesome 아이콘 추가 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 차트 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="loading" id="loadingIndicator">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">로딩 중...</span>
+            </div>
+            <div>서버 데이터를 가져오는 중입니다...</div>
+        </div>
+    </div>
+
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-server"></i>
+            OpenManager AI
+        </div>
+        <nav class="nav-menu">
+            <a href="index.html" class="nav-item">소개</a>
+            <a href="server_dashboard.html" class="nav-item">서버 모니터링</a>
+        </nav>
+    </header>
+
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col d-flex align-items-center">
+                <a href="server_dashboard.html" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i> 대시보드로 돌아가기
+                </a>
+                <h1 class="display-5 mb-0" id="serverTitle">서버 상세 정보</h1>
+            </div>
+        </div>
+
+        <div class="alert alert-info" id="serverNotFound" style="display: none;">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            서버 정보를 찾을 수 없습니다. 유효한 서버 호스트명을 확인해주세요.
+        </div>
+
+        <div id="serverDetailContainer">
+            <!-- 서버 개요 -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>서버 개요</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="serverOverview">
+                        <!-- 여기에 개요 정보가 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 리소스 사용량 -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>리소스 사용량</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="resourceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="resource-details" id="resourceDetails">
+                                <!-- 여기에 리소스 세부 정보가 동적으로 추가됩니다 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 서비스 상태 -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>서비스 상태</h5>
+                </div>
+                <div class="card-body">
+                    <div id="serviceStatus" class="service-status-container">
+                        <!-- 여기에 서비스 상태가 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오류 메시지 -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>오류 메시지</h5>
+                </div>
+                <div class="card-body">
+                    <div id="errorMessages">
+                        <!-- 여기에 오류 메시지가 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 24시간 사용 추이 -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>24시간 리소스 사용 추이</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 자바스크립트 라이브러리 및 소스 파일 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="dummy_data_generator.js"></script>
+    <script src="ai_processor.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL에서 호스트명 가져오기
+            const urlParams = new URLSearchParams(window.location.search);
+            const hostname = urlParams.get('host');
+            
+            if (!hostname) {
+                document.getElementById('serverNotFound').style.display = 'block';
+                document.getElementById('serverDetailContainer').style.display = 'none';
+                document.getElementById('loadingIndicator').style.display = 'none';
+                return;
+            }
+            
+            // 서버 제목 업데이트
+            document.getElementById('serverTitle').textContent = `${hostname} 서버 상세 정보`;
+            
+            // 서버 데이터 로드
+            function loadServerData() {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                
+                // 데이터가 이미 로드되어 있으면 사용
+                if (window.serverData && window.serverData.length > 0) {
+                    const server = window.serverData.find(s => s.hostname === hostname);
+                    if (server) {
+                        displayServerDetails(server);
+                    } else {
+                        document.getElementById('serverNotFound').style.display = 'block';
+                        document.getElementById('serverDetailContainer').style.display = 'none';
+                    }
+                    loadingIndicator.style.display = 'none';
+                    return;
+                }
+                
+                // 데이터 로드 시도 (최대 10초 대기)
+                let attempts = 0;
+                const checkInterval = setInterval(() => {
+                    if (window.serverData && window.serverData.length > 0) {
+                        clearInterval(checkInterval);
+                        const server = window.serverData.find(s => s.hostname === hostname);
+                        if (server) {
+                            displayServerDetails(server);
+                        } else {
+                            document.getElementById('serverNotFound').style.display = 'block';
+                            document.getElementById('serverDetailContainer').style.display = 'none';
+                        }
+                        loadingIndicator.style.display = 'none';
+                        return;
+                    }
+                    
+                    attempts++;
+                    if (attempts >= 20) { // 10초 후 타임아웃 (500ms * 20)
+                        clearInterval(checkInterval);
+                        loadingIndicator.style.display = 'none';
+                        document.getElementById('serverNotFound').style.display = 'block';
+                        document.getElementById('serverDetailContainer').style.display = 'none';
+                    }
+                }, 500);
+            }
+            
+            // 서버 상세 정보 표시
+            function displayServerDetails(server) {
+                // 서버 개요 정보
+                document.getElementById('serverOverview').innerHTML = `
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tr>
+                                <th>호스트명</th>
+                                <td>${server.hostname}</td>
+                            </tr>
+                            <tr>
+                                <th>OS</th>
+                                <td>${server.os}</td>
+                            </tr>
+                            <tr>
+                                <th>가동 시간</th>
+                                <td>${server.uptime}</td>
+                            </tr>
+                            <tr>
+                                <th>마지막 업데이트</th>
+                                <td>${new Date(server.timestamp).toLocaleString()}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tr>
+                                <th>프로세스 수</th>
+                                <td>${server.process_count}</td>
+                            </tr>
+                            <tr>
+                                <th>좀비 프로세스</th>
+                                <td>${server.zombie_count}</td>
+                            </tr>
+                            <tr>
+                                <th>로드 평균 (1분)</th>
+                                <td>${server.load_avg_1m}</td>
+                            </tr>
+                            <tr>
+                                <th>상태</th>
+                                <td><span class="server-status status-${getServerStatus(server)}">${getStatusLabel(getServerStatus(server))}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+                
+                // 리소스 사용량 상세
+                document.getElementById('resourceDetails').innerHTML = `
+                    <table class="table">
+                        <tr>
+                            <th>CPU 사용량</th>
+                            <td>${server.cpu_usage}%</td>
+                            <td>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar progress-${getResourceStatus(server.cpu_usage)}" 
+                                         style="width: ${server.cpu_usage}%"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>메모리 사용량</th>
+                            <td>${server.memory_usage_percent.toFixed(1)}%</td>
+                            <td>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar progress-${getResourceStatus(server.memory_usage_percent)}" 
+                                         style="width: ${server.memory_usage_percent}%"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>디스크 사용량</th>
+                            <td>${server.disk[0].disk_usage_percent.toFixed(1)}%</td>
+                            <td>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar progress-${getResourceStatus(server.disk[0].disk_usage_percent)}" 
+                                         style="width: ${server.disk[0].disk_usage_percent}%"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                `;
+                
+                // 리소스 차트 생성
+                createResourceChart(server);
+                
+                // 서비스 상태
+                const serviceStatusContainer = document.getElementById('serviceStatus');
+                serviceStatusContainer.innerHTML = '';
+                
+                Object.entries(server.services).forEach(([name, status]) => {
+                    const serviceTag = document.createElement('div');
+                    serviceTag.className = `service-badge service-${status}`;
+                    serviceTag.innerHTML = `${name} (${status})`;
+                    serviceStatusContainer.appendChild(serviceTag);
+                });
+                
+                // 오류 메시지
+                const errorMessagesContainer = document.getElementById('errorMessages');
+                if (server.errors && server.errors.length > 0) {
+                    errorMessagesContainer.innerHTML = `
+                        <ul class="list-group">
+                            ${server.errors.map(error => `
+                                <li class="list-group-item text-danger">${error}</li>
+                            `).join('')}
+                        </ul>
+                    `;
+                } else {
+                    errorMessagesContainer.innerHTML = '<p>현재 보고된 오류가 없습니다.</p>';
+                }
+                
+                // 이력 데이터 차트 생성 (있는 경우)
+                if (window.serverHistoricalData && window.serverHistoricalData[server.hostname]) {
+                    createHistoryChart(server.hostname);
+                } else {
+                    document.getElementById('historyChart').parentElement.innerHTML = `
+                        <div class="alert alert-info">이력 데이터가 없습니다.</div>
+                    `;
+                }
+            }
+            
+            // 리소스 차트 생성
+            function createResourceChart(server) {
+                const ctx = document.getElementById('resourceChart').getContext('2d');
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['CPU', '메모리', '디스크'],
+                        datasets: [{
+                            label: '사용량 (%)',
+                            data: [
+                                server.cpu_usage, 
+                                server.memory_usage_percent, 
+                                server.disk[0].disk_usage_percent
+                            ],
+                            backgroundColor: [
+                                getChartColor(server.cpu_usage),
+                                getChartColor(server.memory_usage_percent),
+                                getChartColor(server.disk[0].disk_usage_percent)
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 이력 차트 생성
+            function createHistoryChart(hostname) {
+                const historicalData = window.serverHistoricalData[hostname];
+                if (!historicalData || historicalData.length === 0) return;
+                
+                const ctx = document.getElementById('historyChart').getContext('2d');
+                
+                // 시간 레이블 생성 (최근 24시간)
+                const labels = historicalData.map(data => {
+                    const date = new Date(data.timestamp);
+                    return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                });
+                
+                // CPU, 메모리, 디스크 데이터 추출
+                const cpuData = historicalData.map(data => data.cpu_usage);
+                const memoryData = historicalData.map(data => data.memory_usage_percent);
+                const diskData = historicalData.map(data => data.disk_usage_percent);
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'CPU',
+                                data: cpuData,
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderWidth: 2,
+                                tension: 0.1
+                            },
+                            {
+                                label: '메모리',
+                                data: memoryData,
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderWidth: 2,
+                                tension: 0.1
+                            },
+                            {
+                                label: '디스크',
+                                data: diskData,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                borderWidth: 2,
+                                tension: 0.1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: '사용량 (%)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '시간'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 서버 상태 판단 (간소화된 버전)
+            function getServerStatus(server) {
+                if (server.cpu_usage >= 90 || server.memory_usage_percent >= 90 || server.disk[0].disk_usage_percent >= 90) {
+                    return 'critical';
+                } else if (server.cpu_usage >= 70 || server.memory_usage_percent >= 70 || server.disk[0].disk_usage_percent >= 70) {
+                    return 'warning';
+                } else {
+                    return 'normal';
+                }
+            }
+            
+            // 상태 라벨 얻기
+            function getStatusLabel(status) {
+                switch(status) {
+                    case 'normal': return '정상';
+                    case 'warning': return '경고';
+                    case 'critical': return '심각';
+                    default: return '알 수 없음';
+                }
+            }
+            
+            // 리소스 상태 판단
+            function getResourceStatus(value) {
+                if (value >= 90) return 'critical';
+                if (value >= 70) return 'warning';
+                return 'normal';
+            }
+            
+            // 차트 색상 얻기
+            function getChartColor(value) {
+                const status = getResourceStatus(value);
+                switch(status) {
+                    case 'critical': return 'rgba(220, 53, 69, 0.7)'; // 심각
+                    case 'warning': return 'rgba(253, 154, 20, 0.7)'; // 경고
+                    default: return 'rgba(40, 167, 69, 0.7)'; // 정상
+                }
+            }
+            
+            // 서버 데이터 로드 시작
+            loadServerData();
+        });
+    </script>
+</body>
+</html> 

@@ -433,8 +433,8 @@ class DataProcessor {
         serverCard.className = 'server-card';
         serverCard.dataset.serverId = server.hostname;
         
-        // 카드 클릭 시 상세 정보 모달 표시
-        serverCard.addEventListener('click', () => this.showServerDetail(server));
+        // 기존 클릭 이벤트 제거 (모달 대신 새 페이지로 이동)
+        // serverCard.addEventListener('click', () => this.showServerDetail(server));
         
         // 카드 내용 구성
         serverCard.innerHTML = `
@@ -482,6 +482,9 @@ class DataProcessor {
                     ${server.errors.length > 0 ? `<i class="bi bi-exclamation-triangle-fill"></i> ${server.errors.length}개의 오류` : ''}
                 </div>
             ` : ''}
+            <div class="text-center mt-3">
+                <a href="server_detail.html?host=${server.hostname}" class="btn btn-sm btn-primary">자세히 보기</a>
+            </div>
         `;
         
         return serverCard;
@@ -1130,31 +1133,6 @@ class DataProcessor {
 // 데이터 프로세서 인스턴스 생성
 window.addEventListener('DOMContentLoaded', () => {
     window.dataProcessor = new DataProcessor();
-    
-    // localStorage에서 각 패널의 상태(펼침/접힘)를 복원
-    document.querySelectorAll('.collapsible-panel').forEach(panel => {
-        const id = panel.id;
-        if (!id) return; // id가 없는 패널은 건너뜀
-        
-        const state = localStorage.getItem(`panel_${id}_state`);
-        const body = panel.querySelector('.collapsible-body');
-        const icon = panel.querySelector('.collapse-toggle i');
-        
-        if (!body || !icon) return; // 필요한 요소가 없으면 건너뜀
-        
-        if (state === 'expanded') {
-            // 패널을 펼침 상태로 설정
-            body.classList.add('expanded');
-            icon.classList.remove('fa-chevron-down');
-            icon.classList.add('fa-chevron-up');
-        } else if (state === 'collapsed') {
-            // 패널을 접힘 상태로 설정
-            body.classList.remove('expanded');
-            icon.classList.remove('fa-chevron-up');
-            icon.classList.add('fa-chevron-down');
-        }
-        // 저장된 상태가 없으면 기본 상태 유지
-    });
     
     // '더 보기' 버튼 이벤트 리스너 직접 등록
     const toggleBtn = document.getElementById('toggleAiProblemListBtn');

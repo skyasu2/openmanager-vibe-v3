@@ -901,12 +901,11 @@
         <!-- 자동 장애 보고서 섹션 및 서버 현황 요약을 포함하는 incident-panel을 AI 질의 영역 아래로 이동 -->
         <div class="incident-panel mt-4"> <!-- mt-4 클래스 추가하여 위쪽과 간격 조정 -->
             <!-- AI 자동 장애 보고서 패널 -->
-            <div class="collapsible-panel" id="aiReportPanel"> <!-- 패널에 ID 추가 -->
-                <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                    <div><i class="fas fa-exclamation-triangle me-2 text-danger"></i> AI 자동 장애 보고서</div> <!-- 제목 수정 -->
-                    <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
+            <div class="panel card mb-4" id="aiReportPanel">
+                <div class="card-header bg-light">
+                    <div><i class="fas fa-exclamation-triangle me-2 text-danger"></i> AI 자동 장애 보고서</div>
                 </div>
-                <div class="collapsible-body expanded"> <!-- 기본적으로 펼쳐진 상태로 시작 -->
+                <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">감지된 문제</h6>
                         <button class="btn btn-sm btn-outline-primary" id="downloadAllReportsBtn">
@@ -914,7 +913,7 @@
                         </button>
                     </div>
                     
-                    <div class="alert alert-info" id="aiProblemsLoading" style="display: none;"> <!-- ID 변경 및 초기 숨김 -->
+                    <div class="alert alert-info" id="aiProblemsLoading" style="display: none;">
                         <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
                             <span class="visually-hidden">로딩 중...</span>
                         </div>
@@ -937,13 +936,12 @@
                 </div>
             </div>
 
-            <!-- 서버 현황 요약 패널 (기존 incident-panel 내 다른 패널이 있다면 여기에 유지 또는 추가) -->
-            <div class="collapsible-panel mt-3" id="serverStatusSummaryPanel">
-                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <!-- 서버 현황 요약 패널 -->
+            <div class="panel card mb-4" id="serverStatusSummaryPanel">
+                <div class="card-header bg-light">
                     <div><i class="fas fa-tasks me-2 text-primary"></i> 서버 현황 요약</div>
-                    <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
                 </div>
-                <div class="collapsible-body expanded">
+                <div class="card-body">
                     <div id="statusSummaryContainer">
                         <!-- 요약 정보가 여기에 동적으로 채워집니다 (data_processor.js) -->
                         <p>요약 정보를 불러오는 중...</p>
@@ -1128,29 +1126,7 @@
 
     <!-- 필요한 자바스크립트 함수 정의 -->
     <script>
-        // 접이식 패널 토글 함수
-        function toggleCollapsible(header) {
-            const body = header.nextElementSibling;
-            const icon = header.querySelector('.collapse-toggle i');
-            
-            const isExpanded = body.classList.contains('expanded');
-            
-            body.classList.toggle('expanded');
-            
-            if (isExpanded) {
-                icon.classList.remove('fa-chevron-up');
-                icon.classList.add('fa-chevron-down');
-            } else {
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
-            }
-
-            // 상태 저장
-            if (body && body.parentElement && body.parentElement.id) {
-                const panelId = body.parentElement.id;
-                localStorage.setItem(`panel_${panelId}_state`, body.classList.contains('expanded') ? 'expanded' : 'collapsed');
-            }
-        }
+        // 패널 토글 기능 제거
     </script>
 
     <!-- 자바스크립트 라이브러리 및 소스 파일 -->
