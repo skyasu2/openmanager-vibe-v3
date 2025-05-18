@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenManager AI</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-light: #e8f0fe;
+            --primary-dark: #0d47a1;
+            --secondary: #34a853;
+            --accent: #ea4335;
+            --surface: #ffffff;
+            --background: #f8f9fa;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --text-white: #ffffff;
+            --border: #dadce0;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 20px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.05);
+            --border-radius-md: 12px;
+            --border-radius-lg: 20px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        a {
+            text-decoration: none;
+        }
+        
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        
+        .splash-container {
+            width: 90%;
+            max-width: 520px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: var(--spacing-xl);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out forwards;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .splash-container:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            z-index: 1;
+        }
+        
+        .logo-container {
+            margin-bottom: var(--spacing-lg);
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .logo-container i {
+            font-size: 64px;
+            color: var(--primary);
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+        
+        h1 .highlight {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        
+        .description {
+            color: var(--text-secondary);
+            font-size: 18px;
+            margin-bottom: var(--spacing-lg);
+            line-height: 1.5;
+        }
+        
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .feature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: transform 0.3s ease;
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius-md);
+        }
+        
+        .feature-item:hover {
+            transform: translateY(-5px);
+            background-color: rgba(255, 255, 255, 0.7);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .feature-item i {
+            font-size: 32px;
+            margin-bottom: var(--spacing-sm);
+            color: var(--primary);
+        }
+        
+        .feature-item:nth-child(1) i {
+            color: var(--primary);
+        }
+        
+        .feature-item:nth-child(2) i {
+            color: var(--secondary);
+        }
+        
+        .feature-item:nth-child(3) i {
+            color: var(--accent);
+        }
+        
+        .feature-item span {
+            font-weight: 500;
+            font-size: 16px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            color: var(--text-white);
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 500;
+            border-radius: 50px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(26, 115, 232, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn-primary:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+            z-index: -1;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(26, 115, 232, 0.4);
+        }
+        
+        .btn-primary:hover:before {
+            opacity: 1;
+        }
+        
+        .btn-primary:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(26, 115, 232, 0.4);
+        }
+        
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        @media (max-width: 600px) {
+            .splash-container {
+                padding: var(--spacing-lg);
+            }
+            
+            .features {
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+            
+            .feature-item {
+                flex-direction: row;
+                text-align: left;
+                justify-content: flex-start;
+                width: 100%;
+            }
+            
+            .feature-item i {
+                margin-bottom: 0;
+                margin-right: var(--spacing-sm);
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            .description {
+                font-size: 16px;
+            }
+        }
+
+        .ai-query-container {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg);
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--border);
+            border-radius: var(--border-radius-md);
+            font-size: 16px;
+            margin-bottom: var(--spacing-md);
+            transition: all 0.3s ease;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .query-result {
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--surface);
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        .query-result.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: var(--spacing-md) 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .loading i {
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="splash-container">
+        <div class="logo-container">
+            <i class="fas fa-robot"></i>
+        </div>
+        <h1>OpenManager <span class="highlight">AI</span></h1>
+        <p class="description">
+            서버 모니터링과 AI 기반 분석을 통합한 최고의 서버 관리 솔루션
+        </p>
+        
+        <div class="features">
+            <div class="feature-item">
+                <i class="fas fa-server"></i>
+                <span>실시간 모니터링</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-robot"></i>
+                <span>AI 분석</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-chart-line"></i>
+                <span>성능 최적화</span>
+            </div>
+        </div>
+
+        <a href="server_dashboard.html?nocache=true" class="btn-primary">
+            <i class="fas fa-arrow-right"></i>
+            AI 대시보드 바로가기
+        </a>
+    </div>
+
+    <script src="dummy_data_generator.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('OpenManager AI 시작됨');
+        });
+    </script>
+</body>
+</html>

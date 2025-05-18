@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenManager AI - 서버 모니터링 대시보드</title>
+    <link rel="stylesheet" href="css/modern-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- 부트스트랩 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 부트스트랩 아이콘 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Font Awesome 아이콘 추가 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 차트 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* CSS 변수 정의 */
+        :root {
+            --primary: #4e73df;
+            --primary-dark: #2e59d9;
+            --primary-light: rgba(78, 115, 223, 0.1);
+            --danger: #e74a3b;
+            --warning: #f6c23e;
+            --success: #1cc88a;
+            --background: #f8f9fc;
+            --surface: #ffffff;
+            --text: #5a5c69;
+            --text-muted: #858796;
+            --border: #e3e6f0;
+            --shadow-sm: 0 .125rem .25rem rgba(58, 59, 69, .2);
+            --shadow-md: 0 .5rem 1rem rgba(58, 59, 69, .15);
+            --shadow-lg: 0 1rem 3rem rgba(58, 59, 69, .175);
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --border-radius-sm: 4px;
+            --border-radius-md: 12px;
+            --border-radius-lg: 20px;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4a69bd;
+        }
+        
+        /* 서버 카드 스타일 개선 */
+        .server-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .server-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 15px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 100%);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            height: auto;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .server-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border-color: rgba(0, 0, 0, 0.1);
+            background-image: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(245, 247, 250, 0.9) 100%);
+        }
+        
+        .server-card:hover::after {
+            content: '클릭하여 자세히 보기';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(74, 105, 189, 0.9);
+            color: white;
+            padding: 5px;
+            font-size: 0.75rem;
+            text-align: center;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+            border-radius: 0 0 12px 12px;
+        }
+        
+        /* 서버 카드 눌림 효과 */
+        .server-card:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .server-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            width: 100%;
+            background: linear-gradient(90deg, #4a69bd, #2c3e50);
+        }
+        
+        /* 상태에 따른 카드 스타일 */
+        .server-card.status-warning::before {
+            background: linear-gradient(90deg, #ff8f00, #ffa000);
+        }
+        
+        .server-card.status-critical::before {
+            background: linear-gradient(90deg, #d32f2f, #b71c1c);
+        }
+        
+        /* 상태에 따른 추가 스타일 */
+        .server-card.status-critical {
+            border-left: 3px solid #d32f2f;
+        }
+        
+        .server-card.status-warning {
+            border-left: 3px solid #ff8f00;
+        }
+        
+        .server-card.status-normal {
+            border-left: 3px solid #4caf50;
+        }
+        
+        /* 컴팩트 서버 카드 레이아웃 */
+        .server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .server-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        
+        .server-status {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 30px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        
+        .server-status:hover {
+            transform: scale(1.05);
+        }
+        
+        .status-normal {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-warning {
+            background-color: #fff8e1;
+            color: #ff8f00;
+        }
+        
+        .status-critical {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        /* 컴팩트 메트릭 스타일 */
+        .server-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .metric-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 0.7rem;
+            color: #7f8c8d;
+            margin-right: 10px;
+            min-width: 80px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .metric-label::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background-color: #4a69bd;
+        }
+        
+        .metric-item:nth-child(2) .metric-label::before {
+            background-color: #3498db;
+        }
+        
+        .metric-item:nth-child(3) .metric-label::before {
+            background-color: #2ecc71;
+        }
+        
+        .metric-item:nth-child(4) .metric-label::before {
+            background-color: #9b59b6;
+        }
+        
+        .metric-value {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 10px;
+            min-width: 45px;
+        }
+        
+        /* 프로그레스 바 스타일 개선 */
+        .progress-bar-container {
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            background-color: #f1f1f1;
+            margin-top: 3px;
+            position: relative;
+        }
+        
+        .progress-bar {
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+        
+        .progress-normal {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+        
+        .progress-warning {
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+        }
+        
+        .progress-critical {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+        
+        /* 메트릭 값 텍스트 스타일 개선 */
+        .detail-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 10px;
+            min-width: 45px;
+            transition: color 0.3s ease;
+        }
+        
+        .detail-value.text-success {
+            color: #27ae60 !important;
+            text-shadow: 0 0 1px rgba(39, 174, 96, 0.2);
+        }
+        
+        .detail-value.text-warning {
+            color: #e67e22 !important;
+            text-shadow: 0 0 1px rgba(230, 126, 34, 0.2);
+        }
+        
+        .detail-value.text-danger {
+            color: #c0392b !important;
+            text-shadow: 0 0 1px rgba(192, 57, 43, 0.2);
+        }
+        
+        .main-content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1100px) {
+            .main-content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .dashboard-section {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .filter-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        /* AI 질의 컨테이너 */
+        .ai-query-container {
+            background: linear-gradient(to right, rgba(78, 115, 223, 0.05), rgba(78, 115, 223, 0.01));
+            border-left: 4px solid var(--primary);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            transition: transform 0.3s ease;
+        }
+
+        .ai-query-container:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .query-loading {
+            display: none;
+            text-align: center;
+            margin: var(--spacing-md) 0;
+        }
+
+        .query-loading.active {
+            display: block;
+        }
+
+        .query-result {
+            display: none;
+            background-color: var(--background);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-md);
+            white-space: pre-line;
+            border: 1px solid var(--border);
+            position: relative;
+            padding-top: 30px;
+        }
+        
+        .query-result.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* 닫기 버튼 스타일 */
+        #closeQueryResult {
+            transition: all 0.2s;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #closeQueryResult:hover {
+            transform: scale(1.1);
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .close-button-container {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                padding: 10px;
+            }
+            
+            .logo {
+                margin-bottom: 10px;
+            }
+            
+            .nav-menu {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .nav-item {
+                margin: 0 5px;
+                padding: 5px 10px;
+                font-size: 14px;
+            }
+        }
+        
+        .error-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 3px 8px;
+            background-color: #ffebee;
+            color: #d32f2f;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.3);
+            }
+            70% {
+                box-shadow: 0 0 0 5px rgba(211, 47, 47, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
+            }
+        }
+        
+        .service-status-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .service-status-tag {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .service-status-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .service-status-tag.service-running {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .service-status-tag.service-stopped {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .status-indicator {
+            margin-left: 5px;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        
+        /* 장애 프리셋 스타일 */
+        .preset-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .preset-tag {
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: white;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            border: 1px solid #e3e6f0;
+        }
+        
+        .preset-tag:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-3px);
+        }
+        
+        .preset-tag .badge {
+            margin-left: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .preset-tag:hover .badge {
+            transform: scale(1.1);
+        }
+        
+        .preset-tag.tag-critical {
+            border-left: 4px solid var(--danger);
+            background-color: rgba(231, 74, 59, 0.05);
+        }
+        
+        .preset-tag.tag-warning {
+            border-left: 4px solid var(--warning);
+            background-color: rgba(246, 194, 62, 0.05);
+        }
+        
+        .preset-tag.tag-normal {
+            border-left: 4px solid var(--success);
+            background-color: rgba(28, 200, 138, 0.05);
+        }
+        
+        .preset-tag.active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .preset-tag:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .badge.bg-danger {
+            background-color: var(--danger) !important;
+        }
+        
+        .badge.bg-warning {
+            background-color: var(--warning) !important;
+            color: #212529;
+        }
+        
+        .badge.bg-success {
+            background-color: var(--success) !important;
+        }
+        
+        /* 자동 장애 보고서 스타일 개선 */
+        .auto-report-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .auto-report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 15px;
+        }
+
+        /* 추가적인 반응형 디자인 개선 */
+        /* FHD (1920x1080) */
+        @media (min-width: 1920px) {
+            .container-fluid {
+                max-width: 1800px;
+                margin: 0 auto;
+            }
+            
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            }
+        }
+        
+        /* QHD (2560x1440) */
+        @media (min-width: 2560px) {
+            .container-fluid {
+                max-width: 2400px;
+                margin: 0 auto;
+            }
+            
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            }
+            
+            .main-content-grid {
+                grid-template-columns: 3fr 1fr;
+            }
+        }
+        
+        /* 태블릿 디바이스 */
+        @media (max-width: 992px) {
+            .main-content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+        }
+        
+        /* 모바일 디바이스 */
+        @media (max-width: 768px) {
+            .server-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .nav-menu {
+                margin-top: 10px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .section-header button {
+                margin-top: 10px;
+                margin-left: 0;
+            }
+            
+            .card-body .row {
+                flex-direction: column;
+            }
+            
+            .preset-container {
+                flex-direction: row;
+                overflow-x: auto;
+                padding-bottom: 10px;
+                margin-bottom: 5px;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .preset-tag {
+                flex: 0 0 auto;
+                white-space: nowrap;
+            }
+        }
+        
+        /* 작은 모바일 화면 */
+        @media (max-width: 480px) {
+            .container-fluid {
+                padding: 10px;
+            }
+            
+            h1.display-5 {
+                font-size: 1.8rem;
+            }
+            
+            .dashboard-section {
+                padding: 15px;
+            }
+            
+            .server-card {
+                padding: 15px;
+            }
+            
+            .pagination-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            #prevPageBtn, #nextPageBtn {
+                margin: 5px 0;
+            }
+        }
+
+        /* 자동 장애 보고서 반응형 조정 */
+        .auto-report-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .auto-report-container {
+                max-height: 50vh;
+            }
+        }
+        
+        @media (min-width: 1600px) {
+            .auto-report-container {
+                max-height: 90vh;
+            }
+        }
+
+        /* 서비스 태그 스타일 추가 */
+        .services-container {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .service-tag {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .service-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .service-tag.service-running {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .service-tag.service-stopped {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+        }
+        
+        /* 반응형 그리드 개선 */
+        @media (min-width: 1400px) {
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            }
+        }
+        
+        @media (min-width: 1700px) {
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+        }
+        
+        @media (min-width: 2000px) {
+            .server-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+        }
+        
+        /* 오른쪽 장애 패널 개선 */
+        .incident-panel {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .collapsible-panel {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .collapsible-header {
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .collapsible-header:hover {
+            background-color: #f0f2f5;
+        }
+        
+        .collapsible-body {
+            padding: 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsible-body.expanded {
+            max-height: 500px;
+        }
+        
+        .collapse-toggle {
+            color: #6c757d;
+            transition: transform 0.3s ease;
+        }
+        
+        .collapse-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        
+        /* 사이드바 토글 버튼 */
+        .sidebar-toggle {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px 0 0 4px;
+            width: 30px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        
+        .main-content-grid {
+            position: relative;
+            transition: grid-template-columns 0.3s ease;
+        }
+        
+        .main-content-grid.sidebar-hidden {
+            grid-template-columns: 1fr 0fr;
+        }
+        
+        .main-content-grid.sidebar-hidden .incident-panel {
+            display: none;
+        }
+        
+        /* 서비스 태그 간소화 */
+        .services-container {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .service-tag {
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* 모달 스타일 개선 */
+        .modal-content {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .modal-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-title i {
+            color: var(--primary);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-backdrop.show {
+            opacity: 0.7;
+        }
+        
+        /* 모달 진입/퇴장 애니메이션 */
+        .modal.fade .modal-dialog {
+            transition: transform 0.3s ease-out;
+        }
+        
+        .modal.fade.show .modal-dialog {
+            transform: translate(0, 0);
+        }
+        
+        .modal.fade:not(.show) .modal-dialog {
+            transform: translate(0, -50px);
+        }
+        
+        /* 차트 컨테이너에 Border와 배경 추가 */
+        .chart-container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        /* 모달 내 테이블 스타일 개선 */
+        .modal-body .table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .modal-body .table th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+        
+        .modal-body .table td {
+            vertical-align: middle;
+            padding: 10px;
+        }
+
+        /* AI 자동 장애 보고서 스타일 개선 */
+        #aiReportPanel {
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-md);
+            border-radius: 0.35rem;
+            overflow: hidden;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        #aiReportPanel:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+        }
+
+        #aiReportPanel .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eaecef;
+            padding: 15px 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        #aiReportPanel:hover .card-header {
+            background-color: #e9ecef;
+        }
+
+        #aiProblemList {
+            max-height: none;
+            overflow-y: visible;
+        }
+
+        .problem-item {
+            position: relative;
+            padding-right: 40px;
+            transition: all 0.3s ease;
+            border-left: 5px solid transparent;
+            overflow: hidden;
+        }
+        
+        .problem-item:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.03);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 0;
+        }
+        
+        .problem-item:hover:before {
+            transform: translateX(0);
+        }
+        
+        .problem-item:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            border-left-width: 8px;
+        }
+        
+        /* 심각도별 색상 */
+        .problem-item.severity-critical {
+            border-left-color: #d32f2f;
+        }
+        
+        .problem-item.severity-warning, .problem-item.severity-error {
+            border-left-color: #ff8f00;
+        }
+        
+        .problem-item.severity-normal {
+            border-left-color: #4caf50;
+        }
+        
+        /* 문제 설명 스타일 */
+        .problem-description {
+            font-weight: 600;
+            color: #2c3e50;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 해결책 스타일 */
+        .problem-solution {
+            font-size: 0.85rem;
+            color: #546e7a;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 심각도 텍스트 스타일 */
+        .problem-severity-text {
+            color: #2c3e50;
+        }
+        
+        .severity-critical .problem-severity-text {
+            color: #d32f2f;
+        }
+        
+        .severity-warning .problem-severity-text, .severity-error .problem-severity-text {
+            color: #ff8f00;
+        }
+        
+        /* 검색 아이콘 (자세히 보기 힌트) */
+        .problem-hint-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b0bec5;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .problem-item:hover .problem-hint-icon {
+            color: #4e73df;
+            transform: translateY(-50%) scale(1.2);
+        }
+        
+        /* 클릭 힌트 툴팁 */
+        .problem-item:hover::after {
+            content: '클릭하여 상세 보고서 보기';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: rgba(74, 105, 189, 0.9);
+            color: white;
+            padding: 3px 8px;
+            font-size: 0.7rem;
+            border-radius: 4px 0 0 0;
+            z-index: 2;
+        }
+        
+        /* 커서 스타일 */
+        .problem-item {
+            cursor: pointer;
+        }
+
+        /* 리스트 애니메이션 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .problem-item {
+            animation: fadeInUp 0.5s ease forwards;
+            animation-delay: calc(var(--item-index) * 0.1s);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loadingIndicator">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">로딩 중...</span>
+            </div>
+            <div>데이터를 가져오는 중입니다...</div>
+        </div>
+    </div>
+
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-server"></i>
+            OpenManager AI
+        </div>
+        <nav class="nav-menu">
+            <a href="index.html" class="nav-item">소개</a>
+            <a href="server_dashboard.html" class="nav-item active">서버 모니터링</a>
+        </nav>
+    </header>
+
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="display-5 mb-0">서버 모니터링 대시보드</h1>
+                <p class="text-muted" id="timestamp">데이터 기준 시각: 로딩 중...</p>
+            </div>
+        </div>
+        
+        <!-- AI 자동 요약 알림 영역 추가 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div id="statusSummaryAlert" class="alert d-flex align-items-center" role="alert" style="display: none;">
+                    <div class="me-3 status-icon">
+                        <!-- 아이콘은 상태에 따라 JS에서 동적으로 변경됨 -->
+                    </div>
+                    <div class="status-message">
+                        <!-- 상태 메시지는 JS에서 동적으로 변경됨 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 질의 영역 (전체 너비) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="ai-query-container">
+                    <h5 class="mb-3"><i class="fas fa-robot me-2"></i>AI 서버 분석</h5>
+                    <p class="text-muted mb-3">서버 상태나 성능에 대해 자연어로 질문해보세요. (예: "CPU 사용률이 높은 서버는?", "메모리 상태 알려줘")</p>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-primary text-white"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control query-input shadow-sm" id="queryInput" placeholder="자연어로 질문하세요... (Enter 키를 눌러 질문)">
+                        <button class="btn btn-primary ai-query-submit shadow-sm" id="ai-query-submit" type="button">
+                            <i class="fas fa-paper-plane me-1"></i> 질문하기
+                        </button>
+                    </div>
+                    
+                    <!-- 장애 프리셋 추가 -->
+                    <div class="preset-container">
+                        <div class="preset-tag" id="cpu-preset" data-preset="CPU 사용률이 높은 서버 목록과 원인 분석">
+                            <i class="fas fa-microchip me-2"></i> CPU 과부하 <span class="badge bg-danger">심각</span>
+                        </div>
+                        <div class="preset-tag" id="memory-preset" data-preset="메모리 사용량이 많은 서버 목록 및 조치방안">
+                            <i class="fas fa-memory me-2"></i> 메모리 부족 <span class="badge bg-warning">경고</span>
+                        </div>
+                        <div class="preset-tag" id="service-preset" data-preset="서비스가 중단된 서버 목록과 재시작 방법">
+                            <i class="fas fa-exclamation-triangle me-2"></i> 서비스 중단 <span class="badge bg-danger">심각</span>
+                        </div>
+                        <div class="preset-tag" id="disk-preset" data-preset="디스크 공간이 부족한 서버 분석 및 해결방안">
+                            <i class="fas fa-hdd me-2"></i> 디스크 부족 <span class="badge bg-warning">경고</span>
+                        </div>
+                        <div class="preset-tag" id="normal-preset" data-preset="정상 작동 중인 서버 목록 표시">
+                            <i class="fas fa-check-circle me-2"></i> 정상 서버 <span class="badge bg-success">정상</span>
+                        </div>
+                        <div class="preset-tag" id="summary-preset" data-preset="전체 서버 상태 요약 보고서 생성">
+                            <i class="fas fa-file-alt me-2"></i> 전체 상태 요약
+                        </div>
+                    </div>
+                    
+                    <div class="query-loading" id="queryLoading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">분석 중...</span>
+                        </div>
+                        <p class="mt-2">AI가 서버 데이터를 분석 중입니다...</p>
+                    </div>
+                    <div class="query-result shadow-sm position-relative" id="queryResult">
+                        <div class="d-flex justify-content-between align-items-center mb-3 close-button-container">
+                            <span class="fw-bold text-primary">AI 분석 결과</span>
+                            <button type="button" id="closeQueryResult" class="btn btn-sm btn-light border rounded-circle">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="queryResultContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 자동 장애 보고서 (전체 너비) - 순서 변경 (2번째 위치로) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="panel card" id="aiReportPanel">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <div><i class="fas fa-exclamation-triangle me-2 text-danger"></i> AI 자동 장애 보고서</div>
+                        <button class="btn btn-sm btn-outline-primary" id="downloadAllReportsBtn">
+                            <i class="bi bi-download"></i> 전체 보고서 다운로드
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            각 문제 항목을 <strong>클릭</strong>하면 해당 문제의 <strong>상세 보고서</strong>를 확인할 수 있습니다. 
+                            <small class="d-block mt-1">보고서는 .txt 파일로 저장하여 관리할 수 있습니다.</small>
+                        </div>
+                        
+                        <div class="alert alert-info" id="aiProblemsLoading" style="display: none;">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                <span class="visually-hidden">로딩 중...</span>
+                            </div>
+                            AI가 문제를 분석 중입니다...
+                        </div>
+
+                        <div id="aiProblemsEmpty" style="display: none;" class="text-center py-4">
+                            <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+                            <p class="mt-3 mb-0\">현재 감지된 문제가 없습니다.</p>
+                        </div>
+
+                        <ul class="list-group" id="aiProblemList">
+                            <!-- AI 문제 항목들이 여기에 추가됩니다 -->
+                        </ul>
+                        <div class="d-flex justify-content-center mt-3">
+                            <div class="problem-pagination">
+                                <!-- 문제 페이지네이션이 여기에 추가됩니다 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서버 그리드와 서버 현황 요약 섹션 -->
+        <div class="row mb-4">
+            <!-- 서버 그리드 (전체 너비) -->
+            <div class="col-12">
+                <div class="card search-container mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="searchInput" placeholder="호스트명 검색...">
+                                    <button class="btn btn-refresh" type="button" id="refreshBtn">
+                                        <span class="refresh-content">
+                                            <i class="fas fa-sync-alt me-1"></i> 새로고침
+                                        </span>
+                                        <span class="loading-content" style="display:none">
+                                            <span class="spinner-border spinner-border-sm" role="status"></span> 로딩중...
+                                        </span>
+                                    </button>
+                                    <div class="refresh-tooltip">데이터 새로고침 (서버 문제 발생 시 유용)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3 mb-md-0">
+                                <select class="form-select" id="statusFilter">
+                                    <option value="all">모든 상태</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="normal">Normal</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="pageSize">
+                                    <option value="10">10개씩 보기</option>
+                                    <option value="20">20개씩 보기</option>
+                                    <option value="50">50개씩 보기</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 서버 카드 안내 -->
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    각 서버 카드를 <strong>클릭</strong>하면 해당 서버의 상세 정보를 확인할 수 있습니다.
+                    <small class="d-block mt-1">카드에 마우스를 올리면 추가 정보를 확인할 수 있습니다.</small>
+                </div>
+
+                <!-- 서버 카드 그리드 -->
+                <div class="server-grid" id="serverGrid"></div>
+                
+                <!-- 페이징 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="text-muted" id="serverCount">전체 0 서버 중 0-0 표시 중</div>
+                    <div class="pagination-container">
+                        <button class="btn btn-sm btn-outline-secondary" id="prevPageBtn">
+                            <i class="fas fa-chevron-left"></i> 이전
+                        </button>
+                        <span class="mx-3" id="currentPage">1 / 1</span>
+                        <button class="btn btn-sm btn-outline-secondary" id="nextPageBtn">
+                            다음 <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서버 현황 요약 (전체 너비) -->
+        <div class="row">
+            <div class="col-12">
+                <div class="panel card mb-4" id="serverStatusSummaryPanel">
+                    <div class="card-header bg-light">
+                        <div><i class="fas fa-tasks me-2 text-primary"></i> 서버 현황 요약</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="statusSummaryContainer">
+                            <!-- 요약 정보가 여기에 동적으로 채워집니다 (data_processor.js) -->
+                            <p>요약 정보를 불러오는 중...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서버 상세 정보 모달 -->
+        <div class="modal fade" id="serverDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalServerName">서버 상세 정보</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-4">
+                            <!-- 시스템 정보 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">시스템 정보</h6>
+                                <table class="table table-sm">
+                                    <tbody id="systemInfoTable">
+                                        <tr>
+                                            <th>OS</th>
+                                            <td id="modalOS">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>가동 시간</th>
+                                            <td id="modalUptime">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>프로세스 수</th>
+                                            <td id="modalProcessCount">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>좀비 프로세스</th>
+                                            <td id="modalZombieCount">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>로드 평균 (1분)</th>
+                                            <td id="modalLoadAvg">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>마지막 업데이트</th>
+                                            <td id="modalLastUpdate">-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 리소스 현황 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">리소스 현황</h6>
+                                <div class="chart-container">
+                                    <canvas id="resourceBarChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <!-- 네트워크 정보 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">네트워크 정보</h6>
+                                <table class="table table-sm">
+                                    <tbody id="networkInfoTable">
+                                        <tr>
+                                            <th>인터페이스</th>
+                                            <td id="modalNetInterface">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>수신 바이트</th>
+                                            <td id="modalRxBytes">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>송신 바이트</th>
+                                            <td id="modalTxBytes">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>수신 오류</th>
+                                            <td id="modalRxErrors">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>송신 오류</th>
+                                            <td id="modalTxErrors">-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 서비스 상태 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">서비스 상태</h6>
+                                <div id="modalServiceStatus" class="service-status-container">
+                                    <!-- 서비스 상태 태그들이 여기에 추가됨 -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 오류 메시지 -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="mb-3">오류 메시지</h6>
+                                <div id="modalErrorsContainer" class="alert alert-info">
+                                    현재 보고된 오류가 없습니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 24시간 리소스 사용 추이 -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="mb-3">24시간 리소스 사용 추이</h6>
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="resourceHistoryChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 필요한 자바스크립트 함수 정의 -->
+    <script>
+        // 패널 토글 기능 제거
+    </script>
+
+    <!-- 자바스크립트 라이브러리 및 소스 파일 -->
+    <!-- 스크립트는 순서가 중요: 부트스트랩, dummy_data_generator.js, ai_processor.js, data_processor.js 순서로 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 초기 글로벌 변수 설정
+        window.serverData = window.serverData || [];
+        window.loadStatus = {
+            dummyGenerator: false,
+            aiProcessor: false,
+            dataProcessor: false
+        };
+    </script>
+    <script src="dummy_data_generator.js" onerror="window.loadStatus.dummyGenerator = false" onload="window.loadStatus.dummyGenerator = true"></script>
+    <script src="ai_processor.js" onerror="window.loadStatus.aiProcessor = false" onload="window.loadStatus.aiProcessor = true"></script>
+    <script src="data_processor.js" onerror="window.loadStatus.dataProcessor = false" onload="window.loadStatus.dataProcessor = true"></script>
+    
+    <!-- 스크립트 로드 오류 처리 -->
+    <script>
+        // 스크립트 로드 검증 및 오류 처리
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM이 로드되었습니다. 스크립트 상태 확인을 시작합니다.');
+            
+            // 스크립트 로드 상태 확인
+            checkScriptStatus(0); // 첫 번째 시도
+            
+            // 스크립트 상태 확인 및 필요한 초기화 수행 (최대 3번 시도)
+            function checkScriptStatus(attempt) {
+                const maxAttempts = 3;
+                
+                if (attempt >= maxAttempts) {
+                    console.error(`스크립트 로드 최대 시도 횟수(${maxAttempts}회)를 초과했습니다.`);
+                    createFallbackInitialization();
+                    return;
+                }
+                
+                console.log(`스크립트 로드 상태 확인 중... (시도 ${attempt + 1}/${maxAttempts})`);
+                console.log('로드 상태:', window.loadStatus);
+                
+                // 모든 스크립트가 로드되었는지 확인
+                if (window.loadStatus.dummyGenerator && 
+                    window.loadStatus.aiProcessor && 
+                    window.loadStatus.dataProcessor) {
+                    console.log('모든 스크립트가 정상적으로 로드되었습니다.');
+                    initializeDashboard();
+                    return;
+                }
+                
+                // 어떤 스크립트가 누락되었는지 확인
+                const missingScripts = [];
+                if (!window.loadStatus.dummyGenerator) missingScripts.push('dummy_data_generator.js');
+                if (!window.loadStatus.aiProcessor) missingScripts.push('ai_processor.js');
+                if (!window.loadStatus.dataProcessor) missingScripts.push('data_processor.js');
+                
+                if (missingScripts.length > 0) {
+                    console.warn(`다음 스크립트가 로드되지 않았습니다: ${missingScripts.join(', ')}`);
+                }
+                
+                // 500ms 후 다시 시도
+                setTimeout(() => checkScriptStatus(attempt + 1), 500);
+            }
+            
+            // 대시보드 초기화 함수
+            function initializeDashboard() {
+                console.log('대시보드 초기화를 시작합니다.');
+                
+                // 데이터 프로세서 확인 및 초기화
+                if (typeof DataProcessor === 'function' && !window.dataProcessor) {
+                    console.log('DataProcessor 인스턴스를 생성합니다.');
+                    window.dataProcessor = new DataProcessor();
+                } else if (window.dataProcessor) {
+                    console.log('기존 DataProcessor 인스턴스가 사용됩니다.');
+                } else {
+                    console.error('DataProcessor 클래스를 찾을 수 없습니다.');
+                    createFallbackInitialization();
+                }
+                
+                // AI 프로세서 확인 및 초기화
+                if (typeof AIProcessor === 'function' && !window.aiProcessor) {
+                    console.log('AIProcessor 인스턴스를 생성합니다.');
+                    window.aiProcessor = new AIProcessor();
+                }
+                
+                // 서버 데이터가 없으면 더미 데이터 생성기 실행
+                if (!window.serverData || window.serverData.length === 0) {
+                    createDummyData();
+                }
+            }
+            
+            // 최후의 백업 초기화
+            function createFallbackInitialization() {
+                console.warn('백업 초기화 프로세스를 시작합니다.');
+                
+                // 1. 더미 데이터 생성 
+                createDummyData();
+                
+                // 2. DataProcessor 최소 구현
+                if (!window.dataProcessor && document.getElementById('serverGrid')) {
+                    console.warn('DataProcessor 최소 구현을 시도합니다.');
+                    
+                    // 서버 그리드와 로딩 인디케이터 참조
+                    const serverGrid = document.getElementById('serverGrid');
+                    const loadingIndicator = document.getElementById('loadingIndicator');
+                    
+                    // 최소한의 DataProcessor 구현
+                    window.dataProcessor = {
+                        serverData: window.serverData || [],
+                        filteredData: window.serverData || [],
+                        showLoading: function() {
+                            if (loadingIndicator) loadingIndicator.style.display = 'block';
+                            if (serverGrid) serverGrid.style.opacity = '0.3';
+                        },
+                        hideLoading: function() {
+                            if (loadingIndicator) loadingIndicator.style.display = 'none';
+                            if (serverGrid) serverGrid.style.opacity = '1';
+                        },
+                        handleDataUpdate: function(data) {
+                            this.serverData = [...data];
+                            this.filteredData = [...data];
+                            this.renderServerGrid();
+                            this.hideLoading();
+                        },
+                        renderServerGrid: function() {
+                            if (!serverGrid) return;
+                            
+                            serverGrid.innerHTML = '';
+                            if (this.serverData.length === 0) {
+                                serverGrid.innerHTML = '<div class="alert alert-info">서버 데이터가 없습니다.</div>';
+                                return;
+                            }
+                            
+                            // 간단한 서버 카드 생성 및 추가
+                            this.serverData.forEach(server => {
+                                const card = document.createElement('div');
+                                card.className = 'server-card';
+                                
+                                const status = server.cpu_usage >= 90 || server.memory_usage_percent >= 90 ? 'critical' :
+                                        server.cpu_usage >= 70 || server.memory_usage_percent >= 70 ? 'warning' : 'normal';
+                                
+                                card.innerHTML = `
+                                    <div class="server-header">
+                                        <div class="server-name">${server.hostname || 'Unknown Server'}</div>
+                                        <div class="server-status status-${status}">${status === 'critical' ? '심각' : status === 'warning' ? '경고' : '정상'}</div>
+                                    </div>
+                                    <div class="server-details">
+                                        <div class="detail-item">
+                                            <div class="detail-label">CPU 사용량</div>
+                                            <div class="detail-value">${server.cpu_usage || 0}%</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <div class="detail-label">메모리</div>
+                                            <div class="detail-value">${server.memory_usage_percent || 0}%</div>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                serverGrid.appendChild(card);
+                            });
+                        }
+                    };
+                    
+                    // 로딩 상태 업데이트 및 데이터 렌더링
+                    window.dataProcessor.showLoading();
+                    window.dataProcessor.handleDataUpdate(window.serverData || []);
+                }
+            }
+            
+            // 더미 데이터 생성 함수
+            function createDummyData() {
+                console.log('백업 더미 데이터 생성을 시도합니다.');
+                
+                if (typeof generateDummyData === 'function') {
+                    console.log('기존 generateDummyData 함수를 사용하여 더미 데이터를 생성합니다.');
+                    window.serverData = generateDummyData(10);
+                    return;
+                }
+                
+                console.warn('generateDummyData 함수가 없습니다. 기본 더미 데이터를 생성합니다.');
+                window.generateDummyData = function(count) {
+                    console.log('기본 더미 데이터 생성 중...', count, '서버');
+                    const servers = [];
+                    
+                    for (let i = 1; i <= count; i++) {
+                        // 약 30%의 확률로 문제 있는 서버 생성
+                        const hasProblem = Math.random() < 0.3;
+                        const problemLevel = hasProblem ? (Math.random() < 0.3 ? 'critical' : 'warning') : 'normal';
+                        
+                        const cpuUsage = problemLevel === 'critical' ? 
+                            Math.floor(Math.random() * 10) + 90 : // 90-99%
+                            problemLevel === 'warning' ? 
+                                Math.floor(Math.random() * 20) + 70 : // 70-89%
+                                Math.floor(Math.random() * 50) + 10; // 10-59%
+                        
+                        const memoryUsage = problemLevel === 'critical' ? 
+                            Math.floor(Math.random() * 10) + 90 : // 90-99%
+                            problemLevel === 'warning' ? 
+                                Math.floor(Math.random() * 20) + 70 : // 70-89%
+                                Math.floor(Math.random() * 50) + 10; // 10-59%
+                        
+                        servers.push({
+                            hostname: `server-${i}`,
+                            os: 'Linux',
+                            uptime: '3 days, 12:30:15',
+                            cpu_usage: cpuUsage,
+                            memory_usage_percent: memoryUsage,
+                            memory_total: '16GB',
+                            memory_used: '8GB',
+                            disk: [{
+                                mount: '/',
+                                disk_total: '500GB',
+                                disk_used: '300GB',
+                                disk_usage_percent: Math.floor(Math.random() * 100)
+                            }],
+                            load_avg_1m: (Math.random() * 5).toFixed(2),
+                            load_avg_5m: (Math.random() * 4).toFixed(2),
+                            load_avg_15m: (Math.random() * 3).toFixed(2),
+                            process_count: Math.floor(Math.random() * 200) + 50,
+                            zombie_count: Math.floor(Math.random() * 3),
+                            timestamp: new Date().toISOString(),
+                            net: {
+                                interface: 'eth0',
+                                rx_bytes: Math.floor(Math.random() * 1000000),
+                                tx_bytes: Math.floor(Math.random() * 1000000),
+                                rx_errors: Math.floor(Math.random() * 10),
+                                tx_errors: Math.floor(Math.random() * 10)
+                            },
+                            services: {
+                                'nginx': problemLevel === 'critical' ? 'stopped' : 'running',
+                                'mysql': Math.random() > 0.9 ? 'stopped' : 'running',
+                                'redis': Math.random() > 0.9 ? 'stopped' : 'running'
+                            },
+                            errors: problemLevel !== 'normal' ? 
+                                [problemLevel === 'critical' ? 'Critical: 서버 응답 없음' : '경고: 높은 부하 감지'] : []
+                        });
+                    }
+                    
+                    // 전역 변수에 저장
+                    window.serverData = servers;
+                    
+                    // 이벤트 발생시키기
+                    try {
+                        const event = new CustomEvent('serverDataUpdated', { 
+                            detail: servers 
+                        });
+                        window.dispatchEvent(event);
+                        console.log('서버 데이터 업데이트 이벤트가 발생되었습니다.');
+                    } catch (e) {
+                        console.error('이벤트 발생 중 오류:', e);
+                    }
+                    
+                    return servers;
+                };
+                
+                // 즉시 더미 데이터 생성
+                window.serverData = window.generateDummyData(10);
+            }
+        });
+    </script>
+</body>
+</html>  
