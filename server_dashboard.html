@@ -793,6 +793,37 @@
             border-bottom: 1px solid #f0f0f0;
             padding-bottom: 8px;
         }
+
+        /* AI 자동 장애 보고서 리스트 아이템 스타일 */
+        .problem-item {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .problem-item:hover {
+            background-color: #f8f9fa; /* 약간 밝은 배경으로 호버 효과 */
+        }
+        .problem-item .problem-description {
+            font-weight: 500;
+        }
+        .problem-item .problem-solution {
+            font-size: 0.9em;
+            color: #555;
+        }
+        .problem-item .problem-severity-text {
+            /* 이미 부트스트랩 fw-bold가 적용됨 */
+        }
+        .list-group-item.severity-critical {
+            border-left: 5px solid var(--bs-danger, #dc3545);
+            background-color: rgba(220, 53, 69, 0.05); /* 매우 연한 빨강 배경 */
+        }
+        .list-group-item.severity-warning,
+        .list-group-item.severity-error { /* Error도 Warning과 동일하게 처리 */
+            border-left: 5px solid var(--bs-warning, #ffc107);
+            background-color: rgba(255, 193, 7, 0.05); /* 매우 연한 노랑 배경 */
+        }
+        #aiProblemList {
+            /* 스크롤바는 JS에서 maxHeight와 함께 overflowY: auto로 제어 */
+        }
     </style>
 </head>
 <body>
@@ -867,8 +898,62 @@
             </div>
         </div>
 
-        <!-- 자동 장애 보고서 섹션을 메인 컨텐츠 그리드로 변경 -->
-        <div class="main-content-grid" id="mainContentGrid">
+        <!-- 자동 장애 보고서 섹션 및 서버 현황 요약을 포함하는 incident-panel을 AI 질의 영역 아래로 이동 -->
+        <div class="incident-panel mt-4"> <!-- mt-4 클래스 추가하여 위쪽과 간격 조정 -->
+            <!-- AI 자동 장애 보고서 패널 -->
+            <div class="collapsible-panel" id="aiReportPanel"> <!-- 패널에 ID 추가 -->
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <div><i class="fas fa-exclamation-triangle me-2 text-danger"></i> AI 자동 장애 보고서</div> <!-- 제목 수정 -->
+                    <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="collapsible-body expanded"> <!-- 기본적으로 펼쳐진 상태로 시작 -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">감지된 문제</h6>
+                        <button class="btn btn-sm btn-outline-primary" id="downloadAllReportsBtn">
+                            <i class="bi bi-download"></i> 전체 보고서 다운로드
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-info" id="aiProblemsLoading" style="display: none;"> <!-- ID 변경 및 초기 숨김 -->
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">로딩 중...</span>
+                        </div>
+                        AI가 문제를 분석 중입니다...
+                    </div>
+                    
+                    <div id="aiProblemsEmpty" style="display: none;" class="text-center py-4">
+                        <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+                        <p class="mt-3 mb-0\">현재 감지된 문제가 없습니다.</p>
+                    </div>
+
+                    <ul class="list-group" id="aiProblemList">
+                        <!-- AI 문제 항목들이 여기에 추가됩니다 -->
+                    </ul>
+                    <div class="mt-3 text-center" id="aiProblemListToggle" style="display: none;">
+                        <button class="btn btn-sm btn-outline-secondary" id="toggleAiProblemListBtn" data-expanded="false">
+                            더 보기 (0개 더 있음)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 서버 현황 요약 패널 (기존 incident-panel 내 다른 패널이 있다면 여기에 유지 또는 추가) -->
+            <div class="collapsible-panel mt-3" id="serverStatusSummaryPanel">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <div><i class="fas fa-tasks me-2 text-primary"></i> 서버 현황 요약</div>
+                    <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="collapsible-body expanded">
+                    <div id="statusSummaryContainer">
+                        <!-- 요약 정보가 여기에 동적으로 채워집니다 (data_processor.js) -->
+                        <p>요약 정보를 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 컨텐츠 그리드에서 incident-panel 제거하고, 서버 그리드 및 필터만 남김 -->
+        <div class="main-content-grid mt-4" id="mainContentGrid">
             <!-- 좌측: 서버 그리드 및 검색 필터 -->
             <div>
                 <div class="card search-container mb-4">
@@ -920,90 +1005,119 @@
             </div>
             
             <!-- 우측: 자동 장애 보고서 (접이식 패널) -->
-            <div class="incident-panel">
-                <!-- 접이식 패널: 장애 보고서 -->
-                <div class="collapsible-panel">
-                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                        <div><i class="fas fa-exclamation-circle me-2 text-danger"></i> 자동 장애 보고서</div>
-                        <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
-                    </div>
-                    <div class="collapsible-body expanded">
-                        <div class="d-flex justify-content-between mb-3">
-                            <h6 class="mb-0">감지된 문제</h6>
-                            <button class="btn btn-sm btn-outline-primary" id="downloadAllReportsBtn">
-                                <i class="bi bi-download"></i> 전체 보고서
-                            </button>
-                        </div>
-                        
-                        <div class="alert alert-info" id="incidentsLoading">
-                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                                <span class="visually-hidden">로딩 중...</span>
-                            </div>
-                            장애 데이터를 분석하는 중입니다...
-                        </div>
-                        
-                        <div id="incidentsEmpty" style="display: none;">
-                            <div class="text-center py-4">
-                                <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
-                                <p class="mt-3 mb-0">현재 감지된 장애가 없습니다.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="accordion" id="incidents-accordion"></div>
-                    </div>
-                </div>
-                
-                <!-- 접이식 패널: 서버 요약 정보 -->
-                <div class="collapsible-panel">
-                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                        <div><i class="fas fa-chart-pie me-2 text-primary"></i> 서버 현황 요약</div>
-                        <div class="collapse-toggle"><i class="fas fa-chevron-down"></i></div>
-                    </div>
-                    <div class="collapsible-body expanded">
-                        <div class="row mb-3">
-                            <div class="col-4 text-center">
-                                <h3 class="mb-0" id="normalCount">-</h3>
-                                <p class="text-success mb-0">정상</p>
-                            </div>
-                            <div class="col-4 text-center">
-                                <h3 class="mb-0" id="warningCount">-</h3>
-                                <p class="text-warning mb-0">경고</p>
-                            </div>
-                            <div class="col-4 text-center">
-                                <h3 class="mb-0" id="criticalCount">-</h3>
-                                <p class="text-danger mb-0">심각</p>
-                            </div>
-                        </div>
-                        <div>
-                            <canvas id="statusChart" height="150"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- <div class="incident-panel"> 이 부분은 위로 이동되었음 -->
+            <!-- 이전에 여기에 있던 다른 패널들이 있다면, 위로 옮겨진 incident-panel 내부로 통합하거나, 별도 처리 필요 -->
+            <!-- </div> -->
         </div>
 
-        <!-- 사이드바 토글 버튼 -->
-        <button class="sidebar-toggle" id="sidebarToggle">
-            <i class="fas fa-chevron-left"></i>
-        </button>
-
-        <!-- 서버 개요 차트 섹션 -->
-        <div class="row">
-            <div class="col-12">
-                <div class="dashboard-section">
-                    <div class="section-header">
-                        <i class="fas fa-chart-line me-2"></i>
-                        서버 리소스 개요
+        <!-- 서버 상세 정보 모달 -->
+        <div class="modal fade" id="serverDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalServerName">서버 상세 정보</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="chart-container">
-                                <canvas id="cpuUsageChart"></canvas>
+                    <div class="modal-body">
+                        <div class="row mb-4">
+                            <!-- 시스템 정보 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">시스템 정보</h6>
+                                <table class="table table-sm">
+                                    <tbody id="systemInfoTable">
+                                        <tr>
+                                            <th>OS</th>
+                                            <td id="modalOS">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>가동 시간</th>
+                                            <td id="modalUptime">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>프로세스 수</th>
+                                            <td id="modalProcessCount">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>좀비 프로세스</th>
+                                            <td id="modalZombieCount">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>로드 평균 (1분)</th>
+                                            <td id="modalLoadAvg">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>마지막 업데이트</th>
+                                            <td id="modalLastUpdate">-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 리소스 현황 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">리소스 현황</h6>
+                                <div class="chart-container">
+                                    <canvas id="resourceBarChart"></canvas>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="chart-container">
-                                <canvas id="memoryUsageChart"></canvas>
+                        
+                        <div class="row mb-4">
+                            <!-- 네트워크 정보 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">네트워크 정보</h6>
+                                <table class="table table-sm">
+                                    <tbody id="networkInfoTable">
+                                        <tr>
+                                            <th>인터페이스</th>
+                                            <td id="modalNetInterface">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>수신 바이트</th>
+                                            <td id="modalRxBytes">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>송신 바이트</th>
+                                            <td id="modalTxBytes">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>수신 오류</th>
+                                            <td id="modalRxErrors">-</td>
+                                        </tr>
+                                        <tr>
+                                            <th>송신 오류</th>
+                                            <td id="modalTxErrors">-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 서비스 상태 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">서비스 상태</h6>
+                                <div id="modalServiceStatus" class="service-status-container">
+                                    <!-- 서비스 상태 태그들이 여기에 추가됨 -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 오류 메시지 -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="mb-3">오류 메시지</h6>
+                                <div id="modalErrorsContainer" class="alert alert-info">
+                                    현재 보고된 오류가 없습니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 24시간 리소스 사용 추이 -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="mb-3">24시간 리소스 사용 추이</h6>
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="resourceHistoryChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>

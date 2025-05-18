@@ -144,11 +144,12 @@ class DataProcessor {
         // 추가 데이터 처리 (AI 분석 등)
         if (this.aiProcessor) {
             this.aiProcessor.updateData(this.serverData);
-            this.updateProblemsList();
+            this.updateProblemsList(); // AI 자동 장애 보고서 업데이트
         }
         
         // 필터 및 정렬 적용
         this.applyFiltersAndSort();
+        this.updateGlobalStatusSummary(); // 서버 현황 요약 업데이트 추가
     }
     
     refreshData() {
@@ -540,8 +541,19 @@ class DataProcessor {
         const historicalData = window.serverHistoricalData[hostname];
         if (!historicalData || historicalData.length === 0) return;
         
-        const ctx = document.getElementById('history-chart').getContext('2d');
+        // history-chart-modal ID를 사용하도록 수정
+        const canvasElement = document.getElementById('history-chart-modal');
+        if (!canvasElement) {
+            console.error("History chart canvas element not found in modal");
+            return;
+        }
+        const ctx = canvasElement.getContext('2d');
         
+        // 기존 차트가 있다면 파괴
+        if (this.historyChartInstance) {
+            this.historyChartInstance.destroy();
+        }
+
         // 시간 레이블 생성 (최근 24시간)
         const labels = historicalData.map(data => {
             const date = new Date(data.timestamp);
@@ -553,7 +565,7 @@ class DataProcessor {
         const memoryData = historicalData.map(data => data.memory_usage_percent);
         const diskData = historicalData.map(data => data.disk[0].disk_usage_percent);
         
-        new Chart(ctx, {
+        this.historyChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -609,27 +621,202 @@ class DataProcessor {
     
     updateProblemsList() {
         if (!this.aiProcessor) return;
-        
-        const problemsList = document.getElementById('problem-list');
-        const problems = this.aiProcessor.detectProblems();
-        
-        problemsList.innerHTML = '';
-        
-        if (problems.length === 0) {
-            problemsList.innerHTML = '<div class="alert alert-success">현재 감지된 문제가 없습니다.</div>';
+
+        const problemListContainer = document.getElementById('aiProblemList');
+        const loadingIndicator = document.getElementById('aiProblemsLoading');
+        const emptyIndicator = document.getElementById('aiProblemsEmpty');
+        const toggleButtonContainer = document.getElementById('aiProblemListToggle');
+        const toggleButton = document.getElementById('toggleAiProblemListBtn');
+
+        if (!problemListContainer || !loadingIndicator || !emptyIndicator || !toggleButtonContainer || !toggleButton) {
+            console.error("AI Problem list UI elements not found.");
             return;
         }
+
+        loadingIndicator.style.display = 'block';
+        emptyIndicator.style.display = 'none';
+        problemListContainer.innerHTML = '';
+        toggleButtonContainer.style.display = 'none';
+
+        // this.aiProcessor.detectProblems()는 severity가 'Critical', 'Error', 'Warning'인 문제만 반환한다고 가정
+        let problems = this.aiProcessor.detectProblems(); 
         
-        problems.forEach(problem => {
-            const problemItem = document.createElement('li');
-            problemItem.className = `problem-item ${problem.severity === 'Critical' ? 'critical-problem' : ''}`;
-            problemItem.innerHTML = `
-                <div class="problem-severity">${problem.severity}</div>
-                <div class="problem-description">${problem.description}</div>
-                <div class="problem-solution"><strong>제안 해결책:</strong> ${problem.solution}</div>
-            `;
-            problemsList.appendChild(problemItem);
+        // Normal 상태는 제외 (detectProblems에서 이미 처리되었거나, 여기서 한번 더 필터링)
+        problems = problems.filter(p => p.severity === 'Critical' || p.severity === 'Warning' || p.severity === 'Error');
+
+        // 정렬: Warning(Error 포함) 우선, 그 다음 Critical (오름차순)
+        // severity를 점수로 변환: Warning/Error = 1, Critical = 2
+        problems.sort((a, b) => {
+            const severityScore = (severity) => {
+                if (severity === 'Critical') return 2;
+                if (severity === 'Warning' || severity === 'Error') return 1;
+                return 0; // 그 외 (정상 등, 실제로는 필터링됨)
+            };
+            return severityScore(a.severity) - severityScore(b.severity);
         });
+
+        loadingIndicator.style.display = 'none';
+
+        if (problems.length === 0) {
+            emptyIndicator.style.display = 'block';
+            problemListContainer.style.maxHeight = 'none'; // 내용 없을 시 maxHeight 제거
+            return;
+        }
+
+        const maxInitialItems = 3;
+        const maxExpandedItems = 10;
+        let currentlyExpanded = toggleButton.dataset.expanded === 'true';
+
+        const renderList = () => {
+            problemListContainer.innerHTML = '';
+            const itemsToShow = currentlyExpanded ? Math.min(problems.length, maxExpandedItems) : Math.min(problems.length, maxInitialItems);
+            
+            for (let i = 0; i < itemsToShow; i++) {
+                const problem = problems[i];
+                const listItem = document.createElement('li');
+                listItem.className = `list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}`;
+                listItem.innerHTML = `
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1 problem-description">${problem.description}</h6>
+                        <small class="text-muted">${problem.serverHostname || '알 수 없는 서버'}</small>
+                    </div>
+                    <p class="mb-1 problem-solution">${problem.solution || '제안된 해결책 없음'}</p>
+                    <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
+                `;
+                // 서버 카드와 상태 일치: 서버 카드는 getServerStatus()를 통해 이미 aiProcessor의 판단을 따르므로 별도 조치 불필요.
+                // 문제 항목 클릭 시 액션 (예: 서버 상세 모달)
+                listItem.addEventListener('click', () => {
+                    const server = this.serverData.find(s => s.hostname === problem.serverHostname);
+                    if (server) this.showServerDetail(server);
+                });
+                problemListContainer.appendChild(listItem);
+            }
+            
+            // 스크롤바 제어 (10개 이상일 때만 스크롤)
+            if (problems.length > maxExpandedItems && currentlyExpanded) {
+                 problemListContainer.style.maxHeight = '300px'; // 예시 높이, CSS로 조정 가능
+                 problemListContainer.style.overflowY = 'auto';
+            } else {
+                 problemListContainer.style.maxHeight = 'none';
+                 problemListContainer.style.overflowY = 'hidden';
+            }
+        };
+
+        renderList();
+
+        if (problems.length > maxInitialItems) {
+            toggleButtonContainer.style.display = 'block';
+            const remainingCount = problems.length - maxInitialItems;
+            toggleButton.textContent = currentlyExpanded ? '접기' : `더 보기 (${Math.min(remainingCount, maxExpandedItems - maxInitialItems)}개 더 있음)`;
+        } else {
+            toggleButtonContainer.style.display = 'none';
+        }
+
+        // 더보기/접기 버튼 이벤트 리스너 (한 번만 등록)
+        if (!this.aiProblemListToggleListenerAttached) {
+            toggleButton.addEventListener('click', () => {
+                currentlyExpanded = !currentlyExpanded;
+                toggleButton.dataset.expanded = currentlyExpanded;
+                renderList(); // 목록 다시 렌더링
+                if (problems.length > maxInitialItems) {
+                    const remainingCount = problems.length - maxInitialItems;
+                    toggleButton.textContent = currentlyExpanded ? '접기' : `더 보기 (${Math.min(remainingCount, maxExpandedItems - maxInitialItems)}개 더 있음)`;
+                }
+            });
+            this.aiProblemListToggleListenerAttached = true;
+        }
+    }
+    
+    updateGlobalStatusSummary() {
+        if (!this.serverData || this.serverData.length === 0) return;
+
+        const summaryContainer = document.getElementById('statusSummaryContainer');
+        if (!summaryContainer) {
+            console.error("Status summary container not found.");
+            return;
+        }
+
+        let normalCount = 0;
+        let warningCount = 0;
+        let criticalCount = 0;
+
+        this.serverData.forEach(server => {
+            const status = this.getServerStatus(server); // 중앙 집중식 상태 판단 함수 사용
+            if (status === 'normal') normalCount++;
+            else if (status === 'warning') warningCount++;
+            else if (status === 'critical') criticalCount++;
+        });
+
+        summaryContainer.innerHTML = `
+            <div class="row mb-3">
+                <div class="col-4 text-center">
+                    <h3 class="mb-0 display-6">${normalCount}</h3>
+                    <p class="text-success mb-0">정상</p>
+                </div>
+                <div class="col-4 text-center">
+                    <h3 class="mb-0 display-6 text-warning">${warningCount}</h3>
+                    <p class="text-warning mb-0">경고</p>
+                </div>
+                <div class="col-4 text-center">
+                    <h3 class="mb-0 display-6 text-danger">${criticalCount}</h3>
+                    <p class="text-danger mb-0">심각</p>
+                </div>
+            </div>
+            <div>
+                <canvas id="globalStatusChart" height="150"></canvas>
+            </div>
+        `;
+
+        // 차트 업데이트
+        const chartElement = document.getElementById('globalStatusChart');
+        if (chartElement) {
+            if (this.globalStatusChartInstance) {
+                this.globalStatusChartInstance.destroy();
+            }
+            this.globalStatusChartInstance = new Chart(chartElement.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['정상', '경고', '심각'],
+                    datasets: [{
+                        data: [normalCount, warningCount, criticalCount],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)', // 정상 (초록 계열)
+                            'rgba(253, 154, 20, 0.7)', // 경고 (주황 계열)
+                            'rgba(220, 53, 69, 0.7)'  // 심각 (빨강 계열)
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(253, 154, 20, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' 대';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
     
     processAIQuery() {
