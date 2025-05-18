@@ -16,8 +16,8 @@ class DummyDataGenerator {
         this.updateInterval = 10 * 60 * 1000; // 10분 (밀리초 단위)
         
         // 장애 확률 설정 (심각: 4%, 경고: 10%, 정상: 86%)
-        this.criticalProbability = 0.04; // 심각 상태 확률 (약 2대)
-        this.warningProbability = 0.10; // 경고 상태 확률 (약 5대)
+        this.criticalProbability = 0.04; // 심각 상태 확률 (50대 중 2대)
+        this.warningProbability = 0.10; // 경고 상태 확률 (50대 중 5대)
         this.errorProbability = 0.15; // 서비스 장애 및 오류 메시지 발생 확률
         
         // 서버 구성 정보

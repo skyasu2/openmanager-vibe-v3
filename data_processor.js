@@ -675,32 +675,37 @@ class DataProcessor {
     
     // 유틸리티 함수
     getServerStatus(server) {
-        // 요구사항에 맞게 수정된 상태 판단 로직
-        // 실제 자원 사용률(CPU, 메모리, 디스크), 오류 정보, 서비스 상태를 함께 고려
+        // AI Processor의 getEffectiveServerStatus를 사용하여 상태 결정
+        if (this.aiProcessor && typeof this.aiProcessor.getEffectiveServerStatus === 'function') {
+            try {
+                return this.aiProcessor.getEffectiveServerStatus(server);
+            } catch (e) {
+                console.error("Error calling aiProcessor.getEffectiveServerStatus: ", e);
+                // 에러 발생 시 폴백 로직 수행
+            }
+        }
         
+        // 폴백 로직 (AI Processor 사용 불가 또는 에러 시)
+        console.warn("AIProcessor or getEffectiveServerStatus not available/failed, using fallback status logic in DataProcessor.");
         const hasCriticalError = server.errors && server.errors.some(err => typeof err === 'string' && err.toLowerCase().includes('critical'));
         const hasWarningError = server.errors && server.errors.some(err => typeof err === 'string' && (err.toLowerCase().includes('error') || err.toLowerCase().includes('warning')));
         const hasStoppedService = server.services && Object.values(server.services).includes('stopped');
 
-        // 심각 상태 조건
         if (server.cpu_usage >= this.thresholds.critical.cpu ||
             server.memory_usage_percent >= this.thresholds.critical.memory ||
-            server.disk[0].disk_usage_percent >= this.thresholds.critical.disk ||
+            (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= this.thresholds.critical.disk) ||
             hasCriticalError ||
-            hasStoppedService) { // 서비스 중단 시 심각으로 처리
+            hasStoppedService) {
             return 'critical';
         }
         
-        // 경고 상태 조건
-        // (심각 상태가 아니면서, 리소스 경고 또는 Warning/Error 수준의 오류가 있을 경우)
         if (server.cpu_usage >= this.thresholds.warning.cpu ||
             server.memory_usage_percent >= this.thresholds.warning.memory ||
-            server.disk[0].disk_usage_percent >= this.thresholds.warning.disk ||
+            (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= this.thresholds.warning.disk) ||
             hasWarningError) { 
             return 'warning';
         }
         
-        // 그 외는 정상
         return 'normal';
     }
     
