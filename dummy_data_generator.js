@@ -183,6 +183,7 @@ class DummyDataGenerator {
         const hostname = `${selectedConfig.prefix}-${region}-${serverNumber}`;
         
         // 서버 상태 결정 (심각, 경고, 정상)
+        // 통합 로직으로 대체할 것이므로 여기서는 리소스 변동 값만 결정
         const rand = Math.random();
         const isCritical = rand < this.criticalProbability;
         const isWarning = !isCritical && rand < (this.criticalProbability + this.warningProbability);

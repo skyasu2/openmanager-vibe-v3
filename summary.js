@@ -61,9 +61,13 @@ function updateServerList() {
     
     Object.values(currentStatus)
         .sort((a, b) => {
-            // 정렬 로직 (예: 심각도, CPU 사용량 등)
-            const aSeverityScore = (a.status === 'Critical' ? 2 : (a.status === 'Warning' ? 1 : 0));
-            const bSeverityScore = (b.status === 'Critical' ? 2 : (b.status === 'Warning' ? 1 : 0));
+            // 정렬 로직 (심각도 점수 계산을 위해 통합 함수에서 반환된 값 활용)
+            const aStatus = window.getServerStatus ? window.getServerStatus(a) : a.status;
+            const bStatus = window.getServerStatus ? window.getServerStatus(b) : b.status;
+            
+            const aSeverityScore = (aStatus === 'Critical' || aStatus === 'critical') ? 2 : ((aStatus === 'Warning' || aStatus === 'warning') ? 1 : 0);
+            const bSeverityScore = (bStatus === 'Critical' || bStatus === 'critical') ? 2 : ((bStatus === 'Warning' || bStatus === 'warning') ? 1 : 0);
+            
             if (aSeverityScore !== bSeverityScore) return bSeverityScore - aSeverityScore;
             return b.stats.cpuUsage - a.stats.cpuUsage; // CPU 높은 순
         })
@@ -71,16 +75,19 @@ function updateServerList() {
         .forEach(server => { // server 객체는 이제 fixed_dummy_data의 구조를 따름
             const row = document.createElement('tr');
             
+            // 통합 서버 상태 판단 함수 사용
+            const serverStatus = window.getServerStatus ? window.getServerStatus(server) : server.status;
+            
             let rowClass = '';
-            if (server.status === 'Critical') rowClass = 'critical';
-            else if (server.status === 'Warning') rowClass = 'warning';
+            if (serverStatus === 'Critical' || serverStatus === 'critical') rowClass = 'critical';
+            else if (serverStatus === 'Warning' || serverStatus === 'warning') rowClass = 'warning';
             row.className = rowClass;
             
             const timestamp = new Date(server.timestamp);
             const formattedTime = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')} ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}`;
             
             row.innerHTML = `
-                <td><span class="server-status ${server.status.toLowerCase()}"></span> ${server.serverHostname}</td>
+                <td><span class="server-status ${serverStatus.toLowerCase()}"></span> ${server.serverHostname}</td>
                 <td>${server.serverType}</td>
                 <td>${server.stats.cpuUsage.toFixed(1)}%</td>
                 <td>${server.stats.memoryUsage.toFixed(1)}%</td>
@@ -94,8 +101,11 @@ function updateServerList() {
         });
 }
 
-// 서버 상태 클래스 (이미 status 필드가 있으므로, 이걸 사용)
+// 서버 상태 클래스 (통합 함수 사용)
 function getServerStatusClass(server) { // server 객체는 fixed_dummy_data의 단일 항목
+    if (window.getServerStatus) {
+        return window.getServerStatus(server).toLowerCase();
+    }
     return server.status.toLowerCase();
 }
 

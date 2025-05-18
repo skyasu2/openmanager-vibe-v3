@@ -183,32 +183,59 @@ function getFixedDummyData() {
                }
             });
             
-            // 최종 상태 결정
-            serverHighestSeverityScore = 0; 
-            if (serverStatus === 'Normal') { 
-                finalAlerts.forEach(al => {
-                    if (al.severity === 'Critical') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 4);
-                    else if (al.severity === 'Error') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 3);
-                    else if (al.severity === 'Warning') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 2);
-                    else if (al.severity === 'Info') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 1);
-                });
-                if (serverHighestSeverityScore === 4) serverStatus = 'Critical';
-                else if (serverHighestSeverityScore === 3) serverStatus = 'Error';
-                else if (serverHighestSeverityScore === 2) serverStatus = 'Warning';
-                else if (serverHighestSeverityScore === 1) serverStatus = 'Info';
-            } else { 
-                 if (serverStatus === 'Critical') serverHighestSeverityScore = 4;
-                 else if (serverStatus === 'Error') serverHighestSeverityScore = 3;
-                 else if (serverStatus === 'Warning') serverHighestSeverityScore = 2; // 시나리오에서 Warning으로 설정될 수도 있음
-                 else if (serverStatus === 'Info') serverHighestSeverityScore = 1;
-            }
-
-            data.push({
-                serverHostname: server.serverHostname, ip: server.ip, serverType: server.serverType, location: server.location,
+            // 서버 데이터 객체 생성 (상태는 나중에 설정)
+            const serverData = {
+                serverHostname: server.serverHostname, 
+                ip: server.ip, 
+                serverType: server.serverType, 
+                location: server.location,
                 timestamp: currentTime.toISOString(),
-                stats: { cpuUsage: cpu, memoryUsage: mem, diskUsage: disk, networkTrafficIn: netIn, networkTrafficOut: netOut, processCount: procCnt },
-                status: serverStatus, alerts: finalAlerts
-            });
+                stats: { 
+                    cpuUsage: cpu, 
+                    memoryUsage: mem, 
+                    diskUsage: disk, 
+                    networkTrafficIn: netIn, 
+                    networkTrafficOut: netOut, 
+                    processCount: procCnt 
+                },
+                status: serverStatus, // 시나리오에서 제공한 초기 상태
+                alerts: finalAlerts
+            };
+            
+            // 통합된 상태 판단 함수가 있으면 사용
+            // 단, 시나리오에서 강제로 설정한 상태가 있으면 그것을 우선함
+            if (window.getServerStatus && serverStatus === 'Normal') {
+                // dataProcessor의 상태 판단 함수 호출을 위해 필드 매핑
+                const processorReadyData = {
+                    cpu_usage: cpu,
+                    memory_usage_percent: mem,
+                    disk: [{ disk_usage_percent: disk }],
+                    errors: finalAlerts.filter(al => 
+                        al.severity === 'Critical' || al.severity === 'Error'
+                    ),
+                    services: {} // 서비스 상태 정보는 여기서는 사용하지 않음
+                };
+                serverData.status = window.getServerStatus(processorReadyData);
+            } else {
+                // 기존 로직으로 최종 상태 결정 (시나리오에서 지정된 경우)
+                serverHighestSeverityScore = 0; 
+                if (serverStatus === 'Normal') { 
+                    finalAlerts.forEach(al => {
+                        if (al.severity === 'Critical') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 4);
+                        else if (al.severity === 'Error') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 3);
+                        else if (al.severity === 'Warning') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 2);
+                        else if (al.severity === 'Info') serverHighestSeverityScore = Math.max(serverHighestSeverityScore, 1);
+                    });
+                    if (serverHighestSeverityScore === 4) serverStatus = 'Critical';
+                    else if (serverHighestSeverityScore === 3) serverStatus = 'Error';
+                    else if (serverHighestSeverityScore === 2) serverStatus = 'Warning';
+                    else if (serverHighestSeverityScore === 1) serverStatus = 'Info';
+                    
+                    serverData.status = serverStatus;
+                }
+            }
+            
+            data.push(serverData);
         });
         currentTime.setMinutes(currentTime.getMinutes() + 10); 
     }

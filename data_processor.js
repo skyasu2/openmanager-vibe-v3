@@ -14,6 +14,20 @@ class DataProcessor {
         this.itemsPerPage = 10; // 페이지당 서버 수
         this.aiProcessor = window.aiProcessor || null;
         
+        // 서버 상태 평가 임계값 - 통합 관리
+        this.thresholds = {
+            critical: {
+                cpu: 90,
+                memory: 90,
+                disk: 90
+            },
+            warning: {
+                cpu: 70,
+                memory: 80,
+                disk: 80
+            }
+        };
+        
         // UI 요소 참조
         this.serverGrid = document.getElementById('server-grid');
         this.pagination = document.getElementById('pagination');
@@ -33,6 +47,9 @@ class DataProcessor {
         
         // 초기 데이터 로드
         this.loadData();
+        
+        // 서버 상태 판단 통합 로직을 전역 함수로 등록
+        window.getServerStatus = (server) => this.getServerStatus(server);
     }
     
     registerEventListeners() {
@@ -658,32 +675,20 @@ class DataProcessor {
     
     // 유틸리티 함수
     getServerStatus(server) {
-        // 임계값
-        const thresholds = {
-            critical: {
-                cpu: 90,
-                memory: 90,
-                disk: 90
-            },
-            warning: {
-                cpu: 70,
-                memory: 80,
-                disk: 80
-            }
-        };
+        // 통합된 서버 상태 판단 로직
         
         // 심각 상태 조건
-        if (server.cpu_usage >= thresholds.critical.cpu ||
-            server.memory_usage_percent >= thresholds.critical.memory ||
-            server.disk[0].disk_usage_percent >= thresholds.critical.disk ||
+        if (server.cpu_usage >= this.thresholds.critical.cpu ||
+            server.memory_usage_percent >= this.thresholds.critical.memory ||
+            server.disk[0].disk_usage_percent >= this.thresholds.critical.disk ||
             server.errors.length > 0) {
             return 'critical';
         }
         
         // 경고 상태 조건
-        if (server.cpu_usage >= thresholds.warning.cpu ||
-            server.memory_usage_percent >= thresholds.warning.memory ||
-            server.disk[0].disk_usage_percent >= thresholds.warning.disk ||
+        if (server.cpu_usage >= this.thresholds.warning.cpu ||
+            server.memory_usage_percent >= this.thresholds.warning.memory ||
+            server.disk[0].disk_usage_percent >= this.thresholds.warning.disk ||
             Object.values(server.services).includes('stopped')) {
             return 'warning';
         }
@@ -692,9 +697,18 @@ class DataProcessor {
         return 'normal';
     }
     
-    getResourceStatus(value) {
-        if (value >= 90) return 'critical';
-        if (value >= 70) return 'warning';
+    getResourceStatus(value, type = 'generic') {
+        // 리소스 유형에 따른 임계값 적용
+        const criticalThreshold = type in this.thresholds.critical 
+            ? this.thresholds.critical[type] 
+            : this.thresholds.critical.cpu;
+        
+        const warningThreshold = type in this.thresholds.warning 
+            ? this.thresholds.warning[type] 
+            : this.thresholds.warning.cpu;
+        
+        if (value >= criticalThreshold) return 'critical';
+        if (value >= warningThreshold) return 'warning';
         return 'normal';
     }
     
@@ -707,10 +721,13 @@ class DataProcessor {
         }
     }
     
-    getChartColor(value) {
-        if (value >= 90) return 'rgba(220, 53, 69, 0.7)'; // 심각
-        if (value >= 70) return 'rgba(253, 154, 20, 0.7)'; // 경고
-        return 'rgba(40, 167, 69, 0.7)'; // 정상
+    getChartColor(value, type = 'generic') {
+        const status = this.getResourceStatus(value, type);
+        switch(status) {
+            case 'critical': return 'rgba(220, 53, 69, 0.7)'; // 심각
+            case 'warning': return 'rgba(253, 154, 20, 0.7)'; // 경고
+            default: return 'rgba(40, 167, 69, 0.7)'; // 정상
+        }
     }
     
     formatBytes(bytes, decimals = 2) {
