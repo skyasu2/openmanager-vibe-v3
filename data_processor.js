@@ -678,22 +678,26 @@ class DataProcessor {
         // 요구사항에 맞게 수정된 상태 판단 로직
         // 실제 자원 사용률(CPU, 메모리, 디스크)과 오류 정보를 함께 고려
         
-        // 심각 상태 조건 (하나 이상의 항목이 90% 이상 또는 오류가 있는 경우)
+        const hasCriticalError = server.errors && server.errors.some(err => typeof err === 'string' && err.toLowerCase().includes('critical'));
+        const hasWarningError = server.errors && server.errors.some(err => typeof err === 'string' && (err.toLowerCase().includes('error') || err.toLowerCase().includes('warning')));
+
+        // 심각 상태 조건
         if (server.cpu_usage >= this.thresholds.critical.cpu ||
             server.memory_usage_percent >= this.thresholds.critical.memory ||
             server.disk[0].disk_usage_percent >= this.thresholds.critical.disk ||
-            (server.errors && server.errors.length > 0)) {
+            hasCriticalError) {
             return 'critical';
         }
         
-        // 경고 상태 조건 (하나 이상의 항목이 70% 이상 90% 미만)
+        // 경고 상태 조건
         if (server.cpu_usage >= this.thresholds.warning.cpu ||
             server.memory_usage_percent >= this.thresholds.warning.memory ||
-            server.disk[0].disk_usage_percent >= this.thresholds.warning.disk) {
+            server.disk[0].disk_usage_percent >= this.thresholds.warning.disk ||
+            hasWarningError) { // Critical 오류가 없는 경우에만 Warning 오류로 경고 상태
             return 'warning';
         }
         
-        // 그 외는 정상 (모든 항목이 70% 미만)
+        // 그 외는 정상
         return 'normal';
     }
     
