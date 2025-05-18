@@ -676,24 +676,27 @@ class DataProcessor {
     // 유틸리티 함수
     getServerStatus(server) {
         // 요구사항에 맞게 수정된 상태 판단 로직
-        // 실제 자원 사용률(CPU, 메모리, 디스크)과 오류 정보를 함께 고려
+        // 실제 자원 사용률(CPU, 메모리, 디스크), 오류 정보, 서비스 상태를 함께 고려
         
         const hasCriticalError = server.errors && server.errors.some(err => typeof err === 'string' && err.toLowerCase().includes('critical'));
         const hasWarningError = server.errors && server.errors.some(err => typeof err === 'string' && (err.toLowerCase().includes('error') || err.toLowerCase().includes('warning')));
+        const hasStoppedService = server.services && Object.values(server.services).includes('stopped');
 
         // 심각 상태 조건
         if (server.cpu_usage >= this.thresholds.critical.cpu ||
             server.memory_usage_percent >= this.thresholds.critical.memory ||
             server.disk[0].disk_usage_percent >= this.thresholds.critical.disk ||
-            hasCriticalError) {
+            hasCriticalError ||
+            hasStoppedService) { // 서비스 중단 시 심각으로 처리
             return 'critical';
         }
         
         // 경고 상태 조건
+        // (심각 상태가 아니면서, 리소스 경고 또는 Warning/Error 수준의 오류가 있을 경우)
         if (server.cpu_usage >= this.thresholds.warning.cpu ||
             server.memory_usage_percent >= this.thresholds.warning.memory ||
             server.disk[0].disk_usage_percent >= this.thresholds.warning.disk ||
-            hasWarningError) { // Critical 오류가 없는 경우에만 Warning 오류로 경고 상태
+            hasWarningError) { 
             return 'warning';
         }
         

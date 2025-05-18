@@ -211,9 +211,9 @@ function getFixedDummyData() {
                     memory_usage_percent: mem,
                     disk: [{ disk_usage_percent: disk }],
                     errors: finalAlerts.filter(al => 
-                        al.severity === 'Critical' || al.severity === 'Error'
-                    ), // 오류 정보를 다시 상태 판단에 반영
-                    services: {} // 서비스 상태는 여전히 반영하지 않음
+                        al.severity === 'Critical' || al.severity === 'Error' || al.severity === 'Warning'
+                    ), // 오류 정보를 다시 상태 판단에 반영 (Warning 포함)
+                    services: server.services || {} // 실제 서비스 상태 전달
                 };
                 // 모든 서버에 대해 getServerStatus 적용 (기존 상태 무시)
                 serverData.status = window.getServerStatus(processorReadyData);
