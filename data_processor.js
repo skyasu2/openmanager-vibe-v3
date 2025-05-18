@@ -10,7 +10,7 @@ class DataProcessor {
             this.serverData = window.serverData || [];
             this.filteredData = [];
             this.currentFilter = 'all';
-            this.currentSort = 'name';
+            this.currentSort = 'status-critical'; // 기본 정렬을 상태 기준(심각 > 경고 > 정상)으로 변경
             this.searchQuery = '';
             this.currentPage = 1;
             this.itemsPerPage = 6; // 페이지당 서버 수
@@ -414,6 +414,151 @@ class DataProcessor {
         // 필터 및 정렬 적용
         this.applyFiltersAndSort();
         this.updateGlobalStatusSummary(); // 서버 현황 요약 업데이트 추가
+        this.updatePresetTagClasses(); // 프리셋 태그 클래스 업데이트
+    }
+    
+    // 프리셋 태그 클래스 업데이트 (서버 상태에 따라 색상 동적 변경)
+    updatePresetTagClasses() {
+        // 1. CPU 과부하 프리셋
+        const cpuPresetTag = document.getElementById('cpu-preset');
+        if (cpuPresetTag) {
+            const highCpuServers = this.serverData.filter(server => server.cpu_usage >= this.thresholds.warning.cpu);
+            const criticalCpuServers = highCpuServers.filter(server => server.cpu_usage >= this.thresholds.critical.cpu);
+            
+            // 클래스 초기화 및 상태에 따라 설정
+            cpuPresetTag.classList.remove('tag-normal', 'tag-warning', 'tag-critical');
+            const badgeElement = cpuPresetTag.querySelector('.badge');
+            
+            if (criticalCpuServers.length > 0) {
+                cpuPresetTag.classList.add('tag-critical');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-danger';
+                    badgeElement.textContent = '심각';
+                }
+            } else if (highCpuServers.length > 0) {
+                cpuPresetTag.classList.add('tag-warning');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-warning';
+                    badgeElement.textContent = '경고';
+                }
+            } else {
+                cpuPresetTag.classList.add('tag-normal');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-success';
+                    badgeElement.textContent = '정상';
+                }
+            }
+        }
+        
+        // 2. 메모리 부족 프리셋
+        const memoryPresetTag = document.getElementById('memory-preset');
+        if (memoryPresetTag) {
+            const highMemoryServers = this.serverData.filter(server => server.memory_usage_percent >= this.thresholds.warning.memory);
+            const criticalMemoryServers = highMemoryServers.filter(server => server.memory_usage_percent >= this.thresholds.critical.memory);
+            
+            // 클래스 초기화 및 상태에 따라 설정
+            memoryPresetTag.classList.remove('tag-normal', 'tag-warning', 'tag-critical');
+            const badgeElement = memoryPresetTag.querySelector('.badge');
+            
+            if (criticalMemoryServers.length > 0) {
+                memoryPresetTag.classList.add('tag-critical');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-danger';
+                    badgeElement.textContent = '심각';
+                }
+            } else if (highMemoryServers.length > 0) {
+                memoryPresetTag.classList.add('tag-warning');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-warning';
+                    badgeElement.textContent = '경고';
+                }
+            } else {
+                memoryPresetTag.classList.add('tag-normal');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-success';
+                    badgeElement.textContent = '정상';
+                }
+            }
+        }
+        
+        // 3. 서비스 중단 프리셋
+        const servicePresetTag = document.getElementById('service-preset');
+        if (servicePresetTag) {
+            const stoppedServiceServers = this.serverData.filter(server => 
+                server.services && Object.values(server.services).some(status => status === 'stopped')
+            );
+            
+            // 클래스 초기화 및 상태에 따라 설정
+            servicePresetTag.classList.remove('tag-normal', 'tag-warning', 'tag-critical');
+            const badgeElement = servicePresetTag.querySelector('.badge');
+            
+            if (stoppedServiceServers.length > 0) {
+                servicePresetTag.classList.add('tag-critical');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-danger';
+                    badgeElement.textContent = '심각';
+                }
+            } else {
+                servicePresetTag.classList.add('tag-normal');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-success';
+                    badgeElement.textContent = '정상';
+                }
+            }
+        }
+        
+        // 4. 디스크 부족 프리셋
+        const diskPresetTag = document.getElementById('disk-preset');
+        if (diskPresetTag) {
+            const highDiskServers = this.serverData.filter(server => 
+                server.disk && 
+                server.disk.length > 0 && 
+                server.disk[0].disk_usage_percent >= this.thresholds.warning.disk
+            );
+            const criticalDiskServers = highDiskServers.filter(server => 
+                server.disk[0].disk_usage_percent >= this.thresholds.critical.disk
+            );
+            
+            // 클래스 초기화 및 상태에 따라 설정
+            diskPresetTag.classList.remove('tag-normal', 'tag-warning', 'tag-critical');
+            const badgeElement = diskPresetTag.querySelector('.badge');
+            
+            if (criticalDiskServers.length > 0) {
+                diskPresetTag.classList.add('tag-critical');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-danger';
+                    badgeElement.textContent = '심각';
+                }
+            } else if (highDiskServers.length > 0) {
+                diskPresetTag.classList.add('tag-warning');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-warning';
+                    badgeElement.textContent = '경고';
+                }
+            } else {
+                diskPresetTag.classList.add('tag-normal');
+                if (badgeElement) {
+                    badgeElement.className = 'badge bg-success';
+                    badgeElement.textContent = '정상';
+                }
+            }
+        }
+        
+        // 5. 정상 서버 프리셋 (항상 정상 클래스 유지, 정상 배지만 표시)
+        const normalPresetTag = document.getElementById('normal-preset');
+        if (normalPresetTag) {
+            const normalServers = this.serverData.filter(server => this.getServerStatus(server) === 'normal');
+            
+            normalPresetTag.classList.remove('tag-warning', 'tag-critical');
+            normalPresetTag.classList.add('tag-normal');
+            
+            // 배지 업데이트
+            const badgeElement = normalPresetTag.querySelector('.badge');
+            if (badgeElement) {
+                badgeElement.className = 'badge bg-success';
+                badgeElement.textContent = `정상 (${normalServers.length})`;
+            }
+        }
     }
     
     refreshData() {
@@ -644,6 +789,14 @@ class DataProcessor {
                     return statusWeight[statusB] - statusWeight[statusA];
                 });
                 break;
+            default:
+                // 기본 정렬: 심각 > 경고 > 정상 순
+                this.filteredData.sort((a, b) => {
+                    const statusA = this.getServerStatus(a);
+                    const statusB = this.getServerStatus(b);
+                    const statusWeight = { 'critical': 3, 'warning': 2, 'normal': 1 };
+                    return statusWeight[statusB] - statusWeight[statusA];
+                });
         }
     }
     
@@ -798,9 +951,18 @@ class DataProcessor {
         serverCard.className = 'server-card status-' + status;
         serverCard.dataset.serverId = server.hostname || 'unknown';
         
+        // 툴팁 요소 추가
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip-wrapper';
+        tooltip.innerHTML = `
+            <div class="tooltip-content">
+                클릭하여 ${server.hostname} 서버의 상세 정보를 확인하세요.
+            </div>
+        `;
+        serverCard.appendChild(tooltip);
+        
         // 카드 클릭 시 상세 정보 모달 표시
         serverCard.addEventListener('click', () => this.showServerDetail(server));
-        serverCard.style.cursor = 'pointer'; // 클릭 가능함을 시각적으로 표시
         
         // CPU, 메모리, 디스크 사용률을 안전하게 가져오기
         const cpuUsage = server.cpu_usage || 0;
@@ -808,8 +970,34 @@ class DataProcessor {
         const diskUsage = server.disk && server.disk[0] ? server.disk[0].disk_usage_percent || 0 : 0;
         const diskMount = server.disk && server.disk[0] ? server.disk[0].mount || '/' : '/';
         
+        // 리소스 상태 판별
+        const cpuStatus = this.getResourceStatus(cpuUsage, 'cpu');
+        const memoryStatus = this.getResourceStatus(memoryUsage, 'memory');
+        const diskStatus = this.getResourceStatus(diskUsage, 'disk');
+        
+        // 상태별 색상 클래스
+        const getStatusColorClass = (status) => {
+            switch(status) {
+                case 'critical': return 'text-danger';
+                case 'warning': return 'text-warning';
+                default: return 'text-success';
+            }
+        };
+        
+        // 상태 아이콘 가져오기
+        const getStatusIcon = (status) => {
+            switch(status) {
+                case 'critical': return '<i class="fas fa-exclamation-circle me-1"></i>';
+                case 'warning': return '<i class="fas fa-exclamation-triangle me-1"></i>';
+                default: return '<i class="fas fa-check-circle me-1"></i>';
+            }
+        };
+        
         // 카드 내용 구성
         serverCard.innerHTML = `
+            <div class="card-interaction-hint">
+                <i class="fas fa-info-circle"></i>
+            </div>
             <div class="server-header">
                 <div class="server-name">${server.hostname || 'Unknown Server'}</div>
                 <div class="server-status status-${status}">${this.getStatusLabel(status)}</div>
@@ -817,25 +1005,31 @@ class DataProcessor {
             <div class="server-details">
                 <div class="detail-item">
                     <div class="detail-label">CPU 사용량</div>
-                    <div class="detail-value">${cpuUsage}%</div>
+                    <div class="detail-value ${getStatusColorClass(cpuStatus)}">
+                        ${getStatusIcon(cpuStatus)}<strong>${cpuUsage}%</strong>
+                    </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar progress-${this.getResourceStatus(cpuUsage)}" 
+                        <div class="progress-bar progress-${cpuStatus}" 
                              style="width: ${cpuUsage}%"></div>
                     </div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">메모리</div>
-                    <div class="detail-value">${typeof memoryUsage === 'number' ? memoryUsage.toFixed(1) : '0'}%</div>
+                    <div class="detail-value ${getStatusColorClass(memoryStatus)}">
+                        ${getStatusIcon(memoryStatus)}<strong>${typeof memoryUsage === 'number' ? memoryUsage.toFixed(1) : '0'}%</strong>
+                    </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar progress-${this.getResourceStatus(memoryUsage)}" 
+                        <div class="progress-bar progress-${memoryStatus}" 
                              style="width: ${memoryUsage}%"></div>
                     </div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">디스크 (${diskMount})</div>
-                    <div class="detail-value">${typeof diskUsage === 'number' ? diskUsage.toFixed(1) : '0'}%</div>
+                    <div class="detail-value ${getStatusColorClass(diskStatus)}">
+                        ${getStatusIcon(diskStatus)}<strong>${typeof diskUsage === 'number' ? diskUsage.toFixed(1) : '0'}%</strong>
+                    </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar progress-${this.getResourceStatus(diskUsage)}" 
+                        <div class="progress-bar progress-${diskStatus}" 
                              style="width: ${diskUsage}%"></div>
                     </div>
                 </div>
@@ -1212,9 +1406,12 @@ class DataProcessor {
             const currentPageProblems = problems.slice(startIdx, endIdx);
             
             // 문제 항목 렌더링
-            currentPageProblems.forEach(problem => {
+            currentPageProblems.forEach((problem, index) => {
                 const listItem = document.createElement('li');
                 listItem.className = `list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}`;
+                // 인덱스 변수 추가
+                listItem.style.setProperty('--item-index', index);
+                
                 listItem.innerHTML = `
                     <div class="d-flex w-100 justify-content-between">
                         <h6 class="mb-1 problem-description">${problem.description}</h6>
@@ -1222,6 +1419,9 @@ class DataProcessor {
                     </div>
                     <p class="mb-1 problem-solution">${problem.solution || '제안된 해결책 없음'}</p>
                     <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
+                    <div class="problem-hint-icon">
+                        <i class="fas fa-search-plus"></i>
+                    </div>
                 `;
                 
                 // 문제 항목 클릭 시 액션 (서버 상세 모달)
@@ -1512,33 +1712,427 @@ class DataProcessor {
     
     // 프리셋 쿼리 처리 개선
     processPresetQuery(query) {
-        if (!this.aiProcessor) return;
+        if (!this.aiProcessor) return "AI 프로세서를 초기화할 수 없습니다.";
         
-        // 정상 상태 서버 목록 표시 처리
-        if (query.includes("정상 작동 중인 서버 목록")) {
-            const normalServers = this.serverData.filter(server => this.getServerStatus(server) === 'normal');
+        // 서버 상태 데이터 수집
+        const criticalServers = this.serverData.filter(server => this.getServerStatus(server) === 'critical');
+        const warningServers = this.serverData.filter(server => this.getServerStatus(server) === 'warning');
+        const normalServers = this.serverData.filter(server => this.getServerStatus(server) === 'normal');
+        
+        // AI 장애 보고서 데이터 가져오기 (있을 경우)
+        let aiProblemsData = [];
+        if (this.problemsData && Array.isArray(this.problemsData)) {
+            aiProblemsData = [...this.problemsData];
+        } else if (typeof this.aiProcessor.detectProblems === 'function') {
+            try {
+                aiProblemsData = this.aiProcessor.detectProblems();
+            } catch (err) {
+                console.warn("AI 문제 데이터를 가져오는 중 오류 발생:", err);
+            }
+        }
+        
+        // CPU 과부하 관련 쿼리
+        if (query.includes("CPU 사용률이 높은 서버") || query.includes("CPU 과부하")) {
+            const highCpuServers = this.serverData.filter(server => server.cpu_usage >= this.thresholds.warning.cpu);
             
-            if (normalServers.length === 0) {
-                return "현재 정상 작동 중인 서버가 없습니다. 모든 서버에 문제가 있습니다.";
+            // 서버 상태에 따라 응답 형식 조정
+            if (highCpuServers.length === 0) {
+                return `### CPU 사용률 분석 결과
+                
+현재 CPU 사용률이 높은 서버가 없습니다. 모든 서버가 정상적인 CPU 사용률을 보이고 있습니다.
+
+**총 서버 수**: ${this.serverData.length}대
+**평균 CPU 사용률**: ${(this.serverData.reduce((acc, server) => acc + server.cpu_usage, 0) / this.serverData.length).toFixed(1)}%
+
+모든 서버의 CPU 사용률이 정상 범위(${this.thresholds.warning.cpu}% 미만) 내에 있습니다.`;
             }
             
-            // 정상 서버 목록 생성
-            let response = `## 정상 작동 중인 서버 목록 (총 ${normalServers.length}대)\n\n`;
+            // 해당 문제와 관련된 AI 장애 보고서 항목 찾기
+            const cpuRelatedProblems = aiProblemsData.filter(problem => 
+                problem.description && problem.description.toLowerCase().includes('cpu')
+            );
             
-            normalServers.forEach(server => {
-                response += `### ${server.hostname}\n`;
-                response += `- CPU: ${server.cpu_usage}% (정상)\n`;
-                response += `- 메모리: ${server.memory_usage_percent}% (정상)\n`;
-                response += `- 디스크: ${server.disk[0].disk_usage_percent}% (정상)\n`;
-                response += `- 업타임: ${server.uptime}\n\n`;
-            });
+            let response = `### CPU 사용률 분석 결과
+
+CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니다.
+
+`;
             
-            response += "모든 서버가 정상적으로 작동 중입니다. 현재 별도의 조치가 필요하지 않습니다.";
+            // 심각한 수준(Critical)의 서버 먼저 표시
+            const criticalCpuServers = highCpuServers.filter(server => server.cpu_usage >= this.thresholds.critical.cpu);
+            if (criticalCpuServers.length > 0) {
+                response += `#### 심각한 CPU 과부하 (${this.thresholds.critical.cpu}% 이상)
+`;
+                criticalCpuServers.forEach(server => {
+                    response += `- **${server.hostname}**: CPU ${server.cpu_usage}% (심각)
+  - 프로세스 수: ${server.process_count || '정보 없음'}
+  - 부하 평균: ${server.load_avg_1m || '정보 없음'}
+`;
+                });
+                response += "\n";
+            }
+            
+            // 경고 수준(Warning)의 서버 표시
+            const warningCpuServers = highCpuServers.filter(server => 
+                server.cpu_usage >= this.thresholds.warning.cpu && 
+                server.cpu_usage < this.thresholds.critical.cpu
+            );
+            if (warningCpuServers.length > 0) {
+                response += `#### 경고 수준의 CPU 사용 (${this.thresholds.warning.cpu}% ~ ${this.thresholds.critical.cpu-0.1}%)
+`;
+                warningCpuServers.forEach(server => {
+                    response += `- **${server.hostname}**: CPU ${server.cpu_usage}% (경고)
+  - 프로세스 수: ${server.process_count || '정보 없음'}
+  - 부하 평균: ${server.load_avg_1m || '정보 없음'}
+`;
+                });
+                response += "\n";
+            }
+            
+            // 문제 원인 및 해결 방안 (AI 장애 보고서에서 가져옴)
+            response += "### 원인 분석 및 조치 방안\n\n";
+            
+            if (cpuRelatedProblems.length > 0) {
+                cpuRelatedProblems.forEach((problem, index) => {
+                    if (index < 3) { // 상위 3개만 표시
+                        response += `${index+1}. **${problem.serverHostname || '전체 서버'}**: ${problem.description}\n`;
+                        response += `   - 권장 조치: ${problem.solution || '서버 부하 원인 확인 필요'}\n\n`;
+                    }
+                });
+            } else {
+                response += `1. **높은 CPU 사용률 원인**: 서버에서 리소스를 많이 사용하는 프로세스가 실행 중이거나, 동시에 많은 요청이 처리되고 있을 수 있습니다.\n`;
+                response += `   - 권장 조치: 'top' 명령어로 CPU를 많이 사용하는 프로세스를 확인하고, 불필요한 프로세스 종료나 부하 분산을 고려하세요.\n\n`;
+                response += `2. **성능 병목 현상**: CPU 사용률이 지속적으로 높은 경우 성능 병목 현상이 발생할 수 있습니다.\n`;
+                response += `   - 권장 조치: 서버 스케일 업 또는 로드 밸런싱을 통한 스케일 아웃을 검토하세요.\n\n`;
+            }
             
             return response;
         }
         
-        // 기존 AI 프로세서 호출
+        // 메모리 부족 관련 쿼리
+        else if (query.includes("메모리 사용량이 많은 서버") || query.includes("메모리 부족")) {
+            const highMemoryServers = this.serverData.filter(server => server.memory_usage_percent >= this.thresholds.warning.memory);
+            
+            // 서버 상태에 따라 응답 형식 조정
+            if (highMemoryServers.length === 0) {
+                return `### 메모리 사용량 분석 결과
+                
+현재 메모리 사용량이 높은 서버가 없습니다. 모든 서버가 정상적인 메모리 사용량을 보이고 있습니다.
+
+**총 서버 수**: ${this.serverData.length}대
+**평균 메모리 사용률**: ${(this.serverData.reduce((acc, server) => acc + server.memory_usage_percent, 0) / this.serverData.length).toFixed(1)}%
+
+모든 서버의 메모리 사용률이 정상 범위(${this.thresholds.warning.memory}% 미만) 내에 있습니다.`;
+            }
+            
+            // 해당 문제와 관련된 AI 장애 보고서 항목 찾기
+            const memoryRelatedProblems = aiProblemsData.filter(problem => 
+                problem.description && (
+                    problem.description.toLowerCase().includes('memory') || 
+                    problem.description.toLowerCase().includes('메모리')
+                )
+            );
+            
+            let response = `### 메모리 사용량 분석 결과
+
+메모리 사용량이 높은 서버가 ${highMemoryServers.length}대 발견되었습니다.
+
+`;
+            
+            // 심각한 수준(Critical)의 서버 먼저 표시
+            const criticalMemServers = highMemoryServers.filter(server => server.memory_usage_percent >= this.thresholds.critical.memory);
+            if (criticalMemServers.length > 0) {
+                response += `#### 심각한 메모리 부족 (${this.thresholds.critical.memory}% 이상)
+`;
+                criticalMemServers.forEach(server => {
+                    response += `- **${server.hostname}**: 메모리 ${server.memory_usage_percent}% (심각)
+  - 총 메모리: ${server.memory_total || '정보 없음'}
+  - 사용 메모리: ${server.memory_used || '정보 없음'}
+`;
+                });
+                response += "\n";
+            }
+            
+            // 경고 수준(Warning)의 서버 표시
+            const warningMemServers = highMemoryServers.filter(server => 
+                server.memory_usage_percent >= this.thresholds.warning.memory && 
+                server.memory_usage_percent < this.thresholds.critical.memory
+            );
+            if (warningMemServers.length > 0) {
+                response += `#### 경고 수준의 메모리 사용 (${this.thresholds.warning.memory}% ~ ${this.thresholds.critical.memory-0.1}%)
+`;
+                warningMemServers.forEach(server => {
+                    response += `- **${server.hostname}**: 메모리 ${server.memory_usage_percent}% (경고)
+  - 총 메모리: ${server.memory_total || '정보 없음'}
+  - 사용 메모리: ${server.memory_used || '정보 없음'}
+`;
+                });
+                response += "\n";
+            }
+            
+            // 문제 원인 및 해결 방안 (AI 장애 보고서에서 가져옴)
+            response += "### 원인 분석 및 조치 방안\n\n";
+            
+            if (memoryRelatedProblems.length > 0) {
+                memoryRelatedProblems.forEach((problem, index) => {
+                    if (index < 3) { // 상위 3개만 표시
+                        response += `${index+1}. **${problem.serverHostname || '전체 서버'}**: ${problem.description}\n`;
+                        response += `   - 권장 조치: ${problem.solution || '메모리 누수 또는 과다 사용 프로세스 확인 필요'}\n\n`;
+                    }
+                });
+            } else {
+                response += `1. **높은 메모리 사용률 원인**: 서버에서 메모리 누수가 있거나, 메모리를 많이 사용하는 애플리케이션이 실행 중일 수 있습니다.\n`;
+                response += `   - 권장 조치: 'free -m', 'top' 명령어로 메모리를 많이 사용하는 프로세스를 확인하고, 필요시 재시작하세요.\n\n`;
+                response += `2. **스왑 사용 확인**: 메모리 부족 시 스왑 사용량이 증가할 수 있습니다.\n`;
+                response += `   - 권장 조치: 'vmstat' 명령어로 스왑 사용량을 확인하고, 메모리 증설을 고려하세요.\n\n`;
+            }
+            
+            return response;
+        }
+        
+        // 서비스 중단 관련 쿼리
+        else if (query.includes("서비스가 중단된 서버")) {
+            // 서비스 중단 서버 찾기
+            const stoppedServiceServers = this.serverData.filter(server => 
+                server.services && Object.values(server.services).some(status => status === 'stopped')
+            );
+            
+            // 서버 상태에 따라 응답 형식 조정
+            if (stoppedServiceServers.length === 0) {
+                return `### 서비스 상태 분석 결과
+                
+현재 중단된 서비스가 있는 서버가 없습니다. 모든 서버의 서비스가 정상 작동 중입니다.
+
+**총 서버 수**: ${this.serverData.length}대
+
+모든 서버에서 서비스가 정상적으로 실행 중입니다.`;
+            }
+            
+            // 해당 문제와 관련된 AI 장애 보고서 항목 찾기
+            const serviceRelatedProblems = aiProblemsData.filter(problem => 
+                problem.description && (
+                    problem.description.toLowerCase().includes('service') || 
+                    problem.description.toLowerCase().includes('서비스')
+                )
+            );
+            
+            let response = `### 서비스 상태 분석 결과
+
+서비스가 중단된 서버가 ${stoppedServiceServers.length}대 발견되었습니다.
+
+#### 중단된 서비스가 있는 서버
+`;
+            
+            stoppedServiceServers.forEach(server => {
+                const stoppedServices = Object.entries(server.services)
+                    .filter(([_, status]) => status === 'stopped')
+                    .map(([name, _]) => name);
+                
+                response += `- **${server.hostname}**: 
+  - 중단된 서비스: ${stoppedServices.join(', ')}
+  - 서버 상태: ${this.getStatusLabel(this.getServerStatus(server))}
+`;
+            });
+            
+            // 문제 원인 및 해결 방안 (AI 장애 보고서에서 가져옴)
+            response += "\n### 원인 분석 및 서비스 재시작 방법\n\n";
+            
+            if (serviceRelatedProblems.length > 0) {
+                serviceRelatedProblems.forEach((problem, index) => {
+                    if (index < 3) { // 상위 3개만 표시
+                        response += `${index+1}. **${problem.serverHostname || '전체 서버'}**: ${problem.description}\n`;
+                        response += `   - 권장 조치: ${problem.solution || '서비스 재시작 필요'}\n\n`;
+                    }
+                });
+            } else {
+                response += `1. **서비스 중단 원인**: 서비스 충돌, 리소스 부족, 또는 강제 종료로 인해 서비스가 중단되었을 수 있습니다.\n`;
+                response += `   - 권장 조치: 'systemctl restart SERVICE_NAME' 명령어로 해당 서비스를 재시작하세요.\n\n`;
+                response += `2. **로그 확인**: 중단된 원인을 파악하기 위해 로그 확인이 필요합니다.\n`;
+                response += `   - 권장 조치: 'journalctl -u SERVICE_NAME' 명령어로 서비스 로그를 확인하세요.\n\n`;
+            }
+            
+            return response;
+        }
+        
+        // 디스크 공간 부족 관련 쿼리
+        else if (query.includes("디스크 공간이 부족한 서버")) {
+            const highDiskServers = this.serverData.filter(server => 
+                server.disk && 
+                server.disk.length > 0 && 
+                server.disk[0].disk_usage_percent >= this.thresholds.warning.disk
+            );
+            
+            // 서버 상태에 따라 응답 형식 조정
+            if (highDiskServers.length === 0) {
+                return `### 디스크 공간 분석 결과
+                
+현재 디스크 공간이 부족한 서버가 없습니다. 모든 서버가 충분한 디스크 공간을 보유하고 있습니다.
+
+**총 서버 수**: ${this.serverData.length}대
+**평균 디스크 사용률**: ${(this.serverData.reduce((acc, server) => acc + (server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0), 0) / this.serverData.length).toFixed(1)}%
+
+모든 서버의 디스크 사용률이 정상 범위(${this.thresholds.warning.disk}% 미만) 내에 있습니다.`;
+            }
+            
+            // 해당 문제와 관련된 AI 장애 보고서 항목 찾기
+            const diskRelatedProblems = aiProblemsData.filter(problem => 
+                problem.description && (
+                    problem.description.toLowerCase().includes('disk') || 
+                    problem.description.toLowerCase().includes('디스크') ||
+                    problem.description.toLowerCase().includes('공간')
+                )
+            );
+            
+            let response = `### 디스크 공간 분석 결과
+
+디스크 공간이 부족한 서버가 ${highDiskServers.length}대 발견되었습니다.
+
+`;
+            
+            // 심각한 수준(Critical)의 서버 먼저 표시
+            const criticalDiskServers = highDiskServers.filter(server => 
+                server.disk[0].disk_usage_percent >= this.thresholds.critical.disk
+            );
+            if (criticalDiskServers.length > 0) {
+                response += `#### 심각한 디스크 공간 부족 (${this.thresholds.critical.disk}% 이상)
+`;
+                criticalDiskServers.forEach(server => {
+                    response += `- **${server.hostname}**: 디스크 ${server.disk[0].disk_usage_percent}% (심각)
+  - 마운트 지점: ${server.disk[0].mount || '/'}
+  - 총 용량: ${server.disk[0].disk_total || '정보 없음'}
+  - 사용 용량: ${server.disk[0].disk_used || '정보 없음'}
+`;
+                });
+                response += "\n";
+            }
+            
+            // 경고 수준(Warning)의 서버 표시
+            const warningDiskServers = highDiskServers.filter(server => 
+                server.disk[0].disk_usage_percent >= this.thresholds.warning.disk && 
+                server.disk[0].disk_usage_percent < this.thresholds.critical.disk
+            );
+            if (warningDiskServers.length > 0) {
+                response += `#### 경고 수준의 디스크 사용 (${this.thresholds.warning.disk}% ~ ${this.thresholds.critical.disk-0.1}%)
+`;
+                warningDiskServers.forEach(server => {
+                    response += `- **${server.hostname}**: 디스크 ${server.disk[0].disk_usage_percent}% (경고)
+  - 마운트 지점: ${server.disk[0].mount || '/'}
+  - 총 용량: ${server.disk[0].disk_total || '정보 없음'}
+  - 사용 용량: ${server.disk[0].disk_used || '정보 없음'}
+`;
+                });
+                response += "\n";
+            }
+            
+            // 문제 원인 및 해결 방안 (AI 장애 보고서에서 가져옴)
+            response += "### 원인 분석 및 조치 방안\n\n";
+            
+            if (diskRelatedProblems.length > 0) {
+                diskRelatedProblems.forEach((problem, index) => {
+                    if (index < 3) { // 상위 3개만 표시
+                        response += `${index+1}. **${problem.serverHostname || '전체 서버'}**: ${problem.description}\n`;
+                        response += `   - 권장 조치: ${problem.solution || '불필요한 파일 정리 필요'}\n\n`;
+                    }
+                });
+            } else {
+                response += `1. **디스크 공간 부족 원인**: 로그 파일 증가, 임시 파일 누적, 또는 데이터 증가로 인해 디스크 공간이 부족할 수 있습니다.\n`;
+                response += `   - 권장 조치: 'du -h --max-depth=1 /path' 명령어로 용량이 큰 디렉토리를 찾고, 불필요한 파일을 정리하세요.\n\n`;
+                response += `2. **로그 정리**: 오래된 로그 파일이 많은 공간을 차지할 수 있습니다.\n`;
+                response += `   - 권장 조치: '/var/log' 디렉토리의 오래된 로그 파일을 정리하고, logrotate 설정을 확인하세요.\n\n`;
+            }
+            
+            return response;
+        }
+        
+        // 정상 서버 목록 표시
+        else if (query.includes("정상 작동 중인 서버 목록")) {
+            if (normalServers.length === 0) {
+                return "### 정상 서버 목록\n\n현재 모든 서버에 문제가 있어 정상 작동 중인 서버가 없습니다.";
+            }
+            
+            let response = `### 정상 작동 중인 서버 목록 (총 ${normalServers.length}대)\n\n`;
+            
+            normalServers.forEach(server => {
+                response += `#### ${server.hostname}\n`;
+                response += `- CPU: ${server.cpu_usage}% (정상)\n`;
+                response += `- 메모리: ${server.memory_usage_percent}% (정상)\n`;
+                response += `- 디스크: ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0}% (정상)\n`;
+                response += `- 업타임: ${server.uptime || '정보 없음'}\n\n`;
+            });
+            
+            response += "모든 리소스가 정상 임계값 이내에서 작동 중이며, 특별한 조치가 필요하지 않습니다.";
+            
+            return response;
+        }
+        
+        // 전체 서버 상태 요약 보고서
+        else if (query.includes("전체 서버 상태 요약")) {
+            let response = `### 전체 서버 상태 요약 보고서\n\n`;
+            
+            response += `**총 서버 수**: ${this.serverData.length}대\n`;
+            response += `- 정상 서버: ${normalServers.length}대\n`;
+            response += `- 경고 상태: ${warningServers.length}대\n`;
+            response += `- 심각 상태: ${criticalServers.length}대\n\n`;
+            
+            // 임계값 초과 현황
+            const highCpuCount = this.serverData.filter(s => s.cpu_usage >= this.thresholds.warning.cpu).length;
+            const highMemCount = this.serverData.filter(s => s.memory_usage_percent >= this.thresholds.warning.memory).length;
+            const highDiskCount = this.serverData.filter(s => 
+                s.disk && s.disk.length > 0 && s.disk[0].disk_usage_percent >= this.thresholds.warning.disk
+            ).length;
+            const stoppedServiceCount = this.serverData.filter(s => 
+                s.services && Object.values(s.services).some(status => status === 'stopped')
+            ).length;
+            
+            response += `### 리소스 사용 현황\n\n`;
+            response += `- CPU 임계치 초과: ${highCpuCount}대\n`;
+            response += `- 메모리 임계치 초과: ${highMemCount}대\n`;
+            response += `- 디스크 임계치 초과: ${highDiskCount}대\n`;
+            response += `- 서비스 중단 서버: ${stoppedServiceCount}대\n\n`;
+            
+            // 심각한 문제 서버 목록 (최대 3대)
+            if (criticalServers.length > 0) {
+                response += `### 심각한 상태의 서버 (상위 ${Math.min(3, criticalServers.length)}대)\n\n`;
+                criticalServers.slice(0, 3).forEach(server => {
+                    response += `#### ${server.hostname}\n`;
+                    
+                    // 서버의 문제 원인 파악
+                    const issues = [];
+                    if (server.cpu_usage >= this.thresholds.critical.cpu) {
+                        issues.push(`CPU 사용률 ${server.cpu_usage}% (임계치 ${this.thresholds.critical.cpu}%)`);
+                    }
+                    if (server.memory_usage_percent >= this.thresholds.critical.memory) {
+                        issues.push(`메모리 사용률 ${server.memory_usage_percent}% (임계치 ${this.thresholds.critical.memory}%)`);
+                    }
+                    if (server.disk && server.disk.length > 0 && server.disk[0].disk_usage_percent >= this.thresholds.critical.disk) {
+                        issues.push(`디스크 사용률 ${server.disk[0].disk_usage_percent}% (임계치 ${this.thresholds.critical.disk}%)`);
+                    }
+                    if (server.services && Object.values(server.services).some(status => status === 'stopped')) {
+                        const stoppedServices = Object.entries(server.services)
+                            .filter(([_, status]) => status === 'stopped')
+                            .map(([name, _]) => name);
+                        issues.push(`중단된 서비스: ${stoppedServices.join(', ')}`);
+                    }
+                    
+                    issues.forEach(issue => response += `- ${issue}\n`);
+                    response += '\n';
+                });
+            }
+            
+            // 관련 AI 문제 항목 추가
+            if (aiProblemsData.length > 0) {
+                response += `### AI 분석 문제 항목 (상위 ${Math.min(3, aiProblemsData.length)}개)\n\n`;
+                aiProblemsData.slice(0, 3).forEach((problem, index) => {
+                    response += `${index+1}. **${problem.serverHostname || '전체 서버'}**: ${problem.description}\n`;
+                    response += `   - 심각도: ${problem.severity}\n`;
+                    response += `   - 권장 조치: ${problem.solution || '문제 원인 분석 필요'}\n\n`;
+                });
+            }
+            
+            return response;
+        }
+        
+        // 기본 AI 프로세서 호출
         return this.aiProcessor.processQuery(query);
     }
 
@@ -1561,8 +2155,18 @@ class DataProcessor {
         if (queryLoadingElement) queryLoadingElement.classList.add('active');
         if (queryResultElement) queryResultElement.style.display = 'none';
         
-        // 먼저 프리셋 쿼리 처리 시도
-        if (query.includes("정상 작동 중인 서버 목록")) {
+        // 프리셋 기반 응답 처리 (자체 처리)
+        const isPresetQuery = 
+            query.includes("CPU 사용률이 높은 서버") || 
+            query.includes("CPU 과부하") ||
+            query.includes("메모리 사용량이 많은 서버") || 
+            query.includes("메모리 부족") ||
+            query.includes("서비스가 중단된 서버") || 
+            query.includes("디스크 공간이 부족한 서버") ||
+            query.includes("정상 작동 중인 서버 목록") ||
+            query.includes("전체 서버 상태 요약");
+        
+        if (isPresetQuery) {
             const result = this.processPresetQuery(query);
             if (result) {
                 if (queryResultElement) {
@@ -1575,8 +2179,31 @@ class DataProcessor {
             }
         }
         
-        // AI 질의 처리
-        this.aiProcessor.processQuery(query)
+        // AI 질의 처리 (서버 상태 데이터와 AI 문제 데이터 연동)
+        let enhancedQuery = query;
+        
+        // AI 자동 장애 보고서 데이터가 있다면 쿼리에 추가 컨텍스트 제공
+        if (this.problemsData && this.problemsData.length > 0) {
+            const relevantProblems = this.findRelevantProblems(query);
+            if (relevantProblems.length > 0) {
+                enhancedQuery += "\n\n관련 문제 데이터:\n";
+                relevantProblems.forEach(problem => {
+                    enhancedQuery += `- ${problem.serverHostname || '전체 서버'}: ${problem.description} (심각도: ${problem.severity})\n`;
+                    if (problem.solution) {
+                        enhancedQuery += `  해결책: ${problem.solution}\n`;
+                    }
+                });
+            }
+        }
+        
+        // 서버 상태 데이터 통계 추가
+        const criticalServers = this.serverData.filter(server => this.getServerStatus(server) === 'critical').length;
+        const warningServers = this.serverData.filter(server => this.getServerStatus(server) === 'warning').length;
+        const normalServers = this.serverData.filter(server => this.getServerStatus(server) === 'normal').length;
+        
+        enhancedQuery += `\n\n서버 현황: 총 ${this.serverData.length}대 (정상: ${normalServers}, 경고: ${warningServers}, 심각: ${criticalServers})`;
+        
+        this.aiProcessor.processQuery(enhancedQuery)
             .then(response => {
                 if (queryResultElement) {
                     queryResultElement.innerHTML = response;
@@ -1594,6 +2221,24 @@ class DataProcessor {
             .finally(() => {
                 if (queryLoadingElement) queryLoadingElement.classList.remove('active');
             });
+    }
+    
+    // 쿼리와 관련된 문제 찾기
+    findRelevantProblems(query) {
+        if (!this.problemsData || !Array.isArray(this.problemsData)) {
+            return [];
+        }
+        
+        const keywords = query.toLowerCase().split(/\s+/);
+        
+        return this.problemsData.filter(problem => {
+            if (!problem.description) return false;
+            
+            const description = problem.description.toLowerCase();
+            return keywords.some(keyword => 
+                keyword.length > 3 && description.includes(keyword)
+            );
+        });
     }
     
     downloadErrorReport() {
@@ -1843,6 +2488,10 @@ class DataProcessor {
                             <div class="problems-count mb-3">
                                 총 <span class="fw-bold">${problems.length}</span>개의 문제가 감지되었습니다.
                             </div>
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                각 문제를 클릭하면 해당 서버의 상세 정보를 확인할 수 있습니다.
+                            </div>
                             <ul class="list-group all-problems-list">
                                 ${problems.map(problem => `
                                     <li class="list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}">
@@ -1852,6 +2501,9 @@ class DataProcessor {
                                         </div>
                                         <p class="mb-1 problem-solution">${problem.solution || '제안된 해결책 없음'}</p>
                                         <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
+                                        <div class="problem-hint-icon">
+                                            <i class="fas fa-search-plus"></i>
+                                        </div>
                                     </li>
                                 `).join('')}
                             </ul>
@@ -1867,7 +2519,7 @@ class DataProcessor {
             </div>
         `;
         
-        // 모달 추가 및 표시
+        // 모달에 추가 및 표시
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         
         // Bootstrap 모달 인스턴스 생성 및 표시
@@ -1877,6 +2529,9 @@ class DataProcessor {
         
         // 문제 항목 클릭 이벤트 추가
         modalElement.querySelectorAll('.problem-item').forEach((item, index) => {
+            // 애니메이션 딜레이 설정
+            item.style.setProperty('--item-index', index);
+            
             item.addEventListener('click', () => {
                 // 해당 서버 모달 표시
                 const serverHostname = problems[index].serverHostname;
