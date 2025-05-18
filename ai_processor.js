@@ -227,6 +227,7 @@ class AIProcessor {
     }
 
     analyzeQuery(query) {
+        // 기본 분석 구조 정의
         const analysis = {
             requestType: 'general', // general, problem_analysis, solution, report
             target: null,
@@ -240,82 +241,314 @@ class AIProcessor {
         // 소문자 변환 및 공백 표준화
         const normalizedQuery = query.toLowerCase().replace(/\s+/g, ' ');
         
-        // 문제 분석 요청
-        if (normalizedQuery.includes('문제') && normalizedQuery.includes('분석')) {
+        // 키워드별 매칭 사전 (확장성을 위해 키워드 목록을 분리)
+        const keywordMappings = {
+            // 메트릭 관련 키워드
+            cpu: ['cpu', '씨피유', '시피유', '프로세서', 'processor', '연산', '처리'],
+            memory: ['memory', 'ram', '메모리', '램', '기억장치'],
+            disk: ['disk', '디스크', '저장', '저장소', '스토리지', 'storage', '하드', 'hdd', 'ssd'],
+            network: ['network', '네트워크', '망', '인터넷', '연결', 'connection', '통신'],
+            
+            // 서버 타입 관련 키워드
+            web: ['web', '웹', 'www', 'http'],
+            db: ['db', 'database', '데이터베이스', 'sql', 'mysql', 'postgresql', 'oracle'],
+            api: ['api', 'rest', 'graphql', 'endpoint'],
+            app: ['app', 'application', '어플리케이션', '앱'],
+            cache: ['cache', '캐시', 'redis', 'memcached'],
+            
+            // 시간 범위 관련 키워드
+            recent: ['recent', '최근', '방금', '지금'],
+            today: ['today', '오늘', '금일'],
+            yesterday: ['yesterday', '어제'],
+            week: ['week', '주간', '일주일'],
+            month: ['month', '월간', '한달'],
+            
+            // 문제 유형 관련 키워드
+            high_usage: ['high', 'usage', '사용량', '높음', '과도', '과부하'],
+            low_space: ['low', 'space', '공간', '부족', '여유', '없음'],
+            error: ['error', 'fail', '오류', '에러', '장애', '실패'],
+            performance: ['performance', 'slow', '성능', '느림', '지연', '반응'],
+            security: ['security', 'breach', '보안', '침해', '공격', '해킹'],
+            
+            // 상태 관련 키워드
+            critical: ['critical', '심각', '위험', '긴급', '크리티컬'],
+            warning: ['warning', '경고', '주의', '워닝'],
+            normal: ['normal', '정상', '양호', '안정', '문제없음'],
+            
+            // 동작 관련 키워드
+            check: ['check', 'status', '상태', '확인', '점검', '조회'],
+            analyze: ['analyze', 'analysis', '분석', '진단', '평가'],
+            fix: ['fix', 'solve', 'solution', '해결', '조치', '수정', '복구'],
+            report: ['report', 'log', '보고서', '로그', '리포트', '기록'],
+            list: ['list', 'show', 'display', '목록', '보여줘', '나열', '표시']
+        };
+        
+        // 키워드 매칭 함수
+        const matchesKeyword = (text, keywordType) => {
+            if (!keywordMappings[keywordType]) return false;
+            return keywordMappings[keywordType].some(keyword => text.includes(keyword));
+        };
+        
+        // 매칭 우선순위가 있는 순서대로 조건 검사
+        
+        // 1. 문제 분석 요청 (이 검사가 가장 넓은 범위의 키워드를 포함하므로 우선 실행)
+        if ((matchesKeyword(normalizedQuery, 'analyze') || 
+             normalizedQuery.includes('문제') || 
+             normalizedQuery.includes('이슈') || 
+             normalizedQuery.includes('장애')) && 
+            (matchesKeyword(normalizedQuery, 'check') || 
+             matchesKeyword(normalizedQuery, 'analyze'))) {
             analysis.requestType = 'problem_analysis';
             return analysis;
         }
         
-        // 해결 방법 요청
-        if (normalizedQuery.includes('해결') || normalizedQuery.includes('방법') || normalizedQuery.includes('조치')) {
+        // 2. 해결 방법 요청
+        if (matchesKeyword(normalizedQuery, 'fix') || 
+            normalizedQuery.includes('해결') || 
+            normalizedQuery.includes('방법') || 
+            normalizedQuery.includes('조치')) {
             analysis.requestType = 'solution';
             
-            // 해결해야 할 문제 유형 분석
-            if (normalizedQuery.includes('cpu')) {
-                analysis.target = 'critical_cpu';
-            } else if (normalizedQuery.includes('메모리') || normalizedQuery.includes('ram')) {
-                analysis.target = 'critical_memory';
-            } else if (normalizedQuery.includes('디스크') || normalizedQuery.includes('저장공간')) {
-                analysis.target = 'critical_disk';
-            } else if (normalizedQuery.includes('서비스') || normalizedQuery.includes('중단')) {
+            // 구체적인 문제 타입 식별
+            if (matchesKeyword(normalizedQuery, 'cpu')) {
+                analysis.target = 'cpu_high';
+            } else if (matchesKeyword(normalizedQuery, 'memory')) {
+                analysis.target = 'memory_high';
+            } else if (matchesKeyword(normalizedQuery, 'disk')) {
+                analysis.target = 'disk_full';
+            } else if (normalizedQuery.includes('서비스') && (normalizedQuery.includes('중단') || normalizedQuery.includes('停止'))) {
                 analysis.target = 'service_down';
-            } else if (normalizedQuery.includes('네트워크') || normalizedQuery.includes('연결')) {
-                analysis.target = 'network_errors';
+            } else if (matchesKeyword(normalizedQuery, 'network')) {
+                analysis.target = 'network_issue';
+            } else if (matchesKeyword(normalizedQuery, 'error')) {
+                analysis.target = 'general_error';
             }
             
             return analysis;
         }
         
-        // 보고서 요청
-        if (normalizedQuery.includes('보고서') || normalizedQuery.includes('리포트') || normalizedQuery.includes('다운로드')) {
+        // 3. 보고서 요청
+        if (matchesKeyword(normalizedQuery, 'report') || 
+            normalizedQuery.includes('보고서') || 
+            normalizedQuery.includes('리포트') || 
+            normalizedQuery.includes('레포트') ||
+            (matchesKeyword(normalizedQuery, 'list') && matchesKeyword(normalizedQuery, 'error'))) {
             analysis.requestType = 'report';
             
-            if (normalizedQuery.includes('장애') || normalizedQuery.includes('인시던트')) {
+            // 보고서 유형 식별
+            if (normalizedQuery.includes('일일') || normalizedQuery.includes('daily') || matchesKeyword(normalizedQuery, 'today')) {
+                analysis.reportType = 'daily';
+            } else if (normalizedQuery.includes('주간') || normalizedQuery.includes('weekly') || matchesKeyword(normalizedQuery, 'week')) {
+                analysis.reportType = 'weekly';
+            } else if (normalizedQuery.includes('월간') || normalizedQuery.includes('monthly') || matchesKeyword(normalizedQuery, 'month')) {
+                analysis.reportType = 'monthly';
+            } else if (normalizedQuery.includes('장애') || normalizedQuery.includes('incident')) {
                 analysis.reportType = 'incident';
-            } else if (normalizedQuery.includes('성능') || normalizedQuery.includes('퍼포먼스')) {
-                analysis.reportType = 'performance';
-            } else if (normalizedQuery.includes('자원') || normalizedQuery.includes('리소스')) {
-                analysis.reportType = 'resource';
             } else {
-                analysis.reportType = 'general';
+                analysis.reportType = 'summary';
             }
             
             return analysis;
         }
         
-        // 일반 질의 분석
+        // 4. 메트릭별 일반 질의 처리
         
-        // 메트릭 분석
-        if (normalizedQuery.includes('cpu')) {
+        // CPU 관련
+        if (matchesKeyword(normalizedQuery, 'cpu')) {
             analysis.metric = 'cpu';
-        } else if (normalizedQuery.includes('메모리') || normalizedQuery.includes('ram')) {
-            analysis.metric = 'memory';
-        } else if (normalizedQuery.includes('디스크') || normalizedQuery.includes('저장공간')) {
-            analysis.metric = 'disk';
-        } else if (normalizedQuery.includes('네트워크') || normalizedQuery.includes('트래픽')) {
-            analysis.metric = 'network';
-        }
-        
-        // 서버 유형 분석
-        const serverTypes = ['web', 'app', 'db', 'cache', 'api', 'auth', 'cdn', 'monitor'];
-        for (const type of serverTypes) {
-            if (normalizedQuery.includes(type)) {
-                analysis.serverType = type;
-                break;
+            
+            // 임계값 검출 (숫자 + % 패턴 찾기)
+            const thresholdMatch = normalizedQuery.match(/(\d+)(%|\s*퍼센트)/);
+            if (thresholdMatch) {
+                analysis.threshold = parseInt(thresholdMatch[1]);
             }
+            
+            // 서버 유형 검출
+            for (const serverType of ['web', 'db', 'api', 'app', 'cache']) {
+                if (matchesKeyword(normalizedQuery, serverType)) {
+                    analysis.serverType = serverType;
+                    break;
+                }
+            }
+            
+            // 시간 범위 검출
+            for (const timeRange of ['recent', 'today', 'yesterday', 'week', 'month']) {
+                if (matchesKeyword(normalizedQuery, timeRange)) {
+                    analysis.timeRange = timeRange;
+                    break;
+                }
+            }
+            
+            // 상태 필터 검출
+            if (matchesKeyword(normalizedQuery, 'critical')) {
+                analysis.target = 'critical';
+            } else if (matchesKeyword(normalizedQuery, 'warning')) {
+                analysis.target = 'warning';
+            } else if (matchesKeyword(normalizedQuery, 'normal')) {
+                analysis.target = 'normal';
+            } else if (matchesKeyword(normalizedQuery, 'high_usage')) {
+                analysis.target = 'high';
+            }
+            
+            return analysis;
         }
         
-        // 임계값 분석
-        const thresholdMatch = normalizedQuery.match(/(\d+)\s*(%|퍼센트)/);
-        if (thresholdMatch) {
-            analysis.threshold = parseInt(thresholdMatch[1]);
+        // 메모리 관련
+        if (matchesKeyword(normalizedQuery, 'memory')) {
+            analysis.metric = 'memory';
+            
+            // 임계값 검출
+            const thresholdMatch = normalizedQuery.match(/(\d+)(%|\s*퍼센트)/);
+            if (thresholdMatch) {
+                analysis.threshold = parseInt(thresholdMatch[1]);
+            }
+            
+            // 서버 유형 검출
+            for (const serverType of ['web', 'db', 'api', 'app', 'cache']) {
+                if (matchesKeyword(normalizedQuery, serverType)) {
+                    analysis.serverType = serverType;
+                    break;
+                }
+            }
+            
+            // 시간 범위 검출
+            for (const timeRange of ['recent', 'today', 'yesterday', 'week', 'month']) {
+                if (matchesKeyword(normalizedQuery, timeRange)) {
+                    analysis.timeRange = timeRange;
+                    break;
+                }
+            }
+            
+            // 상태 필터 검출
+            if (matchesKeyword(normalizedQuery, 'critical')) {
+                analysis.target = 'critical';
+            } else if (matchesKeyword(normalizedQuery, 'warning')) {
+                analysis.target = 'warning';
+            } else if (matchesKeyword(normalizedQuery, 'normal')) {
+                analysis.target = 'normal';
+            } else if (matchesKeyword(normalizedQuery, 'high_usage')) {
+                analysis.target = 'high';
+            } else if (normalizedQuery.includes('누수') || normalizedQuery.includes('leak')) {
+                analysis.target = 'leak';
+            }
+            
+            return analysis;
         }
         
-        // 시간 범위 분석
-        if (normalizedQuery.includes('과거') || normalizedQuery.includes('지난') || normalizedQuery.includes('이전')) {
-            analysis.timeRange = 'past';
+        // 디스크 관련
+        if (matchesKeyword(normalizedQuery, 'disk')) {
+            analysis.metric = 'disk';
+            
+            // 임계값 검출
+            const thresholdMatch = normalizedQuery.match(/(\d+)(%|\s*퍼센트)/);
+            if (thresholdMatch) {
+                analysis.threshold = parseInt(thresholdMatch[1]);
+            }
+            
+            // 서버 유형 검출
+            for (const serverType of ['web', 'db', 'api', 'app', 'cache']) {
+                if (matchesKeyword(normalizedQuery, serverType)) {
+                    analysis.serverType = serverType;
+                    break;
+                }
+            }
+            
+            // 시간 범위 검출
+            for (const timeRange of ['recent', 'today', 'yesterday', 'week', 'month']) {
+                if (matchesKeyword(normalizedQuery, timeRange)) {
+                    analysis.timeRange = timeRange;
+                    break;
+                }
+            }
+            
+            // 상태 필터 검출
+            if (matchesKeyword(normalizedQuery, 'critical')) {
+                analysis.target = 'critical';
+            } else if (matchesKeyword(normalizedQuery, 'warning')) {
+                analysis.target = 'warning';
+            } else if (matchesKeyword(normalizedQuery, 'normal')) {
+                analysis.target = 'normal';
+            } else if (matchesKeyword(normalizedQuery, 'low_space')) {
+                analysis.target = 'full';
+            }
+            
+            return analysis;
         }
         
+        // 네트워크 관련
+        if (matchesKeyword(normalizedQuery, 'network')) {
+            analysis.metric = 'network';
+            
+            // 네트워크 특정 키워드 검출
+            if (normalizedQuery.includes('인바운드') || normalizedQuery.includes('수신') || normalizedQuery.includes('inbound')) {
+                analysis.target = 'inbound';
+            } else if (normalizedQuery.includes('아웃바운드') || normalizedQuery.includes('송신') || normalizedQuery.includes('outbound')) {
+                analysis.target = 'outbound';
+            } else if (normalizedQuery.includes('오류') || normalizedQuery.includes('에러') || normalizedQuery.includes('error')) {
+                analysis.target = 'errors';
+            } else if (normalizedQuery.includes('지연') || normalizedQuery.includes('느림') || normalizedQuery.includes('latency')) {
+                analysis.target = 'latency';
+            }
+            
+            // 서버 유형 검출
+            for (const serverType of ['web', 'db', 'api', 'app', 'cache']) {
+                if (matchesKeyword(normalizedQuery, serverType)) {
+                    analysis.serverType = serverType;
+                    break;
+                }
+            }
+            
+            return analysis;
+        }
+        
+        // 서비스 관련
+        if (normalizedQuery.includes('서비스') || normalizedQuery.includes('service')) {
+            analysis.metric = 'service';
+            
+            if (normalizedQuery.includes('중단') || normalizedQuery.includes('정지') || 
+                normalizedQuery.includes('stop') || normalizedQuery.includes('down')) {
+                analysis.target = 'stopped';
+            } else if (normalizedQuery.includes('상태') || normalizedQuery.includes('status')) {
+                analysis.target = 'status';
+            }
+            
+            // 특정 서비스 감지
+            const services = ['nginx', 'apache', 'mysql', 'postgres', 'mongodb', 'redis', 'docker'];
+            for (const service of services) {
+                if (normalizedQuery.includes(service)) {
+                    analysis.serverType = service;
+                    break;
+                }
+            }
+            
+            return analysis;
+        }
+        
+        // 서버 상태 일반 질의
+        if (normalizedQuery.includes('상태') || normalizedQuery.includes('status') || 
+            matchesKeyword(normalizedQuery, 'check')) {
+            
+            // 특정 상태에 대한 질의인지 확인
+            if (matchesKeyword(normalizedQuery, 'critical')) {
+                analysis.target = 'critical';
+            } else if (matchesKeyword(normalizedQuery, 'warning')) {
+                analysis.target = 'warning';
+            } else if (matchesKeyword(normalizedQuery, 'normal')) {
+                analysis.target = 'normal';
+            }
+            
+            // 서버 유형 검출
+            for (const serverType of ['web', 'db', 'api', 'app', 'cache']) {
+                if (matchesKeyword(normalizedQuery, serverType)) {
+                    analysis.serverType = serverType;
+                    break;
+                }
+            }
+            
+            return analysis;
+        }
+        
+        // 자세한 분석이 없는 경우 기본값 반환
         return analysis;
     }
 
@@ -672,7 +905,18 @@ class AIProcessor {
                     serverHostname: server.hostname,
                     description: `CPU 과부하 (${server.cpu_usage}%)`,
                     solution: '불필요한 프로세스를 종료하거나 자원을 확장하세요.',
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    commands: [
+                        'top -c -b -n 1 | head -20',
+                        'ps aux --sort=-%cpu | head -10',
+                        'mpstat -P ALL',
+                        'vmstat 1 5'
+                    ],
+                    causes: [
+                        '과도한 부하를 일으키는 프로세스 실행 중',
+                        '시스템 자원 부족으로 인한 경합 상태',
+                        'CPU 바운드 작업(인코딩, 계산) 과다 실행'
+                    ]
                 });
             } else if (server.cpu_usage >= 80) {
                 problems.push({
@@ -680,7 +924,17 @@ class AIProcessor {
                     serverHostname: server.hostname,
                     description: `CPU 사용량 높음 (${server.cpu_usage}%)`,
                     solution: 'CPU 사용량을 모니터링하고 추세를 확인하세요.',
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    commands: [
+                        'top -c -b -n 1 | head -20',
+                        'ps aux --sort=-%cpu | head -10',
+                        'uptime' 
+                    ],
+                    causes: [
+                        '일시적인 부하 증가',
+                        '백그라운드 작업 증가',
+                        '비효율적인 어플리케이션 코드'
+                    ]
                 });
             }
             
@@ -691,7 +945,19 @@ class AIProcessor {
                     serverHostname: server.hostname,
                     description: `메모리 부족 (${server.memory_usage_percent}%)`,
                     solution: '메모리 누수 확인 또는 자원을 확장하세요.',
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    commands: [
+                        'free -m',
+                        'ps aux --sort=-%mem | head -10',
+                        'vmstat -s',
+                        'cat /proc/meminfo',
+                        'dmesg | grep -i memory'
+                    ],
+                    causes: [
+                        '메모리 누수가 발생하는 프로세스',
+                        '스왑 공간 부족',
+                        '메모리 캐시 설정 오류'
+                    ]
                 });
             } else if (server.memory_usage_percent >= 80) {
                 problems.push({
@@ -699,7 +965,17 @@ class AIProcessor {
                     serverHostname: server.hostname,
                     description: `메모리 사용량 높음 (${server.memory_usage_percent}%)`,
                     solution: '메모리 사용량을 모니터링하고 추세를 확인하세요.',
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    commands: [
+                        'free -m',
+                        'ps aux --sort=-%mem | head -10',
+                        'vmstat 1 5'
+                    ],
+                    causes: [
+                        '일시적인 메모리 사용 증가',
+                        '캐시 증가',
+                        '더 많은 애플리케이션 동시 실행'
+                    ]
                 });
             }
             
@@ -711,7 +987,18 @@ class AIProcessor {
                         serverHostname: server.hostname,
                         description: `디스크 공간 부족 (${server.disk[0].disk_usage_percent}%)`,
                         solution: '불필요한 파일을 제거하거나 디스크 공간을 확장하세요.',
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        commands: [
+                            'df -h',
+                            'du -sh /* | sort -hr | head -10',
+                            'find / -type f -size +100M -exec ls -lh {} \\;',
+                            'find /var/log -name "*.log" -size +50M'
+                        ],
+                        causes: [
+                            '로그 파일 과다 누적',
+                            '임시 파일 미정리',
+                            '대용량 데이터 파일 증가'
+                        ]
                     });
                 } else if (server.disk[0].disk_usage_percent >= 80) {
                     problems.push({
@@ -719,7 +1006,17 @@ class AIProcessor {
                         serverHostname: server.hostname,
                         description: `디스크 공간 부족 임박 (${server.disk[0].disk_usage_percent}%)`,
                         solution: '디스크 공간을 모니터링하고 정리 계획을 수립하세요.',
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        commands: [
+                            'df -h',
+                            'du -sh /* | sort -hr | head -10',
+                            'find /var/log -name "*.log" -size +20M'
+                        ],
+                        causes: [
+                            '로그 파일 증가 중',
+                            '사용자 데이터 증가',
+                            '백업 파일 공간 증가'
+                        ]
                     });
                 }
             }
@@ -733,7 +1030,19 @@ class AIProcessor {
                             serverHostname: server.hostname,
                             description: `${serviceName} 서비스 중단`,
                             solution: `${serviceName} 서비스를 재시작하고 로그를 확인하세요.`,
-                            timestamp: new Date().toISOString()
+                            timestamp: new Date().toISOString(),
+                            commands: [
+                                `systemctl status ${serviceName}`,
+                                `journalctl -u ${serviceName} -n 50`,
+                                `systemctl restart ${serviceName}`,
+                                `ps aux | grep ${serviceName}`
+                            ],
+                            causes: [
+                                '서비스 충돌 발생',
+                                '의존성 서비스 장애',
+                                '리소스 부족으로 인한 중단',
+                                '설정 파일 오류'
+                            ]
                         });
                     }
                 });
@@ -742,12 +1051,34 @@ class AIProcessor {
             // 오류 메시지 감지
             if (server.errors && server.errors.length > 0) {
                 server.errors.forEach(error => {
+                    // 오류 메시지에서 명령어가 포함되어 있는지 확인
+                    const commandMatch = error.match(/\(([^)]+)\)$/);
+                    const command = commandMatch ? commandMatch[1] : 'journalctl -f';
+                    
+                    // 명령어 목록 생성
+                    const commands = [command];
+                    
+                    // 심각도 판단
+                    let severity = 'Warning';
+                    if (error.toLowerCase().includes('critical')) {
+                        severity = 'Critical';
+                        commands.push('dmesg | tail -50');
+                    } else if (error.toLowerCase().includes('error')) {
+                        commands.push('grep -i error /var/log/syslog | tail -20');
+                    }
+                    
                     problems.push({
-                        severity: 'Warning',
+                        severity: severity,
                         serverHostname: server.hostname,
-                        description: `오류 감지: ${error}`,
+                        description: `오류 감지: ${error.replace(/\s*\([^)]*\)$/, '')}`, // 괄호 속 명령어는 설명에서 제거
                         solution: '로그 파일을 확인하고 근본 원인을 분석하세요.',
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        commands: commands,
+                        causes: [
+                            '시스템 또는 애플리케이션 오류 발생',
+                            '보안 이슈 발생 가능성',
+                            '리소스 부족으로 인한 오류'
+                        ]
                     });
                 });
             }
@@ -777,8 +1108,29 @@ class AIProcessor {
             report += '## 심각한 문제\n\n';
             criticalProblems.forEach(problem => {
                 report += `### ${problem.serverHostname}: ${problem.description}\n`;
-                report += `- 해결 방안: ${problem.solution}\n`;
-                report += `- 감지 시간: ${new Date(problem.timestamp).toLocaleString()}\n\n`;
+                
+                // 원인 분석 추가
+                if (problem.causes && problem.causes.length > 0) {
+                    report += '#### 추정 원인:\n';
+                    problem.causes.forEach(cause => {
+                        report += `- ${cause}\n`;
+                    });
+                    report += '\n';
+                }
+                
+                report += `#### 해결 방안:\n- ${problem.solution}\n\n`;
+                
+                // 확인 명령어 추가
+                if (problem.commands && problem.commands.length > 0) {
+                    report += '#### 확인 명령어:\n```bash\n';
+                    problem.commands.forEach(cmd => {
+                        report += `${cmd}\n`;
+                    });
+                    report += '```\n\n';
+                }
+                
+                report += `감지 시간: ${new Date(problem.timestamp).toLocaleString()}\n\n`;
+                report += `---\n\n`;
             });
         }
         
@@ -786,8 +1138,29 @@ class AIProcessor {
             report += '## 경고\n\n';
             warningProblems.forEach(problem => {
                 report += `### ${problem.serverHostname}: ${problem.description}\n`;
-                report += `- 해결 방안: ${problem.solution}\n`;
-                report += `- 감지 시간: ${new Date(problem.timestamp).toLocaleString()}\n\n`;
+                
+                // 원인 분석 추가
+                if (problem.causes && problem.causes.length > 0) {
+                    report += '#### 추정 원인:\n';
+                    problem.causes.forEach(cause => {
+                        report += `- ${cause}\n`;
+                    });
+                    report += '\n';
+                }
+                
+                report += `#### 해결 방안:\n- ${problem.solution}\n\n`;
+                
+                // 확인 명령어 추가
+                if (problem.commands && problem.commands.length > 0) {
+                    report += '#### 확인 명령어:\n```bash\n';
+                    problem.commands.forEach(cmd => {
+                        report += `${cmd}\n`;
+                    });
+                    report += '```\n\n';
+                }
+                
+                report += `감지 시간: ${new Date(problem.timestamp).toLocaleString()}\n\n`;
+                report += `---\n\n`;
             });
         }
         
@@ -809,7 +1182,7 @@ class AIProcessor {
                 .slice(0, 5);
             
             topCpuServers.forEach(server => {
-                report += `- ${server.hostname}: ${server.cpu_usage}%\n`;
+                report += `- ${server.hostname}: ${server.cpu_usage}% (${this.getStatusLabel(this.getEffectiveServerStatus(server))})\n`;
             });
             
             report += '\n### 상위 메모리 사용 서버\n\n';
@@ -818,11 +1191,36 @@ class AIProcessor {
                 .slice(0, 5);
             
             topMemServers.forEach(server => {
-                report += `- ${server.hostname}: ${server.memory_usage_percent}%\n`;
+                report += `- ${server.hostname}: ${server.memory_usage_percent}% (${this.getStatusLabel(this.getEffectiveServerStatus(server))})\n`;
             });
+            
+            report += '\n### 일반적인 서버 상태 확인 명령어\n\n';
+            report += '```bash\n';
+            report += '# 시스템 전체 상태 확인\n';
+            report += 'top -c          # 실시간 프로세스 모니터링\n';
+            report += 'htop            # 향상된 대화형 프로세스 뷰어\n';
+            report += 'free -h         # 메모리 사용량 확인\n';
+            report += 'df -h           # 디스크 사용량 확인\n';
+            report += 'uptime          # 부하 및 가동 시간 확인\n';
+            report += 'dmesg | tail    # 최근 커널 메시지 확인\n\n';
+            report += '# 로그 확인\n';
+            report += 'journalctl -f   # 실시간 시스템 로그 확인\n';
+            report += 'tail -f /var/log/syslog    # 시스템 로그 확인\n';
+            report += 'grep -i error /var/log/syslog  # 오류 로그 검색\n';
+            report += '```\n';
         }
         
         return report;
+    }
+    
+    // 상태에 따른 라벨 반환 (보고서 생성용)
+    getStatusLabel(status) {
+        switch(status) {
+            case 'critical': return '심각';
+            case 'warning': return '경고';
+            case 'normal': return '정상';
+            default: return '알 수 없음';
+        }
     }
 
     calculateAverage(numbers) {

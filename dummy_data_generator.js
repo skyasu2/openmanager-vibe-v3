@@ -16,16 +16,16 @@ class DummyDataGenerator {
         this.updateInterval = 10 * 60 * 1000; // 10분 (밀리초 단위)
         
         // 최종 상태 목표치 (ai_processor.js가 판단)
-        this.targetCriticalRatio = 0.04; // 심각 상태 서버 비율 목표 (50대 중 2대)
-        this.targetWarningRatio = 0.10;  // 경고 상태 서버 비율 목표 (50대 중 5대)
+        this.targetCriticalRatio = 0.03; // 심각 상태 서버 비율 목표 (50대 중 1-2대로 줄임)
+        this.targetWarningRatio = 0.06;  // 경고 상태 서버 비율 목표 (50대 중 3대로 줄임)
 
         // "재료" 발생 확률 (이 값들을 조정하여 위 목표치에 근접하도록 함)
         // 이 확률들은 독립적으로 작용하거나 여러개가 동시에 발생할 수 있음
-        this.highResourceUsageCriticalProb = 0.03; // 리소스 하나가 90% 넘을 확률
-        this.highResourceUsageWarningProb = 0.08; // 리소스 하나가 70-89% 될 확률
-        this.criticalErrorProb = 0.02;             // "Critical" 오류 메시지 발생 확률
-        this.warningErrorProb = 0.05;              // "Error" 또는 "Warning" 오류 메시지 발생 확률
-        this.serviceStoppedProb = 0.02;            // 서비스 중단 발생 확률
+        this.highResourceUsageCriticalProb = 0.02; // 리소스 하나가 90% 넘을 확률 (줄임)
+        this.highResourceUsageWarningProb = 0.04; // 리소스 하나가 70-89% 될 확률 (줄임)
+        this.criticalErrorProb = 0.01;    // "Critical" 오류 메시지 발생 확률 (줄임)
+        this.warningErrorProb = 0.03;     // "Error" 또는 "Warning" 오류 메시지 발생 확률 (줄임)
+        this.serviceStoppedProb = 0.01;   // 서비스 중단 발생 확률 (줄임)
         
         // 서버 구성 정보
         this.serverConfigurations = [
@@ -628,31 +628,31 @@ class DummyDataGenerator {
     generateErrorMessage(serverType, severity = 'Warning', customMessage = null) {
         const messages = {
             Critical: [
-                `CRITICAL: Core service ${serverType.toUpperCase()}_SERVICE_01 failed to start. System integrity compromised.`,
-                `CRITICAL: Unrecoverable hardware error detected on ${serverType}. Immediate action required.`,
-                `CRITICAL: Security breach attempt detected on ${serverType}! System locked down.`,
-                `CRITICAL: Kernel panic - not syncing: Fatal exception in interrupt on ${serverType}`
+                `CRITICAL: Core service ${serverType.toUpperCase()}_SERVICE_01 failed to start. System integrity compromised. (systemctl status ${serverType.toLowerCase()}-service01 확인 필요)`,
+                `CRITICAL: Unrecoverable hardware error detected on ${serverType}. Immediate action required. (dmesg | grep -i hardware 확인 필요)`,
+                `CRITICAL: Security breach attempt detected on ${serverType}! System locked down. (journalctl -p err 확인 필요)`,
+                `CRITICAL: Kernel panic - not syncing: Fatal exception in interrupt on ${serverType} (dmesg | tail -50 확인 필요)`
             ],
             Error: [
-                `ERROR: ${serverType.toUpperCase()}_APP_MODULE_X crashed due to an unhandled exception.`,
-                `ERROR: Failed to connect to remote DB from ${serverType}. Timeout occurred.`,
-                `ERROR: Configuration file for ${serverType.toUpperCase()}_SERVICE_02 is corrupted.`,
-                `ERROR: High number of I/O errors on /dev/sdX on ${serverType}. Disk may be failing.`
+                `ERROR: ${serverType.toUpperCase()}_APP_MODULE_X crashed due to an unhandled exception. (journalctl -u ${serverType.toLowerCase()}-app 확인 필요)`,
+                `ERROR: Failed to connect to remote DB from ${serverType}. Timeout occurred. (ping DB_HOST 및 telnet DB_HOST DB_PORT 확인 필요)`,
+                `ERROR: Configuration file for ${serverType.toUpperCase()}_SERVICE_02 is corrupted. (cat /etc/conf.d/${serverType.toLowerCase()}-service02.conf 확인 필요)`,
+                `ERROR: High number of I/O errors on /dev/sdX on ${serverType}. Disk may be failing. (smartctl -a /dev/sdX 확인 필요)`
             ],
             Warning: [
-                `WARNING: High CPU load average on ${serverType} for the last 15 minutes.`,
-                `WARNING: Memory usage on ${serverType} is approaching critical levels (85%).`,
-                `WARNING: Disk space on /var/log on ${serverType} is running low (currently 80% full).`,
-                `WARNING: Unexpected spike in network latency for ${serverType}.`
+                `WARNING: High CPU load average on ${serverType} for the last 15 minutes. (top -b -n 1 확인 필요)`,
+                `WARNING: Memory usage on ${serverType} is approaching critical levels (85%). (free -m 확인 필요)`,
+                `WARNING: Disk space on /var/log on ${serverType} is running low (currently 80% full). (df -h /var/log 확인 필요)`,
+                `WARNING: Unexpected spike in network latency for ${serverType}. (ping -c 5 GATEWAY_IP 확인 필요)`
             ]
         };
 
         if (customMessage) {
-            return `${severity.toUpperCase()}: ${customMessage} on ${serverType}.`;
+            return `${severity.toUpperCase()}: ${customMessage} on ${serverType}. (journalctl -f 확인 필요)`;
         }
 
         const severityMessages = messages[severity];
-        if (!severityMessages) return `${severity.toUpperCase()}: Unknown issue on ${serverType}.`;
+        if (!severityMessages) return `${severity.toUpperCase()}: Unknown issue on ${serverType}. (journalctl -f 확인 필요)`;
         
         return this.getRandomItem(severityMessages);
     }
