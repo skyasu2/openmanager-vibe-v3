@@ -180,6 +180,7 @@ class DataProcessor {
         
         // 데이터 로드 시도 (최대 10초 대기)
         let attempts = 0;
+        const maxAttempts = 20; // 10초 = 500ms * 20
         const checkInterval = setInterval(() => {
             if (window.serverData && window.serverData.length > 0) {
                 clearInterval(checkInterval);
@@ -188,32 +189,114 @@ class DataProcessor {
             }
             
             attempts++;
-            if (attempts >= 20) { // 10초 후 타임아웃 (500ms * 20)
+            if (attempts >= maxAttempts) {
                 clearInterval(checkInterval);
                 this.hideLoading();
-                console.error('서버 데이터를 로드하지 못했습니다.');
-                // 에러 메시지 표시
-                this.serverGrid.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        서버 데이터를 로드하지 못했습니다. 새로고침 버튼을 클릭하여 다시 시도해 주세요.
-                    </div>
-                `;
+                console.error('서버 데이터를 로드하지 못했습니다. 백업 데이터 생성을 시도합니다.');
+                this.createBackupData();
             }
         }, 500);
+    }
+    
+    // 백업 데이터 생성 함수
+    createBackupData() {
+        console.log('백업 데이터 생성 시도...');
         
-        // 백업 조치: 더미 데이터 생성기 직접 호출
-        if (typeof generateDummyData === 'function' && (!window.serverData || window.serverData.length === 0)) {
-            try {
-                console.log('더미 데이터 생성 시도...');
+        try {
+            // 1. generateDummyData 함수 검사 및 호출
+            if (typeof generateDummyData === 'function') {
                 window.serverData = generateDummyData(30); // 30개 서버 데이터 생성
                 if (window.serverData && window.serverData.length > 0) {
-                    clearInterval(checkInterval);
                     this.handleDataUpdate(window.serverData);
+                    return;
                 }
-            } catch (error) {
-                console.error('더미 데이터 생성 중 오류:', error);
             }
+            
+            // 2. generateDummyData가 없거나 실패한 경우 직접 더미 데이터 생성
+            console.log('기본 더미 데이터 생성...');
+            const backupServers = [];
+            
+            // 기본 더미 서버 10대 생성
+            for (let i = 1; i <= 10; i++) {
+                // 약 30%의 확률로 문제 있는 서버 생성
+                const hasProblem = Math.random() < 0.3;
+                const problemLevel = hasProblem ? (Math.random() < 0.3 ? 'critical' : 'warning') : 'normal';
+                
+                const cpuUsage = problemLevel === 'critical' ? 
+                    Math.floor(Math.random() * 10) + 90 : // 90-99%
+                    problemLevel === 'warning' ? 
+                        Math.floor(Math.random() * 20) + 70 : // 70-89%
+                        Math.floor(Math.random() * 50) + 10; // 10-59%
+                
+                const memoryUsage = problemLevel === 'critical' ? 
+                    Math.floor(Math.random() * 10) + 90 : // 90-99%
+                    problemLevel === 'warning' ? 
+                        Math.floor(Math.random() * 20) + 70 : // 70-89%
+                        Math.floor(Math.random() * 50) + 10; // 10-59%
+                
+                const diskUsage = problemLevel === 'critical' ? 
+                    Math.floor(Math.random() * 10) + 90 : // 90-99%
+                    problemLevel === 'warning' ? 
+                        Math.floor(Math.random() * 20) + 70 : // 70-89%
+                        Math.floor(Math.random() * 50) + 20; // 20-69%
+                
+                backupServers.push({
+                    hostname: `server-${i}`,
+                    os: 'Linux',
+                    uptime: '3 days, 12:30:15',
+                    cpu_usage: cpuUsage,
+                    memory_usage_percent: memoryUsage,
+                    memory_total: '16GB',
+                    memory_used: '8GB',
+                    disk: [{
+                        mount: '/',
+                        disk_total: '500GB',
+                        disk_used: '300GB',
+                        disk_usage_percent: diskUsage
+                    }],
+                    load_avg_1m: (Math.random() * 5).toFixed(2),
+                    load_avg_5m: (Math.random() * 4).toFixed(2),
+                    load_avg_15m: (Math.random() * 3).toFixed(2),
+                    process_count: Math.floor(Math.random() * 200) + 50,
+                    zombie_count: Math.floor(Math.random() * 3),
+                    timestamp: new Date().toISOString(),
+                    net: {
+                        interface: 'eth0',
+                        rx_bytes: Math.floor(Math.random() * 1000000),
+                        tx_bytes: Math.floor(Math.random() * 1000000),
+                        rx_errors: Math.floor(Math.random() * 10),
+                        tx_errors: Math.floor(Math.random() * 10)
+                    },
+                    services: {
+                        'nginx': problemLevel === 'critical' ? 'stopped' : 'running',
+                        'mysql': Math.random() > 0.9 ? 'stopped' : 'running',
+                        'redis': Math.random() > 0.9 ? 'stopped' : 'running'
+                    },
+                    errors: problemLevel !== 'normal' ? 
+                        [problemLevel === 'critical' ? 'Critical: 서버 응답 없음' : '경고: 높은 부하 감지'] : []
+                });
+            }
+            
+            // 전역 변수에 저장 및 이벤트 발생
+            window.serverData = backupServers;
+            this.handleDataUpdate(backupServers);
+            
+            // 이벤트 발생시키기
+            const event = new CustomEvent('serverDataUpdated', { 
+                detail: backupServers 
+            });
+            window.dispatchEvent(event);
+            
+        } catch (error) {
+            console.error('백업 데이터 생성 중 오류:', error);
+            
+            // 최종 실패 시 오류 메시지 표시
+            this.serverGrid.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    서버 데이터를 로드하지 못했습니다. 새로고침 버튼을 클릭하여 다시 시도해 주세요.
+                </div>
+            `;
         }
     }
     
@@ -239,6 +322,7 @@ class DataProcessor {
         const refreshBtn = document.getElementById('refreshBtn');
         if (refreshBtn) {
             refreshBtn.classList.add('loading');
+            refreshBtn.setAttribute('disabled', 'disabled');
             const refreshContent = refreshBtn.querySelector('.refresh-content');
             const loadingContent = refreshBtn.querySelector('.loading-content');
             
@@ -263,19 +347,36 @@ class DataProcessor {
                     this.hideLoading();
                     
                     // 새로고침 버튼 상태 복원
-                    if (refreshBtn) {
-                        refreshBtn.classList.remove('loading');
-                        const refreshContent = refreshBtn.querySelector('.refresh-content');
-                        const loadingContent = refreshBtn.querySelector('.loading-content');
-                        
-                        if (refreshContent) refreshContent.style.display = 'inline-block';
-                        if (loadingContent) loadingContent.style.display = 'none';
-                    }
+                    this.resetRefreshButton(refreshBtn);
                 }, 3000);
                 
                 return;
             } catch (e) {
                 console.error('데이터 새로고침 중 오류:', e);
+                // 오류 발생 시 원래 데이터로 UI 복원
+                this.hideLoading();
+                this.resetRefreshButton(refreshBtn);
+                
+                // 오류 메시지 표시
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+                errorAlert.innerHTML = `
+                    <strong>오류 발생!</strong> 데이터를 새로고침하는 중 문제가 발생했습니다.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                // 서버 그리드 위에 오류 메시지 삽입
+                const parent = this.serverGrid.parentNode;
+                parent.insertBefore(errorAlert, this.serverGrid);
+                
+                // 5초 후 자동으로 오류 메시지 제거
+                setTimeout(() => {
+                    if (errorAlert.parentNode) {
+                        errorAlert.parentNode.removeChild(errorAlert);
+                    }
+                }, 5000);
+                
+                return;
             }
         }
         
@@ -287,16 +388,22 @@ class DataProcessor {
                 this.applyFiltersAndSort();
                 
                 // 새로고침 버튼 상태 복원
-                if (refreshBtn) {
-                    refreshBtn.classList.remove('loading');
-                    const refreshContent = refreshBtn.querySelector('.refresh-content');
-                    const loadingContent = refreshBtn.querySelector('.loading-content');
-                    
-                    if (refreshContent) refreshContent.style.display = 'inline-block';
-                    if (loadingContent) loadingContent.style.display = 'none';
-                }
+                this.resetRefreshButton(refreshBtn);
             }
         }, 10000);
+    }
+    
+    // 새로고침 버튼 상태 초기화 유틸리티 메소드
+    resetRefreshButton(refreshBtn) {
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.removeAttribute('disabled');
+            const refreshContent = refreshBtn.querySelector('.refresh-content');
+            const loadingContent = refreshBtn.querySelector('.loading-content');
+            
+            if (refreshContent) refreshContent.style.display = 'inline-block';
+            if (loadingContent) loadingContent.style.display = 'none';
+        }
     }
     
     showLoading() {
@@ -464,49 +571,60 @@ class DataProcessor {
     }
     
     createServerCard(server) {
+        if (!server) {
+            console.error("서버 데이터가 없습니다.");
+            return document.createElement('div'); // 빈 요소 반환
+        }
+        
         const status = this.getServerStatus(server);
         // 안전하게 services 체크
-        const hasStoppedServices = server.services && Object.values(server.services).includes('stopped');
+        const hasStoppedServices = server.services && Object.values(server.services).some(status => status === 'stopped');
         // 안전하게 errors 체크
-        const hasErrors = server.errors && server.errors.length > 0;
+        const hasErrors = server.errors && Array.isArray(server.errors) && server.errors.length > 0;
         
         // 서버 카드 생성
         const serverCard = document.createElement('div');
         serverCard.className = 'server-card';
-        serverCard.dataset.serverId = server.hostname;
+        serverCard.dataset.serverId = server.hostname || 'unknown';
         
         // 기존 클릭 이벤트 제거 (모달 대신 새 페이지로 이동)
         // serverCard.addEventListener('click', () => this.showServerDetail(server));
         
+        // CPU, 메모리, 디스크 사용률을 안전하게 가져오기
+        const cpuUsage = server.cpu_usage || 0;
+        const memoryUsage = server.memory_usage_percent || 0;
+        const diskUsage = server.disk && server.disk[0] ? server.disk[0].disk_usage_percent || 0 : 0;
+        const diskMount = server.disk && server.disk[0] ? server.disk[0].mount || '/' : '/';
+        
         // 카드 내용 구성
         serverCard.innerHTML = `
             <div class="server-header">
-                <div class="server-name">${server.hostname}</div>
+                <div class="server-name">${server.hostname || 'Unknown Server'}</div>
                 <div class="server-status status-${status}">${this.getStatusLabel(status)}</div>
             </div>
             <div class="server-details">
                 <div class="detail-item">
                     <div class="detail-label">CPU 사용량</div>
-                    <div class="detail-value">${server.cpu_usage}%</div>
+                    <div class="detail-value">${cpuUsage}%</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar progress-${this.getResourceStatus(server.cpu_usage)}" 
-                             style="width: ${server.cpu_usage}%"></div>
+                        <div class="progress-bar progress-${this.getResourceStatus(cpuUsage)}" 
+                             style="width: ${cpuUsage}%"></div>
                     </div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">메모리</div>
-                    <div class="detail-value">${server.memory_usage_percent ? server.memory_usage_percent.toFixed(1) : '0'}%</div>
+                    <div class="detail-value">${typeof memoryUsage === 'number' ? memoryUsage.toFixed(1) : '0'}%</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar progress-${this.getResourceStatus(server.memory_usage_percent || 0)}" 
-                             style="width: ${server.memory_usage_percent || 0}%"></div>
+                        <div class="progress-bar progress-${this.getResourceStatus(memoryUsage)}" 
+                             style="width: ${memoryUsage}%"></div>
                     </div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">디스크 (${server.disk && server.disk[0] ? server.disk[0].mount : '/'})</div>
-                    <div class="detail-value">${server.disk && server.disk[0] ? server.disk[0].disk_usage_percent.toFixed(1) : '0'}%</div>
+                    <div class="detail-label">디스크 (${diskMount})</div>
+                    <div class="detail-value">${typeof diskUsage === 'number' ? diskUsage.toFixed(1) : '0'}%</div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar progress-${this.getResourceStatus(server.disk && server.disk[0] ? server.disk[0].disk_usage_percent : 0)}" 
-                             style="width: ${server.disk && server.disk[0] ? server.disk[0].disk_usage_percent : 0}%"></div>
+                        <div class="progress-bar progress-${this.getResourceStatus(diskUsage)}" 
+                             style="width: ${diskUsage}%"></div>
                     </div>
                 </div>
                 <div class="detail-item">
@@ -525,7 +643,7 @@ class DataProcessor {
                 </div>
             ` : ''}
             <div class="text-center mt-3">
-                <a href="server_detail.html?host=${server.hostname}" class="btn btn-sm btn-primary">자세히 보기</a>
+                <a href="server_detail.html?host=${server.hostname || 'unknown'}" class="btn btn-sm btn-primary">자세히 보기</a>
             </div>
         `;
         
@@ -814,8 +932,33 @@ class DataProcessor {
         toggleButtonContainer.style.display = 'none';
 
         try {
-            // this.aiProcessor.detectProblems()는 severity가 'Critical', 'Error', 'Warning'인 문제만 반환한다고 가정
-            let problems = this.aiProcessor.detectProblems(); 
+            // detectProblems 메소드가 존재하고 호출 가능한지 확인
+            let problems = [];
+            if (typeof this.aiProcessor.detectProblems === 'function') {
+                problems = this.aiProcessor.detectProblems();
+            } else {
+                console.warn("AI 프로세서에 detectProblems 메소드가 없습니다. 기본 문제 감지 로직을 사용합니다.");
+                // 기본 문제 감지 로직: 리소스 사용량이 높은 서버 감지
+                problems = this.serverData.filter(server => {
+                    const status = this.getServerStatus(server);
+                    if (status === 'critical') {
+                        return {
+                            severity: 'Critical',
+                            serverHostname: server.hostname,
+                            description: `리소스 과부하 감지`,
+                            solution: '서버 자원 확인 및 불필요한 프로세스를 종료하세요.'
+                        };
+                    } else if (status === 'warning') {
+                        return {
+                            severity: 'Warning',
+                            serverHostname: server.hostname,
+                            description: `자원 사용량 높음`,
+                            solution: '서버 상태를 모니터링하고 추세를 확인하세요.'
+                        };
+                    }
+                    return null;
+                }).filter(p => p !== null);
+            }
             
             // 결과가 배열이 아니거나 undefined인 경우 빈 배열로 처리
             if (!Array.isArray(problems)) {
@@ -905,10 +1048,10 @@ class DataProcessor {
     }
     
     // 문제 목록 접기/펼치기 토글 함수
-    toggleProblemList() {
+    toggleProblemList(event) {
         // DOM 요소 찾기
         const problemListContainer = document.getElementById('aiProblemList');
-        const toggleButton = document.getElementById('toggleAiProblemListBtn');
+        const toggleButton = event && event.currentTarget ? event.currentTarget : document.getElementById('toggleAiProblemListBtn');
         
         if (!problemListContainer || !toggleButton || !this.problemsData) {
             console.error("필요한 DOM 요소 또는 데이터가 없습니다.");
@@ -932,9 +1075,15 @@ class DataProcessor {
         // 버튼 텍스트 변경
         if (this.isProblemListExpanded) {
             toggleButton.textContent = '접기';
+            // 보기 좋게 스크롤 추가
+            problemListContainer.style.maxHeight = '400px';
+            problemListContainer.style.overflowY = 'auto';
         } else {
             const remainingCount = this.problemsData.length - maxInitialItems;
             toggleButton.textContent = `더 보기 (${remainingCount}개 더 있음)`;
+            // 스크롤 제거
+            problemListContainer.style.maxHeight = '';
+            problemListContainer.style.overflowY = '';
         }
     }
     
@@ -1129,7 +1278,64 @@ class DataProcessor {
     downloadErrorReport() {
         if (!this.aiProcessor) return;
         
-        const report = this.aiProcessor.generateErrorReport();
+        let report = '';
+        
+        try {
+            // generateErrorReport 메소드가 존재하고 호출 가능한지 확인
+            if (typeof this.aiProcessor.generateErrorReport === 'function') {
+                report = this.aiProcessor.generateErrorReport();
+            } else {
+                console.warn("AI 프로세서에 generateErrorReport 메소드가 없습니다. 기본 보고서를 생성합니다.");
+                
+                // 기본 장애 보고서 생성 로직
+                report = '# 서버 상태 보고서\n\n';
+                report += `생성 시간: ${new Date().toLocaleString()}\n\n`;
+                
+                // 서버 상태에 따라 요약 정보 생성
+                const criticalServers = this.serverData.filter(s => this.getServerStatus(s) === 'critical');
+                const warningServers = this.serverData.filter(s => this.getServerStatus(s) === 'warning');
+                const normalServers = this.serverData.filter(s => this.getServerStatus(s) === 'normal');
+                
+                report += `## 서버 상태 요약\n\n`;
+                report += `- 총 서버 수: ${this.serverData.length}\n`;
+                report += `- 정상: ${normalServers.length}\n`;
+                report += `- 경고: ${warningServers.length}\n`;
+                report += `- 심각: ${criticalServers.length}\n\n`;
+                
+                // 문제 상태의 서버에 대한 세부 정보
+                if (criticalServers.length > 0) {
+                    report += '## 심각한 상태의 서버\n\n';
+                    criticalServers.forEach(server => {
+                        report += `### ${server.hostname}\n`;
+                        report += `- CPU: ${server.cpu_usage}%\n`;
+                        report += `- 메모리: ${server.memory_usage_percent}%\n`;
+                        report += `- 디스크: ${server.disk[0].disk_usage_percent}%\n`;
+                        if (server.errors && server.errors.length > 0) {
+                            report += `- 오류: ${server.errors.join(', ')}\n`;
+                        }
+                        report += `\n`;
+                    });
+                }
+                
+                if (warningServers.length > 0) {
+                    report += '## 경고 상태의 서버\n\n';
+                    warningServers.forEach(server => {
+                        report += `### ${server.hostname}\n`;
+                        report += `- CPU: ${server.cpu_usage}%\n`;
+                        report += `- 메모리: ${server.memory_usage_percent}%\n`;
+                        report += `- 디스크: ${server.disk[0].disk_usage_percent}%\n`;
+                        if (server.errors && server.errors.length > 0) {
+                            report += `- 오류: ${server.errors.join(', ')}\n`;
+                        }
+                        report += `\n`;
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("장애 보고서 생성 중 오류 발생:", e);
+            report = '# 오류 발생\n\n장애 보고서를 생성하는 중 오류가 발생했습니다.\n\n' + e.message;
+        }
+        
         const blob = new Blob([report], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         

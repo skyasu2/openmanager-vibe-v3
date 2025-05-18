@@ -17,8 +17,8 @@
 * **fixed_dummy_data.js**: 현실적인 서버 모니터링 더미 데이터 생성 로직
 * **index.html**: 프로젝트 소개 및 시작 페이지
 * **structure.md**: 실제 시스템과 데모의 구조적 차이점 설명
-* **style.css**: 기본 사용자 인터페이스 스타일 정의
-* **css/modern-style.css**: 대체 가능한 모던 디자인의 스타일시트
+* **css/style.css**: 기본 사용자 인터페이스 스타일 정의 (레거시)
+* **css/modern-style.css**: 서버 모니터링 대시보드용 모던 디자인 스타일시트
 * **summary.js**: 데이터 요약 및 보고서 생성 기능
 
 > **Vibe Coding 방식:** 이 데모는 AI(GPT, Claude, Gemini)를 활용한 신속 개발 방식으로 구현했습니다. 자세한 내용은 `code_notes.md`를 참고하세요.
