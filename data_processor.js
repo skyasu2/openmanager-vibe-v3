@@ -1062,128 +1062,142 @@ class DataProcessor {
     }
     
     showServerDetail(server) {
-        // 부트스트랩 모달 요소 및 내용을 찾기
-        const modalElement = document.getElementById('serverDetailModal');
-        if (!modalElement) {
-            console.error("모달 요소(serverDetailModal)를 찾을 수 없습니다.");
+        if (!server) {
+            console.error("서버 데이터가 없습니다.");
             return;
         }
         
-        // 모달 헤더 내에서 제목 요소 찾기
-        const modalTitle = modalElement.querySelector('.modal-title');
-        if (!modalTitle) {
-            console.error("모달 제목 요소를 찾을 수 없습니다.");
-            return;
-        }
-        
-        // 모달 내용을 표시할 요소 찾기
-        const modalBody = modalElement.querySelector('.modal-body');
-        if (!modalBody) {
-            console.error("모달 내용 요소를 찾을 수 없습니다.");
-            return;
-        }
-        
-        // 서버 상태 정보
-        const status = this.getServerStatus(server);
-        
-        // 서버 이름과 상태 설정
-        modalTitle.innerHTML = `
-            ${server.hostname} 
-            <span class="server-status status-${status}">${this.getStatusLabel(status)}</span>
-        `;
-        
-        // 모달 내용 업데이트 - 개별 필드 업데이트 방식으로 변경
-        // OS 정보
-        const modalOS = document.getElementById('modalOS');
-        if (modalOS) modalOS.textContent = server.os || '-';
-        
-        // 가동 시간
-        const modalUptime = document.getElementById('modalUptime');
-        if (modalUptime) modalUptime.textContent = server.uptime || '-';
-        
-        // 프로세스 수
-        const modalProcessCount = document.getElementById('modalProcessCount');
-        if (modalProcessCount) modalProcessCount.textContent = server.process_count || '-';
-        
-        // 좀비 프로세스
-        const modalZombieCount = document.getElementById('modalZombieCount');
-        if (modalZombieCount) modalZombieCount.textContent = server.zombie_count || '-';
-        
-        // 로드 평균
-        const modalLoadAvg = document.getElementById('modalLoadAvg');
-        if (modalLoadAvg) modalLoadAvg.textContent = server.load_avg_1m || '-';
-        
-        // 마지막 업데이트
-        const modalLastUpdate = document.getElementById('modalLastUpdate');
-        if (modalLastUpdate) modalLastUpdate.textContent = new Date(server.timestamp).toLocaleString() || '-';
-        
-        // 네트워크 정보
-        const modalNetInterface = document.getElementById('modalNetInterface');
-        if (modalNetInterface) modalNetInterface.textContent = server.net?.interface || '-';
-        
-        const modalRxBytes = document.getElementById('modalRxBytes');
-        if (modalRxBytes) modalRxBytes.textContent = this.formatBytes(server.net?.rx_bytes) || '-';
-        
-        const modalTxBytes = document.getElementById('modalTxBytes');
-        if (modalTxBytes) modalTxBytes.textContent = this.formatBytes(server.net?.tx_bytes) || '-';
-        
-        const modalRxErrors = document.getElementById('modalRxErrors');
-        if (modalRxErrors) modalRxErrors.textContent = server.net?.rx_errors || '-';
-        
-        const modalTxErrors = document.getElementById('modalTxErrors');
-        if (modalTxErrors) modalTxErrors.textContent = server.net?.tx_errors || '-';
-        
-        // 서비스 상태
-        const modalServiceStatus = document.getElementById('modalServiceStatus');
-        if (modalServiceStatus) {
-            modalServiceStatus.innerHTML = '';
-            
-            if (server.services && Object.keys(server.services).length > 0) {
-                Object.entries(server.services).forEach(([name, status]) => {
-                    const serviceTag = document.createElement('div');
-                    serviceTag.className = `service-status-tag service-${status}`;
-                    serviceTag.innerHTML = `
-                        ${name} 
-                        <span class="status-indicator">
-                            <i class="fas fa-${status === 'running' ? 'check-circle' : 'times-circle'}"></i>
-                        </span>
-                    `;
-                    modalServiceStatus.appendChild(serviceTag);
-                });
-            } else {
-                modalServiceStatus.innerHTML = '<div class="alert alert-info">서비스 정보가 없습니다.</div>';
-            }
-        }
-        
-        // 오류 메시지
-        const modalErrorsContainer = document.getElementById('modalErrorsContainer');
-        if (modalErrorsContainer) {
-            if (server.errors && server.errors.length > 0) {
-                modalErrorsContainer.innerHTML = `
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            ${server.errors.map(error => `<li>${error}</li>`).join('')}
-                        </ul>
-                    </div>
-                `;
-            } else {
-                modalErrorsContainer.innerHTML = '<div class="alert alert-info">현재 보고된 오류가 없습니다.</div>';
-            }
-        }
-        
-        // 모달 표시 (부트스트랩 5 방식)
         try {
-            // bootstrap 객체가 있는지 확인
-            if (typeof bootstrap !== 'undefined') {
-                const modal = new bootstrap.Modal(modalElement, {
-                    backdrop: true,
-                    keyboard: true,
-                    focus: true
-                });
-                modal.show();
+            // 부트스트랩 모달 요소 및 내용을 찾기
+            const modalElement = document.getElementById('serverDetailModal');
+            if (!modalElement) {
+                console.error("모달 요소(serverDetailModal)를 찾을 수 없습니다.");
+                return;
+            }
+            
+            // 모달 헤더 내에서 제목 요소 찾기
+            const modalTitle = modalElement.querySelector('.modal-title');
+            if (!modalTitle) {
+                console.error("모달 제목 요소를 찾을 수 없습니다.");
+                return;
+            }
+            
+            // 모달 내용을 표시할 요소 찾기
+            const modalBody = modalElement.querySelector('.modal-body');
+            if (!modalBody) {
+                console.error("모달 내용 요소를 찾을 수 없습니다.");
+                return;
+            }
+            
+            // 서버 상태 정보
+            const status = this.getServerStatus(server);
+            
+            // 서버 이름과 상태 설정
+            modalTitle.innerHTML = `
+                ${server.hostname} 
+                <span class="server-status status-${status}">${this.getStatusLabel(status)}</span>
+            `;
+            
+            // 모달 내용 업데이트 - 개별 필드 업데이트 방식으로 변경
+            // OS 정보
+            const modalOS = document.getElementById('modalOS');
+            if (modalOS) modalOS.textContent = server.os || '-';
+            
+            // 가동 시간
+            const modalUptime = document.getElementById('modalUptime');
+            if (modalUptime) modalUptime.textContent = server.uptime || '-';
+            
+            // 프로세스 수
+            const modalProcessCount = document.getElementById('modalProcessCount');
+            if (modalProcessCount) modalProcessCount.textContent = server.process_count || '-';
+            
+            // 좀비 프로세스
+            const modalZombieCount = document.getElementById('modalZombieCount');
+            if (modalZombieCount) modalZombieCount.textContent = server.zombie_count || '-';
+            
+            // 로드 평균
+            const modalLoadAvg = document.getElementById('modalLoadAvg');
+            if (modalLoadAvg) modalLoadAvg.textContent = server.load_avg_1m || '-';
+            
+            // 마지막 업데이트
+            const modalLastUpdate = document.getElementById('modalLastUpdate');
+            if (modalLastUpdate) modalLastUpdate.textContent = new Date(server.timestamp).toLocaleString() || '-';
+            
+            // 네트워크 정보
+            const modalNetInterface = document.getElementById('modalNetInterface');
+            if (modalNetInterface) modalNetInterface.textContent = server.net?.interface || '-';
+            
+            const modalRxBytes = document.getElementById('modalRxBytes');
+            if (modalRxBytes) modalRxBytes.textContent = this.formatBytes(server.net?.rx_bytes) || '-';
+            
+            const modalTxBytes = document.getElementById('modalTxBytes');
+            if (modalTxBytes) modalTxBytes.textContent = this.formatBytes(server.net?.tx_bytes) || '-';
+            
+            const modalRxErrors = document.getElementById('modalRxErrors');
+            if (modalRxErrors) modalRxErrors.textContent = server.net?.rx_errors || '-';
+            
+            const modalTxErrors = document.getElementById('modalTxErrors');
+            if (modalTxErrors) modalTxErrors.textContent = server.net?.tx_errors || '-';
+            
+            // 서비스 상태
+            const modalServiceStatus = document.getElementById('modalServiceStatus');
+            if (modalServiceStatus) {
+                modalServiceStatus.innerHTML = '';
+                
+                if (server.services && Object.keys(server.services).length > 0) {
+                    Object.entries(server.services).forEach(([name, status]) => {
+                        const serviceTag = document.createElement('div');
+                        serviceTag.className = `service-status-tag service-${status}`;
+                        serviceTag.innerHTML = `
+                            ${name} 
+                            <span class="status-indicator">
+                                <i class="fas fa-${status === 'running' ? 'check-circle' : 'times-circle'}"></i>
+                            </span>
+                        `;
+                        modalServiceStatus.appendChild(serviceTag);
+                    });
+                } else {
+                    modalServiceStatus.innerHTML = '<div class="alert alert-info">서비스 정보가 없습니다.</div>';
+                }
+            }
+            
+            // 오류 메시지
+            const modalErrorsContainer = document.getElementById('modalErrorsContainer');
+            if (modalErrorsContainer) {
+                if (server.errors && server.errors.length > 0) {
+                    modalErrorsContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                ${server.errors.map(error => `<li>${error}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    modalErrorsContainer.innerHTML = '<div class="alert alert-info">현재 보고된 오류가 없습니다.</div>';
+                }
+            }
+            
+            // jQuery로 모달 표시 시도 (부트스트랩 의존성 줄이기)
+            if (window.jQuery && window.jQuery.fn.modal) {
+                window.jQuery(modalElement).modal('show');
+                
+                // 리소스 차트 생성
+                this.createResourceChart(server);
+                
+                // 서버 이름을 서버 이름 요소에 설정
+                const modalServerName = document.getElementById('modalServerName');
+                if (modalServerName) modalServerName.textContent = `${server.hostname} 상세 정보`;
+                
+                return; // jQuery로 성공적으로 표시했으면 여기서 종료
+            }
+            
+            // 부트스트랩 모달 인스턴스 생성 및 표시
+            if (typeof bootstrap !== 'undefined' && typeof bootstrap.Modal === 'function') {
+                // 부트스트랩 5+
+                const bsModal = new bootstrap.Modal(modalElement);
+                bsModal.show();
             } else {
-                // bootstrap이 없는 경우 fallback
-                console.warn('bootstrap 객체를 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
+                // 순수 JavaScript로 모달 표시 (fallback)
                 modalElement.style.display = 'block';
                 modalElement.classList.add('show');
                 document.body.classList.add('modal-open');
@@ -1192,20 +1206,29 @@ class DataProcessor {
                 const backdrop = document.createElement('div');
                 backdrop.className = 'modal-backdrop fade show';
                 document.body.appendChild(backdrop);
+                
+                // 닫기 버튼에 이벤트 리스너 추가
+                const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+                closeButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        modalElement.style.display = 'none';
+                        modalElement.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        document.querySelector('.modal-backdrop')?.remove();
+                    });
+                });
             }
+            
+            // 리소스 차트 생성
+            this.createResourceChart(server);
+            
+            // 서버 이름을 서버 이름 요소에 설정
+            const modalServerName = document.getElementById('modalServerName');
+            if (modalServerName) modalServerName.textContent = `${server.hostname} 상세 정보`;
         } catch (error) {
-            console.error('모달 표시 중 오류 발생:', error);
-            // 오류 발생 시 fallback
-            modalElement.style.display = 'block';
-            modalElement.classList.add('show');
+            console.error('서버 상세 정보 표시 중 오류 발생:', error);
+            alert('서버 상세 정보를 표시할 수 없습니다.');
         }
-        
-        // 리소스 차트 생성
-        this.createResourceChart(server);
-        
-        // 서버 이름을 서버 이름 요소에 설정
-        const modalServerName = document.getElementById('modalServerName');
-        if (modalServerName) modalServerName.textContent = `${server.hostname} 상세 정보`;
     }
     
     closeModal() {
@@ -2431,6 +2454,16 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
         }
     }
     
+    // 서버 상태에 따른 부트스트랩 색상 클래스 반환
+    getStatusColorClass(status) {
+        switch(status) {
+            case 'normal': return 'success';
+            case 'warning': return 'warning';
+            case 'critical': return 'danger';
+            default: return 'secondary';
+        }
+    }
+    
     getChartColor(value, type = 'generic') {
         const status = this.getResourceStatus(value, type);
         switch(status) {
@@ -2500,76 +2533,106 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
             return;
         }
         
-        // 기존 모달이 있으면 제거
-        const existingModal = document.getElementById('allProblemsModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        // 모든 문제를 표시하는 모달 생성
-        const modalHTML = `
-            <div class="modal fade" id="allProblemsModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">
-                                <i class="fas fa-exclamation-triangle me-2 text-danger"></i> 전체 서버 문제 목록
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="problems-count mb-3">
-                                총 <span class="fw-bold">${problems.length}</span>개의 문제가 감지되었습니다.
+        try {
+            // 기존 모달이 있으면 제거
+            const existingModal = document.getElementById('allProblemsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 모든 문제를 표시하는 모달 생성
+            const modalHTML = `
+                <div class="modal fade" id="allProblemsModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-exclamation-triangle me-2 text-danger"></i> 전체 서버 문제 목록
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
-                            <div class="alert alert-info mb-3">
-                                <i class="fas fa-info-circle me-2"></i>
-                                각 문제를 클릭하면 해당 서버의 상세 정보를 확인할 수 있습니다.
+                            <div class="modal-body">
+                                <div class="problems-count mb-3">
+                                    총 <span class="fw-bold">${problems.length}</span>개의 문제가 감지되었습니다.
+                                </div>
+                                <div class="alert alert-info mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    각 문제를 클릭하면 해당 서버의 상세 정보를 확인할 수 있습니다.
+                                </div>
+                                <ul class="list-group all-problems-list">
+                                    ${problems.map((problem, idx) => `
+                                        <li class="list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}" data-index="${idx}">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1 problem-description">${problem.description}</h6>
+                                                <small class="text-muted">${problem.serverHostname || '알 수 없는 서버'}</small>
+                                            </div>
+                                            <p class="mb-1 problem-solution">${problem.solution || '제안된 해결책 없음'}</p>
+                                            <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
+                                            <div class="problem-hint-icon">
+                                                <i class="fas fa-search-plus"></i>
+                                            </div>
+                                        </li>
+                                    `).join('')}
+                                </ul>
                             </div>
-                            <ul class="list-group all-problems-list">
-                                ${problems.map(problem => `
-                                    <li class="list-group-item list-group-item-action problem-item severity-${problem.severity.toLowerCase()}">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1 problem-description">${problem.description}</h6>
-                                            <small class="text-muted">${problem.serverHostname || '알 수 없는 서버'}</small>
-                                        </div>
-                                        <p class="mb-1 problem-solution">${problem.solution || '제안된 해결책 없음'}</p>
-                                        <small class="text-muted">심각도: <span class="fw-bold problem-severity-text">${problem.severity}</span></small>
-                                        <div class="problem-hint-icon">
-                                            <i class="fas fa-search-plus"></i>
-                                        </div>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-primary" id="downloadModalReport">
-                                <i class="bi bi-download"></i> 보고서 다운로드
-                            </button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" id="downloadModalReport">
+                                    <i class="bi bi-download"></i> 보고서 다운로드
+                                </button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-        
-        // 모달에 추가 및 표시
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // Bootstrap 모달 인스턴스 생성 및 표시
-        const modalElement = document.getElementById('allProblemsModal');
-        try {
-            // bootstrap 객체가 있는지 확인
-            if (typeof bootstrap !== 'undefined') {
-                const modal = new bootstrap.Modal(modalElement, {
-                    backdrop: true,
-                    keyboard: true,
-                    focus: true
-                });
-                modal.show();
+            `;
+            
+            // 모달을 페이지에 추가
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // 모달 요소 가져오기
+            const modalElement = document.getElementById('allProblemsModal');
+            if (!modalElement) {
+                console.error("모달 요소 생성 실패");
+                return;
+            }
+            
+            // jQuery로 모달 표시 시도 (부트스트랩 의존성 줄이기)
+            if (window.jQuery && window.jQuery.fn.modal) {
+                const $modal = window.jQuery(modalElement);
+                $modal.modal('show');
+                
+                // 문제 항목에 클릭 이벤트 추가
+                window.jQuery('.problem-item').on('click', function() {
+                    const index = parseInt(window.jQuery(this).data('index'));
+                    const serverHostname = problems[index].serverHostname;
+                    if (!serverHostname) return;
+                    
+                    const server = this.serverData.find(s => s.hostname === serverHostname);
+                    if (server) {
+                        $modal.modal('hide');
+                        setTimeout(() => {
+                            this.showServerDetail(server);
+                        }, 500);
+                    }
+                }.bind(this));
+                
+                // 보고서 다운로드 버튼 이벤트
+                window.jQuery('#downloadModalReport').on('click', this.downloadErrorReport.bind(this));
+                
+                return; // jQuery로 성공적으로 표시했으면 여기서 종료
+            }
+            
+            // 부트스트랩 모달 인스턴스 생성 및 표시
+            if (typeof bootstrap !== 'undefined' && typeof bootstrap.Modal === 'function') {
+                // 부트스트랩 5+
+                const bsModal = new bootstrap.Modal(modalElement);
+                bsModal.show();
                 
                 // 문제 항목 클릭 이벤트 추가
-                modalElement.querySelectorAll('.problem-item').forEach((item, index) => {
+                const problemItems = modalElement.querySelectorAll('.problem-item');
+                problemItems.forEach(item => {
                     // 애니메이션 딜레이 설정
+                    const index = parseInt(item.dataset.index);
                     item.style.setProperty('--item-index', index);
                     
                     item.addEventListener('click', () => {
@@ -2579,7 +2642,7 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                         
                         const server = this.serverData.find(s => s.hostname === serverHostname);
                         if (server) {
-                            modal.hide(); // 현재 모달 닫기
+                            bsModal.hide(); // 현재 모달 닫기
                             setTimeout(() => {
                                 this.showServerDetail(server); // 서버 상세 모달 표시
                             }, 500);
@@ -2587,8 +2650,7 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                     });
                 });
             } else {
-                // bootstrap이 없는 경우 fallback
-                console.warn('bootstrap 객체를 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
+                // 순수 JavaScript로 모달 표시 (fallback)
                 modalElement.style.display = 'block';
                 modalElement.classList.add('show');
                 document.body.classList.add('modal-open');
@@ -2598,13 +2660,24 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                 backdrop.className = 'modal-backdrop fade show';
                 document.body.appendChild(backdrop);
                 
+                // 닫기 버튼에 이벤트 리스너 추가
+                const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+                closeButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        modalElement.style.display = 'none';
+                        modalElement.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        document.querySelector('.modal-backdrop')?.remove();
+                    });
+                });
+                
                 // 문제 항목 클릭 이벤트 추가
-                modalElement.querySelectorAll('.problem-item').forEach((item, index) => {
-                    // 애니메이션 딜레이 설정
+                const problemItems = modalElement.querySelectorAll('.problem-item');
+                problemItems.forEach(item => {
+                    const index = parseInt(item.dataset.index);
                     item.style.setProperty('--item-index', index);
                     
                     item.addEventListener('click', () => {
-                        // 해당 서버 모달 표시
                         const serverHostname = problems[index].serverHostname;
                         if (!serverHostname) return;
                         
@@ -2614,40 +2687,47 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                             modalElement.style.display = 'none';
                             modalElement.classList.remove('show');
                             document.body.classList.remove('modal-open');
-                            const backdropElement = document.querySelector('.modal-backdrop');
-                            if (backdropElement) backdropElement.remove();
+                            document.querySelector('.modal-backdrop')?.remove();
                             
                             setTimeout(() => {
-                                this.showServerDetail(server); // 서버 상세 모달 표시
+                                this.showServerDetail(server);
                             }, 500);
                         }
                     });
                 });
             }
+            
+            // 보고서 다운로드 버튼 이벤트
+            const downloadBtn = document.getElementById('downloadModalReport');
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', () => {
+                    this.downloadErrorReport();
+                });
+            }
         } catch (error) {
             console.error('모달 표시 중 오류 발생:', error);
-            // 오류 발생 시 fallback
-            modalElement.style.display = 'block';
-            modalElement.classList.add('show');
-        }
-        
-        // 보고서 다운로드 버튼 이벤트
-        const downloadBtn = document.getElementById('downloadModalReport');
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', () => {
-                this.downloadErrorReport();
-            });
+            alert('문제 목록을 표시할 수 없습니다.');
         }
     }
     
     // 문제 상세 보고서 모달 표시 (새로 추가)
     showProblemDetailModal(problem) {
+        if (!problem) {
+            console.error("문제 데이터가 없습니다.");
+            return;
+        }
+        
         // 서버 정보 가져오기
         const server = this.serverData.find(s => s.hostname === problem.serverHostname);
         
-        // 모달 엘리먼트가 있는지 확인, 없으면 생성
-        let problemModal = document.getElementById('problemDetailModal');
-        if (!problemModal) {
+        try {
+            // 기존 모달 제거 (중복 생성 방지)
+            const existingModal = document.getElementById('problemDetailModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 모달 HTML 생성 및 추가
             const modalHTML = `
             <div class="modal fade" id="problemDetailModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
@@ -2725,138 +2805,142 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                 </div>
             </div>`;
             
-            const modalContainer = document.createElement('div');
-            modalContainer.innerHTML = modalHTML;
-            document.body.appendChild(modalContainer.firstChild);
+            // 모달을 페이지에 추가
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
             
-            problemModal = document.getElementById('problemDetailModal');
-        }
-        
-        // 문제 상세 정보 표시
-        const problemTitle = document.getElementById('problemTitle');
-        const problemDescription = document.getElementById('problemDescription');
-        const serverInfoTable = document.getElementById('problemServerInfoTable');
-        const causesList = document.getElementById('problemCausesList');
-        const solutionsList = document.getElementById('problemSolutionsList');
-        const metricsInfo = document.getElementById('problemMetricsInfo');
-        
-        if (problemTitle) problemTitle.textContent = `${problem.severity} 문제 보고서: ${server ? server.hostname : '알 수 없는 서버'}`;
-        if (problemDescription) problemDescription.textContent = problem.description;
-        
-        // 서버 정보 테이블 업데이트
-        if (serverInfoTable && server) {
-            serverInfoTable.innerHTML = `
-                <tr>
-                    <th>호스트명</th>
-                    <td>${server.hostname}</td>
-                </tr>
-                <tr>
-                    <th>IP 주소</th>
-                    <td>${server.ip}</td>
-                </tr>
-                <tr>
-                    <th>OS</th>
-                    <td>${server.os}</td>
-                </tr>
-                <tr>
-                    <th>상태</th>
-                    <td><span class="badge bg-${this.getStatusColorClass(this.getServerStatus(server))}">${this.getStatusLabel(this.getServerStatus(server))}</span></td>
-                </tr>
-                <tr>
-                    <th>CPU 사용률</th>
-                    <td>${server.cpu_usage}%</td>
-                </tr>
-                <tr>
-                    <th>메모리 사용률</th>
-                    <td>${server.memory_usage_percent}%</td>
-                </tr>
-                <tr>
-                    <th>디스크 사용률</th>
-                    <td>${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent + '%' : 'N/A'}</td>
-                </tr>
-            `;
-        }
-        
-        // 원인 및 해결 방법 목록 채우기
-        if (causesList) {
-            causesList.innerHTML = '';
-            const causes = problem.causes || ["원인 데이터 없음"];
-            causes.forEach(cause => {
-                const li = document.createElement('li');
-                li.textContent = cause;
-                causesList.appendChild(li);
-            });
-        }
-        
-        if (solutionsList) {
-            solutionsList.innerHTML = '';
-            const solutions = problem.solutions || [problem.solution || "해결 방법 데이터 없음"];
-            solutions.forEach(solution => {
-                const li = document.createElement('li');
-                li.textContent = solution;
-                solutionsList.appendChild(li);
-            });
-        }
-        
-        // 상세 메트릭 정보
-        if (metricsInfo && server) {
-            metricsInfo.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="mt-2 mb-3">리소스 사용량</h6>
-                        <div class="progress mb-2" style="height: 25px;">
-                            <div class="progress-bar ${this.getResourceStatus(server.cpu_usage, 'cpu') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
-                                role="progressbar" style="width: ${server.cpu_usage}%">
-                                CPU ${server.cpu_usage}%
-                            </div>
-                        </div>
-                        <div class="progress mb-2" style="height: 25px;">
-                            <div class="progress-bar ${this.getResourceStatus(server.memory_usage_percent, 'memory') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
-                                role="progressbar" style="width: ${server.memory_usage_percent}%">
-                                메모리 ${server.memory_usage_percent}%
-                            </div>
-                        </div>
-                        <div class="progress mb-2" style="height: 25px;">
-                            <div class="progress-bar ${server.disk && server.disk.length > 0 && this.getResourceStatus(server.disk[0].disk_usage_percent, 'disk') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
-                                role="progressbar" style="width: ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0}%">
-                                디스크 ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0}%
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="mt-2 mb-3">네트워크 정보</h6>
-                        <p><strong>수신:</strong> ${this.formatBytes(server.net.rx_bytes)}</p>
-                        <p><strong>송신:</strong> ${this.formatBytes(server.net.tx_bytes)}</p>
-                        <p><strong>오류:</strong> RX: ${server.net.rx_errors}, TX: ${server.net.tx_errors}</p>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // 보고서 다운로드 버튼 이벤트 리스너
-        const downloadBtn = document.getElementById('downloadReportBtn');
-        if (downloadBtn) {
-            // 이전 이벤트 리스너 제거
-            downloadBtn.replaceWith(downloadBtn.cloneNode(true));
-            // 새 이벤트 리스너 추가
-            document.getElementById('downloadReportBtn').addEventListener('click', () => {
-                this.downloadProblemReport(problem, server);
-            });
-        }
-        
-        // 부트스트랩 모달 인스턴스 생성 및 표시
-        try {
-            // bootstrap 객체가 있는지 확인
-            if (typeof bootstrap !== 'undefined') {
-                const modal = new bootstrap.Modal(problemModal, {
-                    backdrop: true,
-                    keyboard: true,
-                    focus: true
+            // 모달 요소를 다시 가져옴
+            const problemModal = document.getElementById('problemDetailModal');
+            if (!problemModal) {
+                console.error("모달 요소 생성 실패");
+                return;
+            }
+            
+            // 문제 상세 정보 표시
+            const problemTitle = document.getElementById('problemTitle');
+            const problemDescription = document.getElementById('problemDescription');
+            const serverInfoTable = document.getElementById('problemServerInfoTable');
+            const causesList = document.getElementById('problemCausesList');
+            const solutionsList = document.getElementById('problemSolutionsList');
+            const metricsInfo = document.getElementById('problemMetricsInfo');
+            
+            // 안전하게 내용 업데이트
+            if (problemTitle) problemTitle.textContent = `${problem.severity} 문제 보고서: ${server ? server.hostname : '알 수 없는 서버'}`;
+            if (problemDescription) problemDescription.textContent = problem.description;
+            
+            // 서버 정보 테이블 업데이트
+            if (serverInfoTable && server) {
+                serverInfoTable.innerHTML = `
+                    <tr>
+                        <th>호스트명</th>
+                        <td>${server.hostname}</td>
+                    </tr>
+                    <tr>
+                        <th>IP 주소</th>
+                        <td>${server.ip}</td>
+                    </tr>
+                    <tr>
+                        <th>OS</th>
+                        <td>${server.os}</td>
+                    </tr>
+                    <tr>
+                        <th>상태</th>
+                        <td><span class="badge bg-${this.getStatusColorClass(this.getServerStatus(server))}">${this.getStatusLabel(this.getServerStatus(server))}</span></td>
+                    </tr>
+                    <tr>
+                        <th>CPU 사용률</th>
+                        <td>${server.cpu_usage}%</td>
+                    </tr>
+                    <tr>
+                        <th>메모리 사용률</th>
+                        <td>${server.memory_usage_percent}%</td>
+                    </tr>
+                    <tr>
+                        <th>디스크 사용률</th>
+                        <td>${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent + '%' : 'N/A'}</td>
+                    </tr>
+                `;
+            }
+            
+            // 원인 및 해결 방법 목록 채우기
+            if (causesList) {
+                causesList.innerHTML = '';
+                const causes = problem.causes || ["원인 데이터 없음"];
+                causes.forEach(cause => {
+                    const li = document.createElement('li');
+                    li.textContent = cause;
+                    causesList.appendChild(li);
                 });
-                modal.show();
+            }
+            
+            if (solutionsList) {
+                solutionsList.innerHTML = '';
+                const solutions = problem.solutions || [problem.solution || "해결 방법 데이터 없음"];
+                solutions.forEach(solution => {
+                    const li = document.createElement('li');
+                    li.textContent = solution;
+                    solutionsList.appendChild(li);
+                });
+            }
+            
+            // 상세 메트릭 정보
+            if (metricsInfo && server) {
+                metricsInfo.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mt-2 mb-3">리소스 사용량</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar ${this.getResourceStatus(server.cpu_usage, 'cpu') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
+                                    role="progressbar" style="width: ${server.cpu_usage}%">
+                                    CPU ${server.cpu_usage}%
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar ${this.getResourceStatus(server.memory_usage_percent, 'memory') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
+                                    role="progressbar" style="width: ${server.memory_usage_percent}%">
+                                    메모리 ${server.memory_usage_percent}%
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar ${server.disk && server.disk.length > 0 && this.getResourceStatus(server.disk[0].disk_usage_percent, 'disk') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
+                                    role="progressbar" style="width: ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0}%">
+                                    디스크 ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mt-2 mb-3">네트워크 정보</h6>
+                            <p><strong>수신:</strong> ${this.formatBytes(server.net.rx_bytes)}</p>
+                            <p><strong>송신:</strong> ${this.formatBytes(server.net.tx_bytes)}</p>
+                            <p><strong>오류:</strong> RX: ${server.net.rx_errors}, TX: ${server.net.tx_errors}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 보고서 다운로드 버튼 이벤트 리스너
+            const downloadBtn = document.getElementById('downloadReportBtn');
+            if (downloadBtn) {
+                // 이전 이벤트 리스너 제거
+                downloadBtn.replaceWith(downloadBtn.cloneNode(true));
+                // 새 이벤트 리스너 추가
+                document.getElementById('downloadReportBtn').addEventListener('click', () => {
+                    this.downloadProblemReport(problem, server);
+                });
+            }
+            
+            // jQuery로 모달 표시 시도 (부트스트랩 의존성 줄이기)
+            if (window.jQuery && window.jQuery.fn.modal) {
+                window.jQuery(problemModal).modal('show');
+                return; // jQuery로 성공적으로 표시했으면 여기서 종료
+            }
+            
+            // 부트스트랩 모달 인스턴스 생성 및 표시
+            if (typeof bootstrap !== 'undefined' && typeof bootstrap.Modal === 'function') {
+                // 부트스트랩 5+
+                const bsModal = new bootstrap.Modal(problemModal);
+                bsModal.show();
             } else {
-                // bootstrap이 없는 경우 fallback
-                console.warn('bootstrap 객체를 찾을 수 없습니다. 기본 모달 표시 방식을 사용합니다.');
+                // 순수 JavaScript로 모달 표시 (fallback)
                 problemModal.style.display = 'block';
                 problemModal.classList.add('show');
                 document.body.classList.add('modal-open');
@@ -2865,12 +2949,21 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                 const backdrop = document.createElement('div');
                 backdrop.className = 'modal-backdrop fade show';
                 document.body.appendChild(backdrop);
+                
+                // 닫기 버튼에 이벤트 리스너 추가
+                const closeButtons = problemModal.querySelectorAll('[data-bs-dismiss="modal"]');
+                closeButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        problemModal.style.display = 'none';
+                        problemModal.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        document.querySelector('.modal-backdrop')?.remove();
+                    });
+                });
             }
         } catch (error) {
             console.error('모달 표시 중 오류 발생:', error);
-            // 오류 발생 시 fallback
-            problemModal.style.display = 'block';
-            problemModal.classList.add('show');
+            alert('문제 상세 정보를 표시할 수 없습니다.');
         }
     }
     
