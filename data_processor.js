@@ -2250,7 +2250,12 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                     queryResultElement.innerHTML = result;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
-                    if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'block';
+                    
+                    // 닫기 버튼 확실히 표시
+                    if (closeQueryResultBtn) {
+                        closeQueryResultBtn.style.display = 'block';
+                        console.log('닫기 버튼 표시됨');
+                    }
                 }
                 if (queryLoadingElement) queryLoadingElement.classList.remove('active');
                 return;
@@ -2287,7 +2292,12 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                     queryResultElement.innerHTML = response;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
-                    if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'block';
+                    
+                    // 닫기 버튼 확실히 표시
+                    if (closeQueryResultBtn) {
+                        closeQueryResultBtn.style.display = 'block';
+                        console.log('닫기 버튼 표시됨');
+                    }
                 }
             })
             .catch(error => {
@@ -2295,7 +2305,12 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                     queryResultElement.innerHTML = `오류가 발생했습니다: ${error.message}`;
                     queryResultElement.classList.add('active');
                     queryResultElement.style.display = 'block';
-                    if (closeQueryResultBtn) closeQueryResultBtn.style.display = 'block';
+                    
+                    // 닫기 버튼 확실히 표시
+                    if (closeQueryResultBtn) {
+                        closeQueryResultBtn.style.display = 'block';
+                        console.log('닫기 버튼 표시됨');
+                    }
                 }
             })
             .finally(() => {
