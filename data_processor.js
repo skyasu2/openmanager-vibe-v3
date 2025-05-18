@@ -268,6 +268,14 @@ class DataProcessor {
                 }, 500);
             });
         });
+        
+        // 전체 보고서 다운로드 버튼 이벤트 리스너
+        const downloadAllReportsBtn = document.getElementById('downloadAllReportsBtn');
+        if (downloadAllReportsBtn) {
+            downloadAllReportsBtn.addEventListener('click', () => {
+                this.downloadAllProblemsReport();
+            });
+        }
     }
     
     loadData() {
@@ -1426,8 +1434,8 @@ class DataProcessor {
                 
                 // 문제 항목 클릭 시 액션 (서버 상세 모달)
                 listItem.addEventListener('click', () => {
-                    const server = this.serverData.find(s => s.hostname === problem.serverHostname);
-                    if (server) this.showServerDetail(server);
+                    // 상세 보고서 모달 표시
+                    this.showProblemDetailModal(problem);
                 });
                 
                 problemListContainer.appendChild(listItem);
@@ -2554,6 +2562,366 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
                 this.downloadErrorReport();
             });
         }
+    }
+    
+    // 문제 상세 보고서 모달 표시 (새로 추가)
+    showProblemDetailModal(problem) {
+        // 서버 정보 가져오기
+        const server = this.serverData.find(s => s.hostname === problem.serverHostname);
+        
+        // 모달 엘리먼트가 있는지 확인, 없으면 생성
+        let problemModal = document.getElementById('problemDetailModal');
+        if (!problemModal) {
+            const modalHTML = `
+            <div class="modal fade" id="problemDetailModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2 text-danger"></i> <span id="problemTitle">문제 상세 보고서</span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="alert alert-danger">
+                                        <h6 class="alert-heading">문제 설명</h6>
+                                        <p id="problemDescription" class="mb-0"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">서버 정보</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-sm">
+                                                <tbody id="problemServerInfoTable">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">문제 원인</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul id="problemCausesList" class="mb-0"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">해결 방법</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul id="problemSolutionsList" class="mb-0"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">상세 메트릭 정보</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="problemMetricsInfo"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" id="downloadReportBtn">
+                                <i class="bi bi-download me-1"></i> 보고서 다운로드 (.txt)
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            
+            const modalContainer = document.createElement('div');
+            modalContainer.innerHTML = modalHTML;
+            document.body.appendChild(modalContainer.firstChild);
+            
+            problemModal = document.getElementById('problemDetailModal');
+        }
+        
+        // 문제 상세 정보 표시
+        const problemTitle = document.getElementById('problemTitle');
+        const problemDescription = document.getElementById('problemDescription');
+        const serverInfoTable = document.getElementById('problemServerInfoTable');
+        const causesList = document.getElementById('problemCausesList');
+        const solutionsList = document.getElementById('problemSolutionsList');
+        const metricsInfo = document.getElementById('problemMetricsInfo');
+        
+        if (problemTitle) problemTitle.textContent = `${problem.severity} 문제 보고서: ${server ? server.hostname : '알 수 없는 서버'}`;
+        if (problemDescription) problemDescription.textContent = problem.description;
+        
+        // 서버 정보 테이블 업데이트
+        if (serverInfoTable && server) {
+            serverInfoTable.innerHTML = `
+                <tr>
+                    <th>호스트명</th>
+                    <td>${server.hostname}</td>
+                </tr>
+                <tr>
+                    <th>IP 주소</th>
+                    <td>${server.ip}</td>
+                </tr>
+                <tr>
+                    <th>OS</th>
+                    <td>${server.os}</td>
+                </tr>
+                <tr>
+                    <th>상태</th>
+                    <td><span class="badge bg-${this.getStatusColorClass(this.getServerStatus(server))}">${this.getStatusLabel(this.getServerStatus(server))}</span></td>
+                </tr>
+                <tr>
+                    <th>CPU 사용률</th>
+                    <td>${server.cpu_usage}%</td>
+                </tr>
+                <tr>
+                    <th>메모리 사용률</th>
+                    <td>${server.memory_usage_percent}%</td>
+                </tr>
+                <tr>
+                    <th>디스크 사용률</th>
+                    <td>${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent + '%' : 'N/A'}</td>
+                </tr>
+            `;
+        }
+        
+        // 원인 및 해결 방법 목록 채우기
+        if (causesList) {
+            causesList.innerHTML = '';
+            const causes = problem.causes || ["원인 데이터 없음"];
+            causes.forEach(cause => {
+                const li = document.createElement('li');
+                li.textContent = cause;
+                causesList.appendChild(li);
+            });
+        }
+        
+        if (solutionsList) {
+            solutionsList.innerHTML = '';
+            const solutions = problem.solutions || [problem.solution || "해결 방법 데이터 없음"];
+            solutions.forEach(solution => {
+                const li = document.createElement('li');
+                li.textContent = solution;
+                solutionsList.appendChild(li);
+            });
+        }
+        
+        // 상세 메트릭 정보
+        if (metricsInfo && server) {
+            metricsInfo.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mt-2 mb-3">리소스 사용량</h6>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar ${this.getResourceStatus(server.cpu_usage, 'cpu') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
+                                role="progressbar" style="width: ${server.cpu_usage}%">
+                                CPU ${server.cpu_usage}%
+                            </div>
+                        </div>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar ${this.getResourceStatus(server.memory_usage_percent, 'memory') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
+                                role="progressbar" style="width: ${server.memory_usage_percent}%">
+                                메모리 ${server.memory_usage_percent}%
+                            </div>
+                        </div>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar ${server.disk && server.disk.length > 0 && this.getResourceStatus(server.disk[0].disk_usage_percent, 'disk') !== 'normal' ? 'bg-danger' : 'bg-success'}" 
+                                role="progressbar" style="width: ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0}%">
+                                디스크 ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent : 0}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="mt-2 mb-3">네트워크 정보</h6>
+                        <p><strong>수신:</strong> ${this.formatBytes(server.net.rx_bytes)}</p>
+                        <p><strong>송신:</strong> ${this.formatBytes(server.net.tx_bytes)}</p>
+                        <p><strong>오류:</strong> RX: ${server.net.rx_errors}, TX: ${server.net.tx_errors}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 보고서 다운로드 버튼 이벤트 리스너
+        const downloadBtn = document.getElementById('downloadReportBtn');
+        if (downloadBtn) {
+            // 이전 이벤트 리스너 제거
+            downloadBtn.replaceWith(downloadBtn.cloneNode(true));
+            // 새 이벤트 리스너 추가
+            document.getElementById('downloadReportBtn').addEventListener('click', () => {
+                this.downloadProblemReport(problem, server);
+            });
+        }
+        
+        // 부트스트랩 모달 인스턴스 생성 및 표시
+        const modal = new bootstrap.Modal(problemModal);
+        modal.show();
+    }
+    
+    // 문제 보고서 다운로드 (새로 추가)
+    downloadProblemReport(problem, server) {
+        if (!problem || !server) return;
+        
+        const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+        const filename = `${server.hostname}_${problem.severity}_report_${timestamp}.txt`;
+        
+        let reportContent = `=========================================\n`;
+        reportContent += `    OpenManager AI 자동 장애 보고서\n`;
+        reportContent += `=========================================\n\n`;
+        reportContent += `[생성 일시]: ${new Date().toLocaleString()}\n\n`;
+        
+        reportContent += `[문제 요약]\n`;
+        reportContent += `심각도: ${problem.severity}\n`;
+        reportContent += `설명: ${problem.description}\n\n`;
+        
+        reportContent += `[서버 정보]\n`;
+        reportContent += `호스트명: ${server.hostname}\n`;
+        reportContent += `IP: ${server.ip}\n`;
+        reportContent += `OS: ${server.os}\n`;
+        reportContent += `상태: ${this.getStatusLabel(this.getServerStatus(server))}\n\n`;
+        
+        reportContent += `[리소스 현황]\n`;
+        reportContent += `CPU 사용률: ${server.cpu_usage}%\n`;
+        reportContent += `메모리 사용률: ${server.memory_usage_percent}%\n`;
+        reportContent += `디스크 사용률: ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent + '%' : 'N/A'}\n`;
+        reportContent += `네트워크 수신: ${this.formatBytes(server.net.rx_bytes)}\n`;
+        reportContent += `네트워크 송신: ${this.formatBytes(server.net.tx_bytes)}\n`;
+        reportContent += `네트워크 오류 (RX/TX): ${server.net.rx_errors}/${server.net.tx_errors}\n\n`;
+        
+        if (problem.causes && problem.causes.length) {
+            reportContent += `[추정 원인]\n`;
+            problem.causes.forEach((cause, index) => {
+                reportContent += `${index + 1}. ${cause}\n`;
+            });
+            reportContent += `\n`;
+        }
+        
+        reportContent += `[해결 방법]\n`;
+        const solutions = problem.solutions || [problem.solution || "해결 방법 데이터 없음"];
+        solutions.forEach((solution, index) => {
+            reportContent += `${index + 1}. ${solution}\n`;
+        });
+        reportContent += `\n`;
+        
+        if (server.errors && server.errors.length) {
+            reportContent += `[오류 로그]\n`;
+            server.errors.forEach((error, index) => {
+                reportContent += `${index + 1}. ${error}\n`;
+            });
+        }
+        
+        reportContent += `\n=========================================\n`;
+        reportContent += `이 보고서는 OpenManager AI에 의해 자동 생성되었습니다.\n`;
+        reportContent += `문의: support@openmanager.ai\n`;
+        
+        // 텍스트 파일로 다운로드
+        const blob = new Blob([reportContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
+    // 전체 문제 보고서 다운로드 (새로 추가)
+    downloadAllProblemsReport() {
+        if (!this.problemsData || this.problemsData.length === 0) {
+            alert('다운로드할 문제 보고서가 없습니다.');
+            return;
+        }
+        
+        const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+        const filename = `OpenManager_all_problems_report_${timestamp}.txt`;
+        
+        let reportContent = `=========================================\n`;
+        reportContent += `    OpenManager AI 자동 장애 보고서 (전체)\n`;
+        reportContent += `=========================================\n\n`;
+        reportContent += `[생성 일시]: ${new Date().toLocaleString()}\n`;
+        reportContent += `[총 문제 수]: ${this.problemsData.length}개\n\n`;
+        
+        this.problemsData.forEach((problem, index) => {
+            const server = this.serverData.find(s => s.hostname === problem.serverHostname);
+            if (!server) return;
+            
+            reportContent += `\n=========================================\n`;
+            reportContent += `문제 #${index + 1}: ${problem.severity} - ${server.hostname}\n`;
+            reportContent += `=========================================\n\n`;
+            
+            reportContent += `[문제 요약]\n`;
+            reportContent += `심각도: ${problem.severity}\n`;
+            reportContent += `설명: ${problem.description}\n\n`;
+            
+            reportContent += `[서버 정보]\n`;
+            reportContent += `호스트명: ${server.hostname}\n`;
+            reportContent += `IP: ${server.ip}\n`;
+            reportContent += `OS: ${server.os}\n`;
+            reportContent += `상태: ${this.getStatusLabel(this.getServerStatus(server))}\n\n`;
+            
+            reportContent += `[리소스 현황]\n`;
+            reportContent += `CPU 사용률: ${server.cpu_usage}%\n`;
+            reportContent += `메모리 사용률: ${server.memory_usage_percent}%\n`;
+            reportContent += `디스크 사용률: ${server.disk && server.disk.length > 0 ? server.disk[0].disk_usage_percent + '%' : 'N/A'}\n`;
+            reportContent += `네트워크 수신: ${this.formatBytes(server.net.rx_bytes)}\n`;
+            reportContent += `네트워크 송신: ${this.formatBytes(server.net.tx_bytes)}\n`;
+            reportContent += `네트워크 오류 (RX/TX): ${server.net.rx_errors}/${server.net.tx_errors}\n\n`;
+            
+            if (problem.causes && problem.causes.length) {
+                reportContent += `[추정 원인]\n`;
+                problem.causes.forEach((cause, causeIndex) => {
+                    reportContent += `${causeIndex + 1}. ${cause}\n`;
+                });
+                reportContent += `\n`;
+            }
+            
+            reportContent += `[해결 방법]\n`;
+            const solutions = problem.solutions || [problem.solution || "해결 방법 데이터 없음"];
+            solutions.forEach((solution, solutionIndex) => {
+                reportContent += `${solutionIndex + 1}. ${solution}\n`;
+            });
+            reportContent += `\n`;
+            
+            if (server.errors && server.errors.length) {
+                reportContent += `[오류 로그]\n`;
+                server.errors.forEach((error, errorIndex) => {
+                    reportContent += `${errorIndex + 1}. ${error}\n`;
+                });
+                reportContent += `\n`;
+            }
+        });
+        
+        reportContent += `\n=========================================\n`;
+        reportContent += `이 보고서는 OpenManager AI에 의해 자동 생성되었습니다.\n`;
+        reportContent += `생성 일시: ${new Date().toLocaleString()}\n`;
+        reportContent += `문의: support@openmanager.ai\n`;
+        
+        // 텍스트 파일로 다운로드
+        const blob = new Blob([reportContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
 

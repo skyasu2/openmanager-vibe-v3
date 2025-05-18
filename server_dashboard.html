@@ -975,131 +975,130 @@
         }
 
         .problem-item {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-left-width: 5px;
-            padding: 12px 15px;
             position: relative;
+            padding-right: 40px;
+            transition: all 0.3s ease;
+            border-left: 5px solid transparent;
             overflow: hidden;
         }
-
-        .problem-item:hover {
-            background-color: #f8f9fa;
-            transform: translateX(3px);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        
+        .problem-item:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.03);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 0;
         }
-
+        
+        .problem-item:hover:before {
+            transform: translateX(0);
+        }
+        
+        .problem-item:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            border-left-width: 8px;
+        }
+        
+        /* 심각도별 색상 */
+        .problem-item.severity-critical {
+            border-left-color: #d32f2f;
+        }
+        
+        .problem-item.severity-warning, .problem-item.severity-error {
+            border-left-color: #ff8f00;
+        }
+        
+        .problem-item.severity-normal {
+            border-left-color: #4caf50;
+        }
+        
+        /* 문제 설명 스타일 */
+        .problem-description {
+            font-weight: 600;
+            color: #2c3e50;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 해결책 스타일 */
+        .problem-solution {
+            font-size: 0.85rem;
+            color: #546e7a;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 심각도 텍스트 스타일 */
+        .problem-severity-text {
+            color: #2c3e50;
+        }
+        
+        .severity-critical .problem-severity-text {
+            color: #d32f2f;
+        }
+        
+        .severity-warning .problem-severity-text, .severity-error .problem-severity-text {
+            color: #ff8f00;
+        }
+        
+        /* 검색 아이콘 (자세히 보기 힌트) */
+        .problem-hint-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b0bec5;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .problem-item:hover .problem-hint-icon {
+            color: #4e73df;
+            transform: translateY(-50%) scale(1.2);
+        }
+        
+        /* 클릭 힌트 툴팁 */
         .problem-item:hover::after {
-            content: '클릭하여 서버 상세정보 보기';
+            content: '클릭하여 상세 보고서 보기';
             position: absolute;
             bottom: 0;
             right: 0;
             background-color: rgba(74, 105, 189, 0.9);
             color: white;
-            padding: 4px 8px;
+            padding: 3px 8px;
             font-size: 0.7rem;
             border-radius: 4px 0 0 0;
-            z-index: 1;
+            z-index: 2;
+        }
+        
+        /* 커서 스타일 */
+        .problem-item {
+            cursor: pointer;
         }
 
-        .problem-item:active {
-            transform: translateX(1px);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .problem-item .problem-description {
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .problem-item .problem-solution {
-            font-size: 0.9em;
-            color: #555;
-            margin-bottom: 5px;
-        }
-
-        .list-group-item.severity-critical {
-            border-left: 5px solid var(--bs-danger, #dc3545);
-            background-color: rgba(220, 53, 69, 0.05);
-        }
-
-        .list-group-item.severity-warning,
-        .list-group-item.severity-error {
-            border-left: 5px solid var(--bs-warning, #ffc107);
-            background-color: rgba(255, 193, 7, 0.05);
-        }
-
-        /* 서버 현황 요약 카드 개선 */
-        #serverStatusSummaryPanel {
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* 문제 아이템 애니메이션 효과 */
-        @keyframes slideFadeIn {
+        /* 리스트 애니메이션 */
+        @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateX(-10px);
+                transform: translateY(20px);
             }
             to {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateY(0);
             }
         }
-
-        #aiProblemList .problem-item {
-            animation: slideFadeIn 0.3s ease-out forwards;
-            animation-delay: calc(var(--item-index, 0) * 0.1s);
+        
+        .problem-item {
+            animation: fadeInUp 0.5s ease forwards;
+            animation-delay: calc(var(--item-index) * 0.1s);
             opacity: 0;
-        }
-
-        /* 비어있는 상태 애니메이션 */
-        @keyframes pulseGlow {
-            0% {
-                transform: scale(1);
-                opacity: 0.9;
-            }
-            50% {
-                transform: scale(1.05);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1);
-                opacity: 0.9;
-            }
-        }
-
-        #aiProblemsEmpty {
-            animation: pulseGlow 2s infinite ease-in-out;
-        }
-
-        /* 문제 항목 힌트 아이콘 스타일 */
-        .problem-hint-icon {
-            position: absolute;
-            right: 10px;
-            bottom: 10px;
-            color: var(--primary);
-            opacity: 0;
-            transition: all 0.2s ease;
-            font-size: 0.8rem;
-            background-color: rgba(255, 255, 255, 0.8);
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-
-        .problem-item:hover .problem-hint-icon {
-            opacity: 1;
-            transform: scale(1.2);
         }
     </style>
 </head>
@@ -1206,8 +1205,8 @@
                     <div class="card-body">
                         <div class="alert alert-info mb-3">
                             <i class="fas fa-info-circle me-2"></i>
-                            각 문제 항목을 <strong>클릭</strong>하면 해당 서버의 상세 정보를 확인할 수 있습니다. 
-                            <small class="d-block mt-1">항목에 마우스를 올리면 상세 정보를 확인할 수 있습니다.</small>
+                            각 문제 항목을 <strong>클릭</strong>하면 해당 문제의 <strong>상세 보고서</strong>를 확인할 수 있습니다. 
+                            <small class="d-block mt-1">보고서는 .txt 파일로 저장하여 관리할 수 있습니다.</small>
                         </div>
                         
                         <div class="alert alert-info" id="aiProblemsLoading" style="display: none;">
