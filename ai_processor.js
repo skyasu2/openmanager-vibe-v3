@@ -1247,4 +1247,48 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Initializing AIProcessor on page load");
         window.aiProcessor = new AIProcessor();
     }
-}); 
+});
+
+// MCP 서버 연동 함수
+async function fetchFromMCP(query) {
+  try {
+    const response = await fetch("https://mcp-lite-server.onrender.com/query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query: query,
+        context: "server-status"  // context 파일명과 일치
+      })
+    });
+
+    if (!response.ok) throw new Error("MCP 서버 오류");
+
+    const data = await response.json();
+    return data.result || "MCP 응답이 없습니다.";
+  } catch (error) {
+    console.error("MCP 요청 실패:", error);
+    return "AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해주세요.";
+  }
+}
+
+// 기존 키워드 매칭 함수 예시 (실제 프로젝트에 맞게 연결)
+function keywordMatchAnswer(query) {
+  // 예시: 간단한 키워드 매칭
+  if (query.includes('CPU')) return 'CPU 사용률이 높은 서버는 server-01, server-02입니다.';
+  if (query.includes('메모리')) return '메모리 사용량이 많은 서버는 server-03입니다.';
+  if (query.includes('디스크')) return '디스크 공간이 부족한 서버는 server-04입니다.';
+  return '적절한 답변을 찾지 못했습니다.';
+}
+
+// MCP 우선, 실패 시 fallback 구조
+export async function processQuery(query) {
+  // 1. MCP 서버 우선 요청
+  const mcpResult = await fetchFromMCP(query);
+  if (mcpResult && !mcpResult.startsWith("AI 응답 생성에 실패")) {
+    return mcpResult;
+  }
+  // 2. Fallback: 기존 키워드 매칭
+  return keywordMatchAnswer(query);
+} 
