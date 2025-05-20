@@ -4,6 +4,7 @@
  */
 
 import { AIProcessor, processQuery } from './ai_processor.js';
+import { CONFIG } from './config.js';
 
 class DataProcessor {
     constructor() {
