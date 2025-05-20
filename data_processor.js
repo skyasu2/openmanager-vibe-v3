@@ -3212,7 +3212,7 @@ class MCPQueryManager {
         resultBox.classList.remove('active');
         resultBox.style.display = 'none';
         try {
-            const res = await fetch(this.mcpUrl + '/query', {
+            const res = await fetch(this.mcpUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
