@@ -3148,3 +3148,122 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
 window.addEventListener('DOMContentLoaded', () => {
     window.dataProcessor = new DataProcessor();
 });
+
+// MCP 질문/응답 확장 기능 추가
+class MCPQueryManager {
+    constructor() {
+        this.historyKey = 'mcpQueryHistory';
+        this.history = this.loadHistory();
+        this.context = null;
+        this.mcpUrl = 'https://netlify-mcp-free.netlify.app'; // 실제 MCP 서버 주소로 교체
+        this.init();
+    }
+
+    async init() {
+        await this.loadContext();
+        this.initUI();
+        this.renderHistory();
+    }
+
+    async loadContext() {
+        try {
+            const res = await fetch('/public/context/server-status.txt');
+            this.context = await res.text();
+        } catch (e) {
+            this.context = '';
+        }
+    }
+
+    initUI() {
+        const input = document.getElementById('queryInput');
+        const button = document.getElementById('ai-query-submit');
+        const result = document.getElementById('queryResultContent');
+        const resultBox = document.getElementById('queryResult');
+        const loading = document.getElementById('queryLoading');
+        const closeBtn = document.getElementById('closeQueryResult');
+        const exampleBtns = document.querySelectorAll('.example-query-btn');
+
+        if (input && button) {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.handleQuery(input, result, resultBox, loading);
+            });
+            button.addEventListener('click', () => this.handleQuery(input, result, resultBox, loading));
+        }
+        if (closeBtn && resultBox) {
+            closeBtn.addEventListener('click', () => {
+                resultBox.classList.remove('active');
+                resultBox.style.display = 'none';
+            });
+        }
+        if (exampleBtns) {
+            exampleBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    input.value = btn.textContent;
+                    this.handleQuery(input, result, resultBox, loading);
+                });
+            });
+        }
+    }
+
+    async handleQuery(input, result, resultBox, loading) {
+        const query = input.value.trim();
+        if (!query) return;
+        loading.style.display = 'block';
+        resultBox.classList.remove('active');
+        resultBox.style.display = 'none';
+        try {
+            const res = await fetch(this.mcpUrl + '/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query,
+                    context: this.context
+                })
+            });
+            const data = await res.json();
+            const answer = data.result || data.answer || '응답이 없습니다.';
+            result.innerHTML = window.marked ? window.marked.parse(answer) : answer;
+            resultBox.classList.add('active');
+            resultBox.style.display = 'block';
+            this.addHistory(query, answer);
+            this.renderHistory();
+        } catch (e) {
+            result.innerHTML = '질문 처리 중 오류가 발생했습니다.';
+            resultBox.classList.add('active');
+            resultBox.style.display = 'block';
+        } finally {
+            loading.style.display = 'none';
+            input.value = '';
+        }
+    }
+
+    addHistory(query, answer) {
+        this.history.unshift({ query, answer, ts: new Date().toISOString() });
+        if (this.history.length > 30) this.history.pop();
+        localStorage.setItem(this.historyKey, JSON.stringify(this.history));
+    }
+
+    loadHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(this.historyKey)) || [];
+        } catch {
+            return [];
+        }
+    }
+
+    renderHistory() {
+        const histBox = document.getElementById('queryHistory');
+        if (!histBox) return;
+        histBox.innerHTML = this.history.map(item => `
+            <div class="query-item">
+                <div class="query-question"><i class="fas fa-user"></i> <span>${item.query}</span></div>
+                <div class="query-answer markdown-content">${window.marked ? window.marked.parse(item.answer) : item.answer}</div>
+                <div class="query-timestamp">${new Date(item.ts).toLocaleString()}</div>
+            </div>
+        `).join('');
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    new MCPQueryManager();
+});
