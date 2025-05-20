@@ -3,6 +3,8 @@
  * 서버 데이터 처리, 페이지네이션, 필터링 및 UI 업데이트 로직을 구현합니다.
  */
 
+import { AIProcessor, processQuery } from './ai_processor.js';
+
 class DataProcessor {
     constructor() {
         try {
@@ -3146,7 +3148,8 @@ CPU 사용률이 높은 서버가 ${highCpuServers.length}대 발견되었습니
 
 // 데이터 프로세서 인스턴스 생성
 window.addEventListener('DOMContentLoaded', () => {
-    window.dataProcessor = new DataProcessor();
+    if (!window.aiProcessor) window.aiProcessor = new AIProcessor();
+    new MCPQueryManager();
 });
 
 // MCP 질문/응답 확장 기능 추가
@@ -3206,23 +3209,18 @@ class MCPQueryManager {
     }
 
     async handleQuery(input, result, resultBox, loading) {
-        const query = input.value.trim();
-        if (!query) return;
+        const query = input.value?.trim();
+        if (!query || query === 'undefined') return; // 빈 입력 방지
         loading.style.display = 'block';
         resultBox.classList.remove('active');
         resultBox.style.display = 'none';
         try {
-            const res = await fetch(this.mcpUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query,
-                    context: this.context
-                })
-            });
-            const data = await res.json();
-            const answer = data.result || data.answer || '응답이 없습니다.';
-            result.innerHTML = window.marked ? window.marked.parse(answer) : answer;
+            const answer = await processQuery(query);
+            if (!answer || answer === 'undefined' || answer.trim() === '') {
+                result.innerHTML = '적절한 답변을 찾지 못했습니다.';
+            } else {
+                result.innerHTML = window.marked ? window.marked.parse(answer) : answer;
+            }
             resultBox.classList.add('active');
             resultBox.style.display = 'block';
             this.addHistory(query, answer);

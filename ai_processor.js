@@ -6,7 +6,7 @@
 
 import { CONFIG } from './config.js';
 
-class AIProcessor {
+export class AIProcessor {
     constructor() {
         this.serverData = null;
         this.historicalData = {};  // 10분 단위 데이터 저장
@@ -1277,7 +1277,6 @@ async function fetchFromMCP(query, context = "server-status") {
 
 // 기존 키워드 매칭 함수 예시 (실제 프로젝트에 맞게 연결)
 function keywordMatchAnswer(query) {
-  // 예시: 간단한 키워드 매칭
   if (query.includes('CPU')) return 'CPU 사용률이 높은 서버는 server-01, server-02입니다.';
   if (query.includes('메모리')) return '메모리 사용량이 많은 서버는 server-03입니다.';
   if (query.includes('디스크')) return '디스크 공간이 부족한 서버는 server-04입니다.';
@@ -1286,11 +1285,14 @@ function keywordMatchAnswer(query) {
 
 // MCP 우선, 실패 시 fallback 구조
 export async function processQuery(query) {
-  // 1. MCP 서버 우선 요청
+  if (!query || query === 'undefined') return '질문이 비어있거나 올바르지 않습니다.';
   const mcpResult = await fetchFromMCP(query);
-  if (mcpResult && !mcpResult.startsWith("AI 응답 생성에 실패")) {
+  if (mcpResult && mcpResult !== 'undefined' && mcpResult.trim() !== '') {
     return mcpResult;
   }
-  // 2. Fallback: 기존 키워드 매칭
-  return keywordMatchAnswer(query);
+  const fallback = keywordMatchAnswer(query);
+  if (!fallback || fallback === 'undefined' || fallback.trim() === '') {
+    return '적절한 답변을 찾지 못했습니다.';
+  }
+  return fallback;
 } 
