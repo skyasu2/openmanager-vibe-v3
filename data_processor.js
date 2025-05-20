@@ -3155,7 +3155,7 @@ class MCPQueryManager {
         this.historyKey = 'mcpQueryHistory';
         this.history = this.loadHistory();
         this.context = null;
-        this.mcpUrl = 'https://netlify-mcp-free.netlify.app'; // 실제 MCP 서버 주소로 교체
+        this.mcpUrl = 'https://mcp-lite-server.onrender.com/query'; // 실제 MCP 서버 주소로 교체
         this.init();
     }
 
