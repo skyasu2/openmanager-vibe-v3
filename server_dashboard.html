@@ -1470,9 +1470,9 @@
             dataProcessor: false
         };
     </script>
-    <script src="dummy_data_generator.js" onerror="window.loadStatus.dummyGenerator = false" onload="window.loadStatus.dummyGenerator = true"></script>
-    <script src="ai_processor.js" onerror="window.loadStatus.aiProcessor = false" onload="window.loadStatus.aiProcessor = true"></script>
-    <script src="data_processor.js" onerror="window.loadStatus.dataProcessor = false" onload="window.loadStatus.dataProcessor = true"></script>
+    <script type="module" src="dummy_data_generator.js" onerror="window.loadStatus.dummyGenerator = false" onload="window.loadStatus.dummyGenerator = true"></script>
+    <script type="module" src="ai_processor.js" onerror="window.loadStatus.aiProcessor = false" onload="window.loadStatus.aiProcessor = true"></script>
+    <script type="module" src="data_processor.js" onerror="window.loadStatus.dataProcessor = false" onload="window.loadStatus.dataProcessor = true"></script>
     
     <!-- 스크립트 로드 오류 처리 -->
     <script>
