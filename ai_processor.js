@@ -4,6 +4,8 @@
  * 자동 문제 분석 및 해결 방법을 제공합니다.
  */
 
+import { CONFIG } from './config.js';
+
 class AIProcessor {
     constructor() {
         this.serverData = null;
@@ -1249,17 +1251,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// MCP 서버 연동 함수
-async function fetchFromMCP(query) {
+// MCP 서버 연동 함수 (context 인자화)
+async function fetchFromMCP(query, context = "server-status") {
   try {
-    const response = await fetch("https://mcp-lite-server.onrender.com/query", {
+    const response = await fetch(CONFIG.MCP_SERVER_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
         query: query,
-        context: "server-status"  // context 파일명과 일치
+        context: context
       })
     });
 
